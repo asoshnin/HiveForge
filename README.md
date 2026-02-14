@@ -174,6 +174,7 @@ kiro-init -n my-app --force  # Preserves your steering edits
 
 ## 📚 Documentation
 
+- **[Workflow Guide](./WORKFLOW.md)** - End-to-end workflows with diagrams
 - **[Quick Start Guide](./QUICKSTART.md)** - 5-minute walkthrough
 - **[Architecture](./docs/architecture.md)** - How kiro-init works
 - **[Development Guide](./docs/development.md)** - Contributing & testing
