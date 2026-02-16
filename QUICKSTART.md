@@ -178,6 +178,63 @@ my-awesome-app/
 
 ## Step 4: Customize Your Project
 
+### Option A: Use Steering Assistant (Recommended)
+
+The Steering Assistant can automatically analyze your project and generate comprehensive steering files.
+
+#### For New Projects
+
+```bash
+# Generate steering files with interactive conversation
+hiveforge steering init
+
+# The assistant will ask questions about:
+# - Project vision and goals
+# - Target users
+# - Technology choices
+# - Development standards
+```
+
+#### For Existing Codebases
+
+If you're adding KIRO to an existing project:
+
+```bash
+# Analyze existing code and generate steering files
+hiveforge steering init --analyze-code
+
+# The assistant will:
+# 1. Detect languages, frameworks, and libraries
+# 2. Infer architecture from directory structure
+# 3. Extract coding conventions from actual code
+# 4. Ask clarifying questions for missing info
+# 5. Generate all 8 steering files
+```
+
+**Example interaction:**
+```bash
+$ hiveforge steering init --analyze-code
+
+🔍 Analyzing codebase...
+✓ Detected: Python 3.11, FastAPI, PostgreSQL
+✓ Architecture: Monolithic web application
+
+📋 I need some additional information:
+
+1. What is the main problem this project solves?
+   > Task management for remote teams
+
+2. Who are the primary users?
+   > Remote workers and small teams
+
+✓ Generating steering files...
+✅ Steering files created successfully!
+```
+
+### Option B: Manual Customization
+
+If you prefer manual control, edit the steering files directly.
+
 ### 4.1 Fill in Swarm State
 
 Open `swarm_state.md` and fill in the project details:
@@ -243,6 +300,18 @@ Edit `.kiro/steering/conventions.md`:
 - Keep commits atomic and focused
 ```
 
+### 4.4 Validate Steering Files
+
+After customizing, validate your steering files:
+
+```bash
+# Check for completeness and consistency
+hiveforge steering validate
+
+# Strict mode (treat warnings as errors)
+hiveforge steering validate --strict
+```
+
 ---
 
 ## Step 5: Start Working with Agents
@@ -287,7 +356,69 @@ Implement POST /auth/login and POST /auth/register endpoints using the schema fr
 
 ## Step 6: Common Workflows
 
-### Workflow 1: Adding a New Feature
+### Workflow 1: Starting a New Project
+
+```bash
+# 1. Initialize KIRO structure
+hiveforge -n my-project
+
+# 2. Generate steering files with Steering Assistant
+hiveforge steering init --analyze-code
+
+# 3. Act as Orchestrator in Kiro IDE
+"I want to build [feature]. Please plan the implementation."
+
+# 4. Orchestrator delegates to specialized agents
+# 5. Switch agents and implement
+# 6. Red Team reviews the implementation
+```
+
+### Workflow 2: Adding KIRO to Existing Project
+
+```bash
+# 1. Clone your existing repository
+git clone https://github.com/youruser/existing-project.git
+cd existing-project
+
+# 2. Initialize KIRO structure
+hiveforge -n existing-project
+
+# 3. Generate steering files from existing code
+hiveforge steering init --analyze-code
+
+# 4. Review generated steering files
+cat .kiro/steering/tech-stack.md
+cat .kiro/steering/architecture.md
+
+# 5. Start using KIRO methodology
+# Act as Orchestrator to plan improvements
+```
+
+### Workflow 3: Continuing Work on Existing KIRO Project
+
+```bash
+# 1. Install HiveForge (see INSTALLATION_GUIDE.md)
+git clone https://github.com/asoshnin/HiveForge.git
+cd HiveForge
+pip install -e .
+
+# 2. Clone your project
+cd ~/projects
+git clone https://github.com/youruser/your-project.git
+cd your-project
+
+# 3. Verify KIRO structure exists
+ls -la .kiro/
+
+# 4. Review project context
+cat swarm_state.md
+cat .kiro/steering/project-vision.md
+
+# 5. Continue development in Kiro IDE
+# Act as Orchestrator to check status and continue work
+```
+
+### Workflow 4: Adding a New Feature
 
 ```bash
 # 1. Act as Orchestrator
@@ -302,7 +433,7 @@ Implement POST /auth/login and POST /auth/register endpoints using the schema fr
 # 4. Red Team reviews the implementation
 ```
 
-### Workflow 2: Fixing a Bug
+### Workflow 5: Fixing a Bug
 
 ```bash
 # 1. Act as QA Engineer
@@ -313,7 +444,25 @@ Implement POST /auth/login and POST /auth/register endpoints using the schema fr
 # 4. QA Engineer writes regression test
 ```
 
-### Workflow 3: Regenerating Project
+### Workflow 6: Updating Steering Files
+
+```bash
+# When your project evolves, update steering files
+
+# 1. Add new documentation to onboarding folder
+cp updated-architecture.md .kiro/onboarding/
+
+# 2. Update steering files
+hiveforge steering update
+
+# 3. Review proposed changes
+# The assistant will show diffs and ask for approval
+
+# 4. Validate updated files
+hiveforge steering validate --strict
+```
+
+### Workflow 7: Regenerating Project
 
 ```bash
 # If you need to reset agent definitions

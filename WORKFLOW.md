@@ -253,41 +253,149 @@ For each file, extract relevant information from my documents and format it acco
 
 ## Workflow 3: Integrating with Existing Codebase
 
-**Scenario:** You have an existing repository with code and want to adopt KIRO methodology.
+**Scenario:** You're on a new computer without HiveForge installed, and you want to continue working on an existing GitHub repository that uses KIRO methodology.
 
 ### Process Flow
 
 ```mermaid
 graph TD
-    A[Existing Codebase] --> B[Analyze Current State]
-    B --> C[Document Current Architecture]
-    C --> D[Run hiveforge in Repo Root]
-    D --> E[Fill Steering Files Based on Existing Code]
-    E --> F[Update swarm_state.md]
-    F --> G[Create Initial Delegation Tree]
-    G --> H[Identify Technical Debt]
-    H --> I[Act as Orchestrator]
-    I --> J[Delegate Refactoring Tasks]
-    J --> K[Specialized Agents Execute]
-    K --> L[Red Team Audits Changes]
-    L --> M[Continue Development with KIRO]
+    A[New Computer] --> B[Install HiveForge]
+    B --> C[Clone GitHub Repository]
+    C --> D[Verify KIRO Structure]
+    D --> E{Has .kiro/ directory?}
+    E -->|Yes| F[Load Kiro IDE]
+    E -->|No| G[Initialize KIRO with Steering Assistant]
+    G --> H[Steering Assistant Analyzes Code]
+    H --> I[Generate Steering Files]
+    I --> F
+    F --> J[Review Steering Files & Swarm State]
+    J --> K[Act as Orchestrator]
+    K --> L[Continue Development]
 ```
 
-### Step-by-Step
+### Scenario A: Continuing Work on KIRO-Enabled Repository
 
-#### 1. Analyze Existing Codebase
+**Starting Point:** Repository already has `.kiro/` directory with agents and steering files.
 
-**Document what you have:**
+#### 1. Install HiveForge
+
+See [INSTALLATION_GUIDE.md](./INSTALLATION_GUIDE.md) for detailed instructions.
+
+**Quick Install:**
 ```bash
-# Clone your existing repo
+# Clone HiveForge repository
+git clone https://github.com/asoshnin/HiveForge.git
+cd HiveForge
+
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate  # macOS/Linux
+# OR
+venv\Scripts\activate.bat  # Windows CMD
+
+# Install HiveForge
+pip install -e .
+
+# Verify installation
+hiveforge --help
+```
+
+#### 2. Clone Your Project Repository
+
+```bash
+# Navigate to your workspace
+cd ~/projects
+
+# Clone your existing project
 git clone https://github.com/youruser/existing-project.git
 cd existing-project
-
-# Analyze structure
-tree -L 2
 ```
 
-**Example existing structure:**
+**Expected structure:**
+```
+existing-project/
+├── .kiro/
+│   ├── agents/          # 7 agent definitions
+│   └── steering/        # 8 steering files
+├── .swarm/
+│   ├── plan/
+│   └── audit_logs/
+├── swarm_state.md       # Project state & decisions
+├── src/                 # Your application code
+├── tests/               # Your tests
+└── README.md
+```
+
+#### 3. Verify KIRO Structure
+
+```bash
+# Check that KIRO files exist
+ls -la .kiro/agents/
+ls -la .kiro/steering/
+
+# Should show:
+# agents: 7 files (orchestrator, data_architect, backend_engineer, etc.)
+# steering: 8 files (project-vision, tech-stack, conventions, etc.)
+```
+
+#### 4. Review Project Context
+
+**Read steering files to understand the project:**
+
+```bash
+# Review project vision
+cat .kiro/steering/project-vision.md
+
+# Review tech stack
+cat .kiro/steering/tech-stack.md
+
+# Review current state
+cat swarm_state.md
+```
+
+**Key information to understand:**
+- What problem does this project solve?
+- What technologies are being used?
+- What's the current development status?
+- What are the coding conventions?
+- What's the architecture?
+
+#### 5. Load Kiro IDE and Continue Development
+
+```bash
+# Open project in Kiro IDE
+# (Kiro IDE will automatically detect .kiro/ structure)
+```
+
+**Act as Orchestrator to continue work:**
+
+```
+I'm continuing work on this project. According to swarm_state.md, we were working on [feature X]. What's the current status and what should we work on next?
+```
+
+**Orchestrator will:**
+- Review swarm_state.md
+- Check delegation tree
+- Identify next tasks
+- Delegate to appropriate agents
+
+### Scenario B: Adding KIRO to Existing Non-KIRO Repository
+
+**Starting Point:** Repository exists but doesn't have `.kiro/` directory yet.
+
+#### 1. Install HiveForge
+
+Follow the same installation steps as Scenario A (see [INSTALLATION_GUIDE.md](./INSTALLATION_GUIDE.md)).
+
+#### 2. Clone Your Project Repository
+
+```bash
+cd ~/projects
+git clone https://github.com/youruser/existing-project.git
+cd existing-project
+```
+
+**Current structure (no KIRO):**
 ```
 existing-project/
 ├── src/
@@ -299,10 +407,10 @@ existing-project/
 └── README.md
 ```
 
-#### 2. Initialize KIRO
+#### 3. Initialize KIRO Structure
 
 ```bash
-# Run hiveforge in your existing repo
+# Initialize KIRO in existing repository
 hiveforge -n existing-project
 ```
 
@@ -312,79 +420,374 @@ existing-project/
 ├── src/                 # Your existing code (unchanged)
 ├── tests/               # Your existing tests (unchanged)
 ├── .kiro/               # NEW: KIRO structure
-│   ├── agents/
-│   └── steering/
+│   ├── agents/          # 7 agent definitions
+│   └── steering/        # 8 steering files (templates)
 ├── .swarm/              # NEW: Planning & logs
+│   ├── plan/
+│   └── audit_logs/
 └── swarm_state.md       # NEW: State tracking
 ```
 
-#### 3. Reverse-Engineer Steering Files
+#### 4. Generate Steering Files with Steering Assistant
 
-**Fill steering files based on existing code:**
+**Option A: Automatic Analysis (Recommended)**
 
-**`.kiro/steering/tech-stack.md`** (analyze from `requirements.txt`):
+Use the Steering Assistant to automatically analyze your codebase and generate steering files:
+
+```bash
+# Analyze codebase and generate steering files
+hiveforge steering init --analyze-code
+```
+
+**What the Steering Assistant does:**
+1. Scans your codebase to detect:
+   - Programming languages and versions
+   - Frameworks and libraries (from package.json, requirements.txt, etc.)
+   - Architecture patterns (from directory structure)
+   - Coding conventions (from actual code)
+   - Existing documentation (README, docs/)
+
+2. Asks clarifying questions about:
+   - Project vision and goals
+   - Target users
+   - Missing technical details
+   - Development standards
+
+3. Generates 8 comprehensive steering files:
+   - `project-vision.md` - Goals, users, value proposition
+   - `tech-stack.md` - Technologies, frameworks, libraries
+   - `conventions.md` - Naming, formatting, commit messages
+   - `architecture.md` - System design, components, data flow
+   - `db-standards.md` - Schema design, migrations, queries
+   - `api-standards.md` - Endpoint design, error handling, auth
+   - `ui-standards.md` - Component structure, styling, accessibility
+   - `qa-standards.md` - Testing strategy, coverage requirements
+
+**Example interaction:**
+```bash
+$ hiveforge steering init --analyze-code
+
+🔍 Analyzing codebase...
+✓ Detected: Python 3.11, Flask 2.3, SQLAlchemy 1.4, PostgreSQL
+✓ Architecture: Monolithic web application
+✓ Found 5,234 lines of code across 42 files
+
+📋 I need some additional information:
+
+1. What is the main problem this project solves?
+   > Task management for remote teams
+
+2. Who are the primary users?
+   > Remote workers and small teams (5-20 people)
+
+3. What's your testing strategy?
+   > Unit tests with pytest, aiming for 80% coverage
+
+4. What are your API design principles?
+   > RESTful, versioned endpoints, JSON responses
+
+✓ Generating steering files...
+✓ Validating generated files...
+
+✅ Steering files created successfully!
+📁 Review files in .kiro/steering/
+```
+
+**Option B: Manual with Artifacts**
+
+If you have existing documentation (PRD, architecture diagrams, specs):
+
+```bash
+# 1. Create onboarding folder and add artifacts
+mkdir -p .kiro/onboarding
+cp docs/architecture.md .kiro/onboarding/
+cp docs/project-spec.pdf .kiro/onboarding/
+cp docs/requirements.md .kiro/onboarding/
+
+# 2. Run Steering Assistant with artifacts
+hiveforge steering init --analyze-code
+```
+
+The Steering Assistant will:
+- Parse your artifacts (markdown, PDF, images)
+- Analyze your codebase
+- Ask fewer questions (since artifacts provide context)
+- Generate steering files combining both sources
+
+**Option C: Manual Reverse-Engineering**
+
+If you prefer manual control, reverse-engineer steering files from your code:
+
+**`.kiro/steering/tech-stack.md`** (from `requirements.txt`):
 ```markdown
 # Tech Stack
 
-## Current Stack (Existing)
-- Backend: Flask 2.3
-- Database: SQLite (development), PostgreSQL (production)
+## Backend
+- Language: Python 3.11
+- Framework: Flask 2.3
+- Database: PostgreSQL 15
 - ORM: SQLAlchemy 1.4
 
-## Planned Upgrades
-- Migrate to FastAPI
-- Upgrade SQLAlchemy to 2.0
+## Testing
+- Framework: pytest
+- Coverage: 45% (target: 80%)
+
+## Deployment
+- Container: Docker
+- Hosting: AWS EC2
 ```
 
-**`.kiro/steering/architecture.md`** (analyze from `src/` structure):
+**`.kiro/steering/architecture.md`** (from `src/` structure):
 ```markdown
 # Architecture
 
-## Current Components
-- API Layer: Flask blueprints in `src/api/`
-- Data Layer: SQLAlchemy models in `src/models/`
-- Utilities: Helper functions in `src/utils/`
+## System Type
+Monolithic web application
+
+## Core Components
+
+### API Layer (`src/api/`)
+- Flask blueprints for routing
+- RESTful endpoints
+- JSON responses
+
+### Data Layer (`src/models/`)
+- SQLAlchemy ORM models
+- Database migrations with Alembic
+
+### Business Logic (`src/utils/`)
+- Helper functions
+- Validation logic
+- Business rules
 
 ## Technical Debt
 - No API versioning
-- Missing input validation
+- Missing input validation on some endpoints
 - Inconsistent error handling
+- Test coverage below target (45% vs 80%)
 ```
 
-#### 4. Create Initial Delegation Tree
+**Repeat for all 8 steering files.**
 
-**In `swarm_state.md`, document current state:**
+#### 5. Update Swarm State
+
+Document the current state in `swarm_state.md`:
 
 ```markdown
+## 1. Project Identity & Context
+
+**Project Name:** existing-project
+**Brief Description:** Task management system for remote teams
+**Target Users:** Remote workers, small teams (5-20 people)
+**Core Value Proposition:** Streamlined task tracking with team collaboration features
+
+## 2. Project Evolution Log
+
+### 2026-02-16: KIRO Methodology Adoption
+**Reason:** Improve development workflow and code quality
+**Actions:**
+- Initialized KIRO structure with hiveforge
+- Generated steering files using Steering Assistant
+- Documented existing architecture and technical debt
+
+**Current State:**
+- Codebase: ~5,200 lines Python
+- Test coverage: 45%
+- Architecture: Monolithic Flask app
+- Database: PostgreSQL 15
+
+**Identified Technical Debt:**
+- No API versioning
+- Missing input validation
+- Inconsistent error handling
+- Test coverage below 80% target
+
 ## 3. Delegation Tree
 
-### Current State Analysis (Orchestrator → All Agents)
+### Initial Assessment (Orchestrator)
 **Status:** Complete
-**Findings:**
-- Codebase: ~5,000 lines Python
-- Test coverage: 45% (needs improvement)
-- Technical debt: API versioning, input validation
-- Architecture: Monolithic Flask app
-
-### Next Steps (Orchestrator)
-**Planned:**
-1. Data Architect: Design migration to PostgreSQL
+**Next Steps:**
+1. QA Engineer: Increase test coverage to 80%
 2. Backend Engineer: Add API versioning
-3. QA Engineer: Increase test coverage to 80%
-4. Red Team: Security audit of auth endpoints
+3. Backend Engineer: Implement consistent error handling
+4. Red Team: Security audit of authentication
 ```
 
-#### 5. Start Iterative Improvements
+#### 6. Commit KIRO Structure
 
-**Act as Orchestrator:**
-```
-We have an existing Flask app with 45% test coverage. Let's increase coverage to 80% and add API versioning. Please plan and delegate.
+```bash
+# Add KIRO files to git
+git add .kiro/ .swarm/ swarm_state.md
+
+# Commit
+git commit -m "feat: adopt KIRO Methodology v05
+
+- Initialize KIRO structure with hiveforge
+- Generate steering files with Steering Assistant
+- Document current architecture and technical debt
+- Identify improvement priorities"
+
+# Push to GitHub
+git push origin main
 ```
 
-**Orchestrator delegates:**
-- QA Engineer: Write missing tests
-- Backend Engineer: Implement API versioning
-- Red Team: Audit changes
+#### 7. Start Development with KIRO
+
+**Load Kiro IDE and act as Orchestrator:**
+
+```
+I've just adopted KIRO methodology for this existing project. According to swarm_state.md, we have technical debt to address. Let's start by increasing test coverage to 80%. Please plan and delegate.
+```
+
+**Orchestrator Response:**
+```
+Acknowledged. I'll delegate this to the QA Engineer.
+
+QA Engineer: Please analyze the current test suite and:
+1. Identify untested code paths
+2. Write unit tests to increase coverage from 45% to 80%
+3. Focus on critical paths first (auth, data validation, API endpoints)
+4. Ensure tests follow conventions in .kiro/steering/qa-standards.md
+
+I'll track progress in swarm_state.md.
+```
+
+### Scenario C: Team Member Joining Existing KIRO Project
+
+**Starting Point:** You're a new team member joining a project that already uses KIRO.
+
+#### 1. Install HiveForge
+
+Follow [INSTALLATION_GUIDE.md](./INSTALLATION_GUIDE.md).
+
+#### 2. Clone Project Repository
+
+```bash
+cd ~/projects
+git clone https://github.com/company/project-name.git
+cd project-name
+```
+
+#### 3. Onboard with Steering Files
+
+**Read steering files in order:**
+
+```bash
+# 1. Understand the vision
+cat .kiro/steering/project-vision.md
+
+# 2. Learn the tech stack
+cat .kiro/steering/tech-stack.md
+
+# 3. Learn coding conventions
+cat .kiro/steering/conventions.md
+
+# 4. Understand architecture
+cat .kiro/steering/architecture.md
+
+# 5. Review current state
+cat swarm_state.md
+```
+
+**Key questions to answer:**
+- What problem does this solve?
+- Who are the users?
+- What technologies are used?
+- What are the coding standards?
+- How is the system architected?
+- What's currently being worked on?
+
+#### 4. Set Up Development Environment
+
+```bash
+# Install dependencies (example for Python)
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Run tests to verify setup
+pytest tests/ -v
+
+# Start development server (if applicable)
+python src/main.py
+```
+
+#### 5. Start Contributing
+
+**Act as Orchestrator to get assigned work:**
+
+```
+I'm a new team member. I've reviewed the steering files and understand the project. What tasks can I help with?
+```
+
+**Orchestrator Response:**
+```
+Welcome! Based on swarm_state.md, here are good starter tasks:
+
+1. [QA] Write tests for user authentication (currently 60% coverage)
+2. [Backend] Implement input validation for /api/tasks endpoint
+3. [Frontend] Fix responsive layout on mobile devices
+
+Which area interests you most?
+```
+
+### Key Differences Between Scenarios
+
+| Scenario | Starting Point | HiveForge Needed? | Steering Files | Best Approach |
+|----------|---------------|-------------------|----------------|---------------|
+| A: Continue KIRO project | Repo has `.kiro/` | Yes | Already exist | Clone → Review → Continue |
+| B: Add KIRO to existing | Repo without `.kiro/` | Yes | Need to create | Clone → Init → Steering Assistant |
+| C: Join KIRO team | Repo has `.kiro/` | Yes | Already exist | Clone → Onboard → Contribute |
+
+### Troubleshooting
+
+#### "hiveforge: command not found"
+
+**Solution:** HiveForge not installed or venv not activated.
+```bash
+# Activate virtual environment
+source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate.bat  # Windows
+
+# If still not found, reinstall
+cd /path/to/HiveForge
+pip install -e .
+```
+
+#### ".kiro/ directory already exists"
+
+**Solution:** Repository already has KIRO structure.
+```bash
+# Just verify it's complete
+ls -la .kiro/agents/  # Should show 7 files
+ls -la .kiro/steering/  # Should show 8 files
+
+# If incomplete, regenerate
+hiveforge -n project-name --force
+```
+
+#### "Steering files are empty or have placeholders"
+
+**Solution:** Use Steering Assistant to populate them.
+```bash
+# Generate from codebase analysis
+hiveforge steering init --analyze-code
+
+# Or update existing files
+hiveforge steering update --analyze-code
+```
+
+#### "Can't understand the codebase"
+
+**Solution:** Use Steering Assistant's analysis.
+```bash
+# Let Steering Assistant explain the codebase
+hiveforge steering init --analyze-code
+
+# Review generated steering files
+cat .kiro/steering/architecture.md
+cat .kiro/steering/tech-stack.md
+```
 
 ---
 

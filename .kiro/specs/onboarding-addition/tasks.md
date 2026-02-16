@@ -320,22 +320,22 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - **Validates: Requirements 3A.12-3A.15, 3B.1-3B.7**
 
 - [ ] 17. Create agent definition files
-  - [ ] 17.1 Create Steering_Assistant agent definition
+  - [x] 17.1 Create Steering_Assistant agent definition
     - Write `.kiro/agents/steering-assistant.md` with agent description, capabilities, and usage instructions
     - _Requirements: 4.1-4.8, 5.1-5.11_
 
-  - [ ] 17.2 Create Steering_Validator agent definition
+  - [x] 17.2 Create Steering_Validator agent definition
     - Write `.kiro/agents/steering-validator.md` with agent description, capabilities, and usage instructions
     - _Requirements: 10.1-10.10, 11.1-11.7_
 
 - [ ] 18. Write documentation
-  - [ ] 18.1 Update HiveForge README
+  - [x] 18.1 Update HiveForge README
     - Add section on steering assistant feature
     - Document CLI commands and flags
     - Provide usage examples
     - _Requirements: 1.1-1.8_
 
-  - [ ] 18.2 Create user guide
+  - [x] 18.2 Create user guide
     - Write guide for init workflow (with and without --analyze-code)
     - Write guide for update workflow
     - Write guide for validate workflow

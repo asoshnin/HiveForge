@@ -46,12 +46,229 @@ pytest tests/ -v
 
 ```
 hiveforge/
-├── src/hiveforge/        # Source code
-├── tests/                # Test suite
-├── docs/                 # Documentation
-├── pyproject.toml        # Poetry configuration
-├── README.md             # Main documentation
-└── .github/              # GitHub templates (future)
+├── src/hiveforge/
+│   ├── cli.py                    # Main CLI entry point
+│   ├── generator.py              # Project scaffolding
+│   └── steering/                 # Steering Assistant module
+│       ├── agents/               # AI agents
+│       │   └── steering_assistant.py
+│       ├── analyzers/            # Code & doc analyzers
+│       │   ├── code_analyzer.py
+│       │   ├── language_detector.py
+│       │   ├── tech_stack_extractor.py
+│       │   ├── architecture_inferrer.py
+│       │   ├── conventions_extractor.py
+│       │   └── documentation_parser.py
+│       ├── parsers/              # Artifact parsers
+│       │   ├── markdown.py
+│       │   ├── pdf.py
+│       │   ├── image.py
+│       │   └── orchestrator.py
+│       ├── validators/           # Validation logic
+│       │   ├── steering_validator.py
+│       │   └── rule_based.py
+│       ├── workflows/            # Main workflows
+│       │   ├── init_workflow.py
+│       │   ├── update_workflow.py
+│       │   └── validate_workflow.py
+│       ├── cli.py                # Steering CLI commands
+│       ├── models.py             # Data models
+│       ├── knowledge_base.py     # Knowledge management
+│       ├── gap_analysis.py       # Missing info detection
+│       ├── template_populator.py # Template filling
+│       ├── conflict_resolver.py  # Conflict handling
+│       ├── diff_generator.py     # Diff generation
+│       ├── customization_detector.py
+│       ├── response_cache.py     # LLM response caching
+│       ├── error_handling.py     # Error handling
+│       └── templates.py          # Template definitions
+├── tests/                        # Test suite (863 tests)
+├── docs/                         # Documentation
+├── pyproject.toml                # Poetry configuration
+├── README.md                     # Main documentation
+└── .github/                      # GitHub templates (future)
+```
+
+---
+
+## Steering Assistant Development
+
+### Architecture Overview
+
+The Steering Assistant is a modular system with clear separation of concerns:
+
+- **Workflows**: High-level orchestration (init, update, validate)
+- **Agents**: AI-powered conversation and decision-making
+- **Analyzers**: Extract information from code and documentation
+- **Parsers**: Read artifacts (markdown, PDF, images)
+- **Validators**: Check steering files for completeness
+- **Utilities**: Knowledge base, caching, error handling
+
+### Adding New Features
+
+#### Adding a New Analyzer
+
+```python
+# src/hiveforge/steering/analyzers/my_analyzer.py
+from pathlib import Path
+from typing import Dict, Any
+
+class MyAnalyzer:
+    """Analyzes X to extract Y."""
+    
+    def analyze(self, project_root: Path) -> Dict[str, Any]:
+        """
+        Analyze project and return extracted information.
+        
+        Args:
+            project_root: Root directory of project
+            
+        Returns:
+            Dictionary with extracted information
+        """
+        # Implementation
+        return {"key": "value"}
+```
+
+#### Adding a New Validator Rule
+
+```python
+# src/hiveforge/steering/validators/rule_based.py
+def validate_my_rule(content: str, file_path: Path) -> List[ValidationIssue]:
+    """Validate custom rule."""
+    issues = []
+    # Check for issues
+    if problem_detected:
+        issues.append(ValidationIssue(
+            severity="critical",
+            message="Problem description",
+            line_number=line_num,
+            suggestion="How to fix"
+        ))
+    return issues
+```
+
+#### Adding a New Workflow
+
+```python
+# src/hiveforge/steering/workflows/my_workflow.py
+from hiveforge.steering.models import SteeringConfig
+from pathlib import Path
+
+class MyWorkflow:
+    """Custom workflow for X."""
+    
+    def __init__(self, config: SteeringConfig):
+        self.config = config
+        
+    def execute(self, project_root: Path) -> bool:
+        """Execute workflow."""
+        # Implementation
+        return True
+```
+
+### Testing Steering Assistant
+
+#### Unit Tests
+
+```bash
+# Test specific module
+pytest tests/test_code_analyzer.py -v
+pytest tests/test_steering_assistant.py -v
+pytest tests/test_init_workflow.py -v
+
+# Test all steering modules
+pytest tests/test_*.py -k steering -v
+```
+
+#### Integration Tests
+
+```bash
+# Test full workflows
+pytest tests/test_cli_integration.py -v
+
+# Test with real LLM (requires API key)
+export OPENAI_API_KEY=your_key
+pytest tests/test_steering_assistant.py::test_real_conversation -v
+```
+
+#### Property-Based Tests
+
+```bash
+# Run property-based tests (uses Hypothesis)
+pytest tests/test_code_analyzer.py::test_property_* -v
+```
+
+### Debugging Steering Assistant
+
+#### Enable Debug Logging
+
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+#### Inspect Response Cache
+
+```bash
+# View cached LLM responses
+cat .kiro/.cache/response_cache.json | jq
+```
+
+#### Test Individual Components
+
+```python
+# Test code analyzer
+from hiveforge.steering.analyzers.code_analyzer import CodeAnalyzer
+from pathlib import Path
+
+analyzer = CodeAnalyzer()
+result = analyzer.analyze(Path("."))
+print(result)
+```
+
+#### Test Workflows Manually
+
+```bash
+# Test init workflow
+python -m hiveforge.steering.cli init --analyze-code
+
+# Test with debug output
+python -m pdb -m hiveforge.steering.cli init
+```
+
+### Performance Optimization
+
+#### Token Usage
+
+Monitor token usage to optimize LLM costs:
+
+```python
+# Add token counting
+from hiveforge.steering.utils import count_tokens
+
+text = "Your prompt here"
+tokens = count_tokens(text)
+print(f"Token count: {tokens}")
+```
+
+#### Response Caching
+
+The response cache reduces redundant LLM calls:
+
+```python
+# Clear cache for testing
+import os
+os.remove(".kiro/.cache/response_cache.json")
+```
+
+#### Code Analysis Performance
+
+For large codebases, use sampling:
+
+```python
+# Automatic sampling for >10k files
+analyzer = CodeAnalyzer(max_files=1000)
 ```
 
 ---

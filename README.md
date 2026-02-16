@@ -16,6 +16,7 @@
 
 - 🤖 **7 Specialized Agent Definitions** - Orchestrator, Data Architect, Backend Engineer, Frontend Engineer, QA Engineer, DevOps Engineer, Red Team
 - 📋 **8 Steering Files** - Project vision, tech stack, conventions, architecture, and standards
+- 🧭 **Steering Assistant** - AI-powered tool to create and maintain steering files throughout your project lifecycle
 - 📊 **Swarm State Management** - Pre-configured `swarm_state.md` with dynamic placeholders
 - 🔒 **Permission-Based Security** - `toolsSettings` enforce role boundaries (Orchestrator can't write to `src/`)
 - ⚡ **Zero Configuration** - Works out of the box, no setup required
@@ -157,6 +158,55 @@ cd my-existing-project
 hiveforge
 ```
 
+### Steering Assistant Commands
+
+The Steering Assistant helps you create and maintain steering files throughout your project lifecycle:
+
+```bash
+# Create steering files from scratch
+hiveforge steering init
+
+# Create with code analysis (auto-extract project info)
+hiveforge steering init --analyze-code
+
+# Non-interactive mode (use only artifacts)
+hiveforge steering init --no-interactive
+
+# Enable web research for missing information
+hiveforge steering init --research
+
+# Update existing steering files
+hiveforge steering update
+
+# Validate steering files
+hiveforge steering validate
+
+# Strict validation (warnings as errors)
+hiveforge steering validate --strict
+```
+
+#### Steering Workflow
+
+1. **Place artifacts** in `.kiro/onboarding/` (optional):
+   - Project specs, architecture diagrams, requirements docs
+   - Supports markdown, PDF, and images
+
+2. **Run init** to create steering files:
+   ```bash
+   hiveforge steering init --analyze-code
+   ```
+
+3. **Answer questions** during interactive conversation (if needed)
+
+4. **Review generated files** in `.kiro/steering/`
+
+5. **Update later** when project evolves:
+   ```bash
+   hiveforge steering update
+   ```
+
+See the [Steering Assistant Guide](#-steering-assistant) for detailed usage.
+
 ### Project Name Rules
 
 ✅ **Valid Names:**
@@ -213,6 +263,139 @@ hiveforge -n my-app --force  # Preserves your steering edits
     pip install hiveforge
     hiveforge -n ${{ github.event.repository.name }}
 ```
+
+---
+
+## 🧭 Steering Assistant
+
+The Steering Assistant is an AI-powered tool that helps you create and maintain steering files throughout your project lifecycle.
+
+### What It Does
+
+- **Analyzes Your Codebase**: Automatically extracts tech stack, architecture, and conventions
+- **Parses Artifacts**: Reads project specs, diagrams, and documentation
+- **Fills Knowledge Gaps**: Asks targeted questions to gather missing information
+- **Generates Steering Files**: Creates comprehensive, consistent documentation
+- **Maintains Over Time**: Updates steering files as your project evolves
+- **Preserves Customizations**: Keeps your manual edits during updates
+
+### Commands
+
+#### `hiveforge steering init`
+
+Create steering files from scratch.
+
+**Flags:**
+- `--analyze-code`: Analyze existing codebase to extract project information
+- `--research`: Enable web research to find missing information
+- `--skip-validation`: Skip automatic validation after generation
+- `--interactive` / `--no-interactive`: Enable/disable conversation mode (default: interactive)
+
+**Examples:**
+```bash
+# Basic init with conversation
+hiveforge steering init
+
+# Import existing codebase
+hiveforge steering init --analyze-code
+
+# Non-interactive (use only artifacts)
+hiveforge steering init --no-interactive
+
+# With web research
+hiveforge steering init --research
+```
+
+#### `hiveforge steering update`
+
+Update existing steering files with new information.
+
+**Flags:**
+- `--research`: Enable web research
+- `--skip-validation`: Skip validation after update
+- `--interactive` / `--no-interactive`: Enable/disable conversation mode
+
+**Examples:**
+```bash
+# Update with new artifacts
+hiveforge steering update
+
+# Non-interactive update
+hiveforge steering update --no-interactive
+```
+
+#### `hiveforge steering validate`
+
+Validate steering files for completeness and consistency.
+
+**Flags:**
+- `--strict`: Treat warnings as errors
+
+**Examples:**
+```bash
+# Basic validation
+hiveforge steering validate
+
+# Strict mode (for CI/CD)
+hiveforge steering validate --strict
+```
+
+### Workflow Example
+
+```bash
+# 1. Create new project
+hiveforge -n my-app
+
+# 2. Add project artifacts (optional)
+mkdir -p .kiro/onboarding
+cp project-spec.md .kiro/onboarding/
+cp architecture.pdf .kiro/onboarding/
+
+# 3. Generate steering files
+hiveforge steering init --analyze-code
+
+# 4. Answer questions during conversation
+# The assistant will ask about missing information
+
+# 5. Review generated files
+ls .kiro/steering/
+
+# 6. Later, when project evolves...
+cp updated-requirements.md .kiro/onboarding/
+hiveforge steering update
+
+# 7. Validate before committing
+hiveforge steering validate --strict
+```
+
+### What Gets Analyzed
+
+When you use `--analyze-code`, the Steering Assistant automatically extracts:
+
+- **Languages & Versions**: Detected from file extensions and dependency files
+- **Tech Stack**: Frameworks, libraries, databases from package.json, requirements.txt, etc.
+- **Architecture**: Inferred from directory structure (monolithic, microservices, layered, etc.)
+- **Conventions**: Naming patterns, indentation, docstring styles from actual code
+- **Documentation**: Existing README files, docs folders, inline comments
+
+### Token Efficiency
+
+The Steering Assistant is designed to minimize LLM API costs:
+
+- **Question Batching**: Max 8 questions per batch
+- **Response Caching**: Avoids re-asking answered questions
+- **Token Limiting**: Max 4000 tokens of context per prompt
+- **Incremental Updates**: Only sends changed sections (max 3000 tokens per file)
+- **Local Analysis**: All code analysis runs locally without LLM calls
+
+### Error Handling
+
+The Steering Assistant handles errors gracefully:
+
+- **Corrupted Files**: Skips and continues with other files
+- **Missing Dependencies**: Infers from import statements
+- **LLM Rate Limiting**: Automatic retry with exponential backoff
+- **Network Issues**: Retries with backoff, falls back to cached responses
 
 ---
 

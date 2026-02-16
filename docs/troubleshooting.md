@@ -256,6 +256,299 @@ dd if=/dev/zero of=testfile bs=1M count=100
 
 ---
 
+## Steering Assistant Issues
+
+### "Steering files already exist" Error
+
+**Problem:**
+```bash
+❌ Steering files already exist. Use --force to overwrite or backup first.
+```
+
+**Solutions:**
+
+**Option 1:** Backup existing files
+```bash
+# Manual backup
+cp -r .kiro/steering .kiro/steering.backup
+
+# Then run init
+hiveforge steering init
+```
+
+**Option 2:** Use update instead
+```bash
+# Update existing files instead of recreating
+hiveforge steering update
+```
+
+**Option 3:** Remove existing files (careful!)
+```bash
+rm -rf .kiro/steering
+hiveforge steering init
+```
+
+### "No artifacts found" Warning
+
+**Problem:**
+```bash
+⚠ No artifacts found in .kiro/onboarding/
+```
+
+**Solutions:**
+
+**Option 1:** Add artifacts
+```bash
+mkdir -p .kiro/onboarding
+cp project-spec.md .kiro/onboarding/
+cp architecture.pdf .kiro/onboarding/
+```
+
+**Option 2:** Use code analysis
+```bash
+hiveforge steering init --analyze-code
+```
+
+**Option 3:** Continue with conversation
+```bash
+# Just answer questions during interactive mode
+hiveforge steering init
+```
+
+### "Code analysis timeout" Error
+
+**Problem:**
+```bash
+❌ Code analysis timed out after 300 seconds
+```
+
+**Solutions:**
+
+**Option 1:** Reduce scope
+```bash
+# Ensure .gitignore excludes large directories
+echo "node_modules/" >> .gitignore
+echo "venv/" >> .gitignore
+echo ".hypothesis/" >> .gitignore
+```
+
+**Option 2:** Skip code analysis
+```bash
+# Use artifacts only
+hiveforge steering init --no-interactive
+```
+
+**Option 3:** Increase timeout (advanced)
+```python
+# In code
+from hiveforge.steering.analyzers.code_analyzer import CodeAnalyzer
+analyzer = CodeAnalyzer(timeout=600)  # 10 minutes
+```
+
+### "LLM API rate limit exceeded" Error
+
+**Problem:**
+```bash
+❌ Rate limit exceeded. Retrying in 2 seconds...
+```
+
+**Solutions:**
+
+**Option 1:** Wait for automatic retry
+```bash
+# The system will retry with exponential backoff
+# Just wait a few minutes
+```
+
+**Option 2:** Use cached responses
+```bash
+# Check if responses are cached
+cat .kiro/.cache/response_cache.json
+```
+
+**Option 3:** Reduce API calls
+```bash
+# Use non-interactive mode
+hiveforge steering init --no-interactive --analyze-code
+```
+
+### "Validation failed" Error
+
+**Problem:**
+```bash
+❌ Validation FAILED (3 critical issues)
+```
+
+**Solutions:**
+
+**Option 1:** Review validation report
+```bash
+# Read the detailed report
+hiveforge steering validate
+```
+
+**Option 2:** Fix issues manually
+```bash
+# Edit steering files to fix reported issues
+vim .kiro/steering/tech-stack.md
+```
+
+**Option 3:** Skip validation temporarily
+```bash
+# Skip validation during development
+hiveforge steering init --skip-validation
+```
+
+### "PDF parsing failed" Error
+
+**Problem:**
+```bash
+❌ Failed to parse architecture.pdf: Encrypted or corrupted
+```
+
+**Solutions:**
+
+**Option 1:** Check PDF encryption
+```bash
+# Remove password protection
+# Use Adobe Acrobat or online tools
+```
+
+**Option 2:** Convert to markdown
+```bash
+# Use pandoc or online converters
+pandoc architecture.pdf -o architecture.md
+cp architecture.md .kiro/onboarding/
+```
+
+**Option 3:** Extract text manually
+```bash
+# Copy text from PDF and create markdown file
+cat > .kiro/onboarding/architecture.md << EOF
+# Architecture
+...
+EOF
+```
+
+### "Image OCR failed" Error
+
+**Problem:**
+```bash
+❌ Failed to extract text from diagram.png: tesseract not found
+```
+
+**Solutions:**
+
+**Option 1:** Install tesseract
+```bash
+# macOS
+brew install tesseract
+
+# Ubuntu/Debian
+sudo apt-get install tesseract-ocr
+
+# Windows
+# Download from: https://github.com/UB-Mannheim/tesseract/wiki
+```
+
+**Option 2:** Convert image to text manually
+```bash
+# Describe the image in markdown
+cat > .kiro/onboarding/diagram.md << EOF
+# Architecture Diagram
+- Component A connects to Component B
+- Database is PostgreSQL
+...
+EOF
+```
+
+**Option 3:** Skip image parsing
+```bash
+# Remove images from onboarding folder
+rm .kiro/onboarding/*.png .kiro/onboarding/*.jpg
+```
+
+### "Customizations not preserved" Issue
+
+**Problem:** Manual edits to steering files are overwritten during update.
+
+**Solutions:**
+
+**Option 1:** Review diff before accepting
+```bash
+# Carefully review proposed changes
+hiveforge steering update
+# Choose "Review" option to see detailed diffs
+```
+
+**Option 2:** Backup before update
+```bash
+cp -r .kiro/steering .kiro/steering.backup
+hiveforge steering update
+```
+
+**Option 3:** Report issue
+```bash
+# If customizations should have been preserved, report bug
+# Include before/after files
+```
+
+### "Conversation takes too long" Issue
+
+**Problem:** Too many questions during interactive mode.
+
+**Solutions:**
+
+**Option 1:** Use code analysis
+```bash
+# Auto-extract most information
+hiveforge steering init --analyze-code
+```
+
+**Option 2:** Add more artifacts
+```bash
+# Provide comprehensive documentation
+cp README.md .kiro/onboarding/
+cp docs/*.md .kiro/onboarding/
+```
+
+**Option 3:** Use non-interactive mode
+```bash
+# Skip conversation entirely
+hiveforge steering init --no-interactive --analyze-code
+```
+
+### "Inconsistent information" Warning
+
+**Problem:**
+```bash
+⚠ Inconsistency detected: tech-stack.md says "PostgreSQL 14" but architecture.md says "PostgreSQL 15"
+```
+
+**Solutions:**
+
+**Option 1:** Resolve during validation
+```bash
+hiveforge steering validate
+# Follow prompts to resolve inconsistencies
+```
+
+**Option 2:** Fix manually
+```bash
+# Edit files to ensure consistency
+vim .kiro/steering/tech-stack.md
+vim .kiro/steering/architecture.md
+```
+
+**Option 3:** Re-run update
+```bash
+# Update with correct information
+echo "PostgreSQL 15" > .kiro/onboarding/db-version.txt
+hiveforge steering update
+```
+
+---
+
 ## Common Questions (FAQ)
 
 ### Q: Can I customize agent definitions?
@@ -285,6 +578,50 @@ EOF
 ### Q: Can I use this without Kiro IDE?
 
 **A:** Yes! The generated files are just markdown. You can use them with any IDE or text editor. IDE-agnostic mode planned for v2.0.
+
+### Q: How does the Steering Assistant work?
+
+**A:** The Steering Assistant:
+1. Analyzes your codebase (if --analyze-code is used)
+2. Parses artifacts from .kiro/onboarding/
+3. Identifies missing information
+4. Asks targeted questions (if interactive)
+5. Generates steering files from templates
+6. Validates generated files
+
+### Q: What artifacts can I provide?
+
+**A:** Supported formats:
+- **Markdown** (.md): Project specs, requirements, documentation
+- **PDF** (.pdf): Architecture diagrams, design docs
+- **Images** (.png, .jpg): Screenshots, diagrams (requires tesseract)
+
+### Q: How do I preserve my customizations?
+
+**A:** The update workflow automatically detects and preserves customizations:
+- Custom sections you added
+- Modified content beyond placeholder replacements
+- Additional formatting and structure
+
+Always review diffs before accepting changes.
+
+### Q: Can I use Steering Assistant in CI/CD?
+
+**A:** Yes! Use non-interactive mode with strict validation:
+```bash
+hiveforge steering validate --strict
+```
+
+Exit code 0 = success, 1 = failure.
+
+### Q: How much does it cost (LLM API)?
+
+**A:** Token usage is optimized:
+- Init: ~10-20K tokens (depends on project size)
+- Update: ~3-5K tokens per file
+- Validate: No LLM calls (local validation)
+
+Response caching reduces costs for repeated operations.
 
 ### Q: How do I update hiveforge?
 
