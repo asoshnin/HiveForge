@@ -209,17 +209,17 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - **Property 18: Customization Detection**
     - **Validates: Requirements 5.5, 8.1-8.5, 15.1-15.5**
 
-- [ ] 11. Checkpoint - Ensure core component tests pass
+- [x] 11. Checkpoint - Ensure core component tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Implement steering validator agent
-  - [ ] 12.1 Create rule-based validation functions
+  - [x] 12.1 Create rule-based validation functions
     - Implement `check_completeness()` using regex to detect unreplaced placeholders
     - Implement `check_structure()` to verify frontmatter and template structure
     - Implement `check_consistency()` using keyword matching and value comparison
     - _Requirements: 10.2, 10.4, 10.5, 10.6_
 
-  - [ ] 12.2 Create SteeringValidator class
+  - [x] 12.2 Create SteeringValidator class
     - Implement `validate_file()` for single file validation using rule-based checks
     - Implement `validate_all()` for batch validation
     - Implement optional `check_consistency_semantic()` using LLM (max 1000 tokens per check)
