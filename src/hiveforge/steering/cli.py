@@ -6,17 +6,17 @@ This module implements the CLI commands for the Steering Assistant feature:
 - hiveforge steering update: Update existing steering files
 - hiveforge steering validate: Validate steering file quality
 
-Requirements: 1.1-1.8
+Requirements: 1.1-1.8, 18.1-18.8, 24.2-24.4, 26.6
 """
 
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 import typer
 
-from .models import SteeringConfig
+from .models import SteeringConfig, FeatureFlagConfig
 from .workflows.init_workflow import InitWorkflow
 from .workflows.update_workflow import UpdateWorkflow
 from .workflows.validate_workflow import ValidateWorkflow
@@ -54,6 +54,53 @@ def steering_init(
         "--analyze-code",
         help="Analyze existing codebase to extract project information"
     ),
+    use_autonomous_generation: bool = typer.Option(
+        False,
+        "--use-autonomous-generation",
+        help="Enable autonomous generation workflow (v02)"
+    ),
+    confidence_threshold: float = typer.Option(
+        0.7,
+        "--confidence-threshold",
+        min=0.0,
+        max=1.0,
+        help="Confidence threshold for autonomous generation (0.0-1.0)"
+    ),
+    max_tokens: Optional[int] = typer.Option(
+        None,
+        "--max-tokens",
+        help="Maximum tokens for LLM context"
+    ),
+    discovery_paths: List[str] = typer.Option(
+        [],
+        "--discovery-paths",
+        help="Custom search locations for discovery"
+    ),
+    preserve_all: bool = typer.Option(
+        False,
+        "--preserve-all",
+        help="Skip updates to customized sections"
+    ),
+    telemetry_off: bool = typer.Option(
+        False,
+        "--telemetry-off",
+        help="Disable telemetry data collection"
+    ),
+    max_discovery_files: int = typer.Option(
+        1000,
+        "--max-discovery-files",
+        help="Maximum files to discover"
+    ),
+    max_file_size: int = typer.Option(
+        10,
+        "--max-file-size",
+        help="Maximum file size in MB for discovery"
+    ),
+    conservative_inference: bool = typer.Option(
+        False,
+        "--conservative-inference",
+        help="Reduce inference aggressiveness"
+    ),
 ) -> None:
     """
     Initialize steering files from scratch.
@@ -81,6 +128,26 @@ def steering_init(
     Requirements: 1.1, 1.4, 1.5, 1.6, 1.7
     """
     try:
+        # Create feature flag configuration
+        feature_flags = FeatureFlagConfig(
+            use_autonomous_generation=use_autonomous_generation,
+            confidence_threshold=confidence_threshold,
+            max_tokens=max_tokens,
+            discovery_paths=discovery_paths,
+            preserve_all=preserve_all,
+            telemetry_off=telemetry_off,
+            max_discovery_files=max_discovery_files,
+            max_file_size_mb=max_file_size,
+            conservative_inference=conservative_inference,
+            interactive=not interactive,  # --no-interactive sets interactive=True
+        )
+        
+        # Validate feature flags
+        errors = feature_flags.validate()
+        if errors:
+            for error in errors:
+                typer.secho(f"Warning: {error}", fg=typer.colors.YELLOW)
+        
         # Create configuration
         config = SteeringConfig(
             research_enabled=research,
@@ -88,7 +155,8 @@ def steering_init(
             interactive=interactive,
             analyze_code=analyze_code,
             backup_enabled=True,
-            backup_dir=Path.cwd() / ".kiro" / "backups"
+            backup_dir=Path.cwd() / ".kiro" / "backups",
+            feature_flags=feature_flags,
         )
         
         # Create and execute workflow
@@ -125,6 +193,16 @@ def steering_update(
         "--interactive/--no-interactive",
         help="Enable or disable interactive conversation mode"
     ),
+    incremental: bool = typer.Option(
+        False,
+        "--incremental",
+        help="Force incremental update mode (v02)"
+    ),
+    preview: bool = typer.Option(
+        False,
+        "--preview",
+        help="Display changes without writing"
+    ),
 ) -> None:
     """
     Update existing steering files with new information.
@@ -152,7 +230,7 @@ def steering_update(
         # Skip validation
         hiveforge steering update --skip-validation
     
-    Requirements: 1.2, 1.5, 1.6, 1.7
+    Requirements: 1.2, 1.5, 1.6, 1.7, 20.1-20.7, 23.1-23.8
     """
     try:
         # Create configuration
@@ -162,7 +240,9 @@ def steering_update(
             interactive=interactive,
             analyze_code=False,  # Update doesn't do code analysis
             backup_enabled=True,
-            backup_dir=Path.cwd() / ".kiro" / "backups"
+            backup_dir=Path.cwd() / ".kiro" / "backups",
+            incremental=incremental,
+            preview=preview,
         )
         
         # Create and execute workflow

@@ -47,7 +47,7 @@ class BackupManager:
         """
         # Generate backup name
         if backup_name is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")  # Include microseconds
             backup_name = f"backup_{timestamp}"
         
         backup_path = self.backup_dir / backup_name

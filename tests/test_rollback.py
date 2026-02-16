@@ -98,10 +98,13 @@ class TestRollbackIntegrity:
             backup_dir = tmp_path / ".kiro" / "backups" / "steering"
             backup_manager = BackupManager(backup_dir=backup_dir, max_backups=3)
             
-            # Create 5 backups
+            # Create 5 backups with small delays to ensure different timestamps
+            import time
             for i in range(5):
                 files = list(steering_dir.glob("*.md"))
                 backup_manager.create_backup(files)
+                if i < 4:
+                    time.sleep(0.01)  # Small delay to ensure different timestamps
             
             # Cleanup old backups
             deleted = backup_manager.cleanup_old_backups()
@@ -219,8 +222,8 @@ class TestRollbackIntegrity:
             
             (steering_dir / "project-vision.md").write_text("# Project Vision")
             
-            # Create backups
-            backup_dir = tmp_path / ".kiro" / "backups" / "steering"
+            # Create backups with unique backup directory per test
+            backup_dir = tmp_path / ".kiro" / "backups" / "steering" / "test_backup_count"
             backup_manager = BackupManager(backup_dir=backup_dir)
             
             assert backup_manager.get_backup_count() == 0

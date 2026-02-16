@@ -8,7 +8,10 @@ system, including parsed documents, templates, workflow state, and analysis resu
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .feature_flags import FeatureFlagConfig
 
 
 # ============================================================================
@@ -326,6 +329,9 @@ class SteeringConfig:
     backup_enabled: bool = True
     backup_dir: Path = field(default_factory=lambda: Path(".kiro/backups"))
     analyze_code: bool = False
+    feature_flags: Optional["FeatureFlagConfig"] = None
+    incremental: bool = False
+    preview: bool = False
 
 
 # ============================================================================
