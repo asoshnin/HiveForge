@@ -47,6 +47,8 @@ from .models import (
     CachedResponse,
 )
 
+from .response_cache import ResponseCache
+
 __version__ = "1.0.0"
 
 __all__ = [
@@ -89,4 +91,5 @@ __all__ = [
     
     # Cache models
     "CachedResponse",
+    "ResponseCache",
 ]

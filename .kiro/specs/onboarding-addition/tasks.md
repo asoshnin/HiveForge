@@ -148,12 +148,12 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - **Validates: Requirements 6.1-6.5, 7.7**
 
 - [ ] 8. Implement steering assistant agent
-  - [ ] 8.1 Create ResponseCache for LLM response caching
+  - [x] 8.1 Create ResponseCache for LLM response caching
     - Implement cache storage using file-based or Redis backend
     - Implement `get()` and `set()` methods with question hashing
     - _Requirements: 7.8_
 
-  - [ ] 8.2 Create SteeringAssistant class
+  - [x] 8.2 Create SteeringAssistant class
     - Implement conversation orchestration with question batching (max 8 per batch)
     - Implement token-efficient LLM prompting (max 4000 tokens knowledge base content)
     - Integrate ResponseCache for avoiding redundant API calls
@@ -169,14 +169,14 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - **Validates: Requirements 7.2, 7.6, 7.8, 12.4**
 
 - [ ] 9. Implement template population and diff generation
-  - [ ] 9.1 Create TemplatePopulator class
+  - [x] 9.1 Create TemplatePopulator class
     - Load template definitions for all 8 steering files
     - Implement `populate()` to replace placeholders with gathered information
     - Implement `populate_all()` for batch processing
     - Preserve frontmatter in templates
     - _Requirements: 4.6, 4.7_
 
-  - [ ] 9.2 Create DiffGenerator class
+  - [x] 9.2 Create DiffGenerator class
     - Implement `compute_diff()` using difflib
     - Implement `format_diff()` with colorama for terminal output
     - Show additions in green, deletions in red, context lines
@@ -190,13 +190,13 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - **Validates: Requirements 4.6, 4.7, 5.6, 9.1-9.4**
 
 - [ ] 10. Implement conflict resolution and customization detection
-  - [ ] 10.1 Create ConflictResolver class
+  - [x] 10.1 Create ConflictResolver class
     - Implement `detect_conflicts()` to identify contradictions in technology choices, architecture, goals
     - Implement `resolve_conflict()` to apply user's resolution choice
     - Present conflicts side-by-side with explanations
     - _Requirements: 5.5, 8.1-8.4_
 
-  - [ ] 10.2 Create CustomizationDetector class
+  - [x] 10.2 Create CustomizationDetector class
     - Implement `detect_customizations()` using diff comparison with original templates
     - Use heuristics: content beyond placeholders, unique formatting, custom sections
     - Assign confidence scores (0.0-1.0)
