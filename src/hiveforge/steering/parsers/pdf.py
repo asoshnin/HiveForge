@@ -5,6 +5,7 @@ This module provides functionality to parse PDF files and extract
 text content from all pages with fallback strategies for encoding issues.
 """
 
+import logging
 from pathlib import Path
 from typing import Dict, Any, List
 
@@ -12,6 +13,9 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 
 from ..models import ParsedDocument
+from ..error_handling import ErrorRecovery, safe_file_operation
+
+logger = logging.getLogger(__name__)
 
 
 def parse_pdf(file_path: Path) -> ParsedDocument:
@@ -85,15 +89,23 @@ def parse_pdf(file_path: Path) -> ParsedDocument:
         if not content.strip():
             parse_errors.append("No text content extracted from PDF (may be image-based or encrypted)")
         
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        error_context = ErrorRecovery.handle_file_system_error(e, file_path, "read")
+        logger.error(str(error_context))
         parse_errors.append(f"File not found: {file_path}")
         raise
-    except PermissionError:
+    except PermissionError as e:
+        error_context = ErrorRecovery.handle_file_system_error(e, file_path, "read")
+        logger.error(str(error_context))
         parse_errors.append(f"Permission denied reading file: {file_path}")
         raise
     except PdfReadError as e:
+        error_context = ErrorRecovery.handle_parsing_error(e, file_path, "pdf")
+        logger.warning(str(error_context))
         parse_errors.append(f"PDF read error: {e}")
+        
         # Try fallback strategy: attempt to read with strict=False
+        logger.info("Attempting fallback parsing with strict=False")
         try:
             reader = PdfReader(str(file_path), strict=False)
             num_pages = len(reader.pages)
@@ -112,10 +124,14 @@ def parse_pdf(file_path: Path) -> ParsedDocument:
             
             content = "\n\n".join(page_texts)
             parse_errors.append("Fallback parsing with strict=False succeeded")
+            logger.info("Fallback parsing succeeded")
         except Exception as fallback_error:
+            logger.error(f"Fallback parsing failed: {fallback_error}")
             parse_errors.append(f"Fallback parsing also failed: {fallback_error}")
             content = ""
     except Exception as e:
+        error_context = ErrorRecovery.handle_parsing_error(e, file_path, "pdf")
+        logger.error(str(error_context))
         parse_errors.append(f"Unexpected error parsing PDF: {e}")
         content = ""
     

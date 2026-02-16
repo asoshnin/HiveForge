@@ -5,11 +5,15 @@ This module provides functionality to parse markdown files and extract
 text content while preserving structure, code blocks, and Mermaid diagrams.
 """
 
+import logging
 import re
 from pathlib import Path
 from typing import Dict, Any, List
 
 from ..models import ParsedDocument
+from ..error_handling import ErrorRecovery
+
+logger = logging.getLogger(__name__)
 
 
 def parse_markdown(file_path: Path) -> ParsedDocument:
@@ -64,23 +68,42 @@ def parse_markdown(file_path: Path) -> ParsedDocument:
         metadata['file_size'] = file_path.stat().st_size
         metadata['file_name'] = file_path.name
         
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        error_context = ErrorRecovery.handle_file_system_error(e, file_path, "read")
+        logger.error(str(error_context))
         parse_errors.append(f"File not found: {file_path}")
         raise
-    except PermissionError:
+    except PermissionError as e:
+        error_context = ErrorRecovery.handle_file_system_error(e, file_path, "read")
+        logger.error(str(error_context))
         parse_errors.append(f"Permission denied reading file: {file_path}")
         raise
     except UnicodeDecodeError as e:
+        error_context = ErrorRecovery.handle_parsing_error(e, file_path, "markdown")
+        logger.warning(str(error_context))
         parse_errors.append(f"Encoding error: {e}")
-        # Try with fallback encoding
-        try:
-            with open(file_path, 'r', encoding='latin-1') as f:
-                content = f.read()
-            parse_errors.append("Fallback to latin-1 encoding succeeded")
-        except Exception as fallback_error:
-            parse_errors.append(f"Fallback encoding also failed: {fallback_error}")
+        
+        # Try with fallback encodings
+        logger.info("Attempting fallback encodings")
+        for encoding in ['latin-1', 'cp1252', 'iso-8859-1']:
+            try:
+                logger.debug(f"Trying encoding: {encoding}")
+                with open(file_path, 'r', encoding=encoding) as f:
+                    content = f.read()
+                parse_errors.append(f"Fallback to {encoding} encoding succeeded")
+                logger.info(f"Successfully parsed with {encoding} encoding")
+                break
+            except Exception as fallback_error:
+                logger.debug(f"Encoding {encoding} failed: {fallback_error}")
+                continue
+        else:
+            # All encodings failed
+            logger.error("All fallback encodings failed")
+            parse_errors.append("All fallback encodings failed")
             content = ""
     except Exception as e:
+        error_context = ErrorRecovery.handle_parsing_error(e, file_path, "markdown")
+        logger.error(str(error_context))
         parse_errors.append(f"Unexpected error parsing markdown: {e}")
         content = ""
     

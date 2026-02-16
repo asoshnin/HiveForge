@@ -3,8 +3,12 @@ from pathlib import Path
 from typing import Optional
 from .validators import validate_project_name
 from .generator import generate_project
+from .steering.cli import app as steering_app
 
 app = typer.Typer(name="hiveforge", help="Scaffold KIRO v05 projects", add_completion=False)
+
+# Add steering subcommand
+app.add_typer(steering_app, name="steering")
 
 @app.command()
 def main(

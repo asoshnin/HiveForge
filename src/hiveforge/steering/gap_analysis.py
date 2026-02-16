@@ -37,15 +37,20 @@ class GapAnalysisEngine:
         self.knowledge_base = knowledge_base
         self.templates = templates or get_all_templates()
     
-    def analyze(self) -> GapAnalysisResult:
+    def analyze(self, show_progress: bool = True) -> GapAnalysisResult:
         """
         Perform gap analysis across all templates.
         
         Compares knowledge base content against template requirements and
         classifies each section as complete, missing, or ambiguous.
         
+        Args:
+            show_progress: Whether to display progress messages (default: True)
+        
         Returns:
             GapAnalysisResult with classified sections and prioritized questions
+            
+        Requirements: 6.1-6.5, 14.2
         """
         result = GapAnalysisResult()
         
@@ -56,8 +61,20 @@ class GapAnalysisEngine:
         )
         
         # Analyze each template
-        for template_name, template in sorted_templates:
+        for idx, (template_name, template) in enumerate(sorted_templates, 1):
+            # Display progress for current template (Req 14.2)
+            if show_progress:
+                print(f"   [{idx}/{len(sorted_templates)}] Analyzing {template_name}.md...", end=" ")
+            
             self._analyze_template(template_name, template, result)
+            
+            # Display result for current template (Req 14.2)
+            if show_progress:
+                complete = len(result.complete_sections.get(template_name, []))
+                missing = len(result.missing_sections.get(template_name, []))
+                ambiguous = len(result.ambiguous_sections.get(template_name, []))
+                total = len(template.sections)
+                print(f"✓ ({complete}/{total} complete, {missing} missing, {ambiguous} ambiguous)")
         
         # Sort questions by priority (based on template priority and section importance)
         result.questions.sort(key=lambda q: q.priority)

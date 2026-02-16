@@ -64,29 +64,43 @@ class TemplatePopulator:
         else:
             return populated_body
     
-    def populate_all(self, knowledge: Dict[str, Any]) -> Dict[str, str]:
+    def populate_all(self, knowledge: Dict[str, Any], show_progress: bool = True) -> Dict[str, str]:
         """
         Populate all templates with gathered information.
         
         Args:
             knowledge: Dictionary containing information for all templates
                       Can be nested by template name or flat with all keys
+            show_progress: Whether to display progress messages (default: True)
         
         Returns:
             Dictionary mapping filename to populated content
             Example: {"project-vision.md": "...", "tech-stack.md": "..."}
+            
+        Requirements: 4.6, 14.3
         """
         populated = {}
+        total_templates = len(self.templates)
         
-        for template_name, template in self.templates.items():
+        for idx, (template_name, template) in enumerate(self.templates.items(), 1):
+            # Display progress for current template (Req 14.3)
+            if show_progress:
+                print(f"   [{idx}/{total_templates}] Generating {template.file_name}...", end=" ")
+            
             # Get knowledge specific to this template if nested, otherwise use all
             template_knowledge = knowledge.get(template_name, knowledge)
             
             try:
                 content = self.populate(template_name, template_knowledge)
                 populated[template.file_name] = content
+                
+                # Display result (Req 14.3)
+                if show_progress:
+                    print(f"✓")
             except Exception as e:
                 # Log error but continue with other templates
+                if show_progress:
+                    print(f"✗ (error: {str(e)[:50]})")
                 print(f"Warning: Failed to populate {template_name}: {e}")
                 continue
         

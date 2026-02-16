@@ -208,7 +208,8 @@ class SteeringValidator:
     def validate_all(
         self,
         steering_dir: Path,
-        use_llm: Optional[bool] = None
+        use_llm: Optional[bool] = None,
+        show_progress: bool = True
     ) -> ValidationReport:
         """
         Validate all steering files in a directory.
@@ -221,9 +222,12 @@ class SteeringValidator:
         Args:
             steering_dir: Directory containing steering files
             use_llm: Override instance setting for LLM usage
+            show_progress: Whether to display progress messages (default: True)
             
         Returns:
             ValidationReport with all findings categorized by severity
+            
+        Requirements: 10.1-10.10, 14.4
         """
         if use_llm is None:
             use_llm = self.use_llm
@@ -254,13 +258,32 @@ class SteeringValidator:
         # Validate each file individually
         all_issues: List[ValidationIssue] = []
         file_contents: Dict[str, str] = {}
+        total_files = len(steering_files)
         
-        for file_path in steering_files:
+        for idx, file_path in enumerate(steering_files, 1):
             report.files_checked += 1
+            
+            # Display progress for current file (Req 14.4)
+            if show_progress:
+                print(f"   [{idx}/{total_files}] Checking {file_path.name}...", end=" ")
             
             # Validate file
             file_issues = self.validate_file(file_path)
             all_issues.extend(file_issues)
+            
+            # Display result (Req 14.4)
+            if show_progress:
+                if file_issues:
+                    critical_count = sum(1 for i in file_issues if i.severity == "critical")
+                    warning_count = sum(1 for i in file_issues if i.severity == "warning")
+                    if critical_count > 0:
+                        print(f"✗ ({critical_count} critical, {warning_count} warnings)")
+                    elif warning_count > 0:
+                        print(f"⚠️  ({warning_count} warnings)")
+                    else:
+                        print(f"ℹ️  (info only)")
+                else:
+                    print(f"✓")
             
             # Store content for cross-file checks
             try:
@@ -271,13 +294,31 @@ class SteeringValidator:
         
         # Run cross-file consistency checks
         if len(file_contents) > 1:
+            if show_progress:
+                print(f"   Checking cross-file consistency...", end=" ")
+            
             consistency_issues = check_consistency(file_contents)
             all_issues.extend(consistency_issues)
+            
+            if show_progress:
+                if consistency_issues:
+                    print(f"⚠️  ({len(consistency_issues)} issues)")
+                else:
+                    print(f"✓")
         
         # Optional: Run semantic consistency checks with LLM
         if use_llm and len(file_contents) > 1:
+            if show_progress:
+                print(f"   Running semantic consistency checks (LLM)...", end=" ")
+            
             semantic_issues = self.check_consistency_semantic(file_contents)
             all_issues.extend(semantic_issues)
+            
+            if show_progress:
+                if semantic_issues:
+                    print(f"⚠️  ({len(semantic_issues)} issues)")
+                else:
+                    print(f"✓")
             # Note: LLM usage tracking would be updated in check_consistency_semantic
         
         # Categorize issues by severity

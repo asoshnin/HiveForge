@@ -19,7 +19,7 @@ from .image import parse_image
 logger = logging.getLogger(__name__)
 
 
-def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
+def parse_directory(staging_dir: Path, show_progress: bool = True) -> List[ParsedDocument]:
     """
     Parse all supported files in the staging directory.
     
@@ -28,6 +28,7 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
     - Parses each file using the appropriate parser
     - Handles parsing failures gracefully (logs error and continues)
     - Aggregates all results into a list of ParsedDocument objects
+    - Displays progress for each file being processed (Req 14.1)
     
     The function implements resilient parsing: if one file fails to parse,
     it logs the error and continues processing remaining files. This ensures
@@ -35,13 +36,14 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
     
     Args:
         staging_dir: Path to the staging directory containing source artifacts
+        show_progress: Whether to display progress messages (default: True)
         
     Returns:
         List of ParsedDocument objects, one for each successfully discovered file.
         Files that fail to parse will still have a ParsedDocument entry with
         parse_errors populated.
         
-    Requirements: 3.4, 3.5
+    Requirements: 3.4, 3.5, 14.1
     """
     logger.info(f"Starting directory parsing: {staging_dir}")
     
@@ -59,8 +61,12 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
     
     # Parse each file with appropriate parser
     parsed_documents = []
+    total_files = len(file_paths)
     
-    for file_path in file_paths:
+    for idx, file_path in enumerate(file_paths, 1):
+        # Display progress for current file (Req 14.1)
+        if show_progress:
+            print(f"   [{idx}/{total_files}] Parsing {file_path.name}...", end=" ")
         try:
             file_type = get_file_type(file_path)
             logger.debug(f"Parsing {file_type} file: {file_path}")
@@ -85,6 +91,13 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
             # Add to results
             parsed_documents.append(parsed_doc)
             
+            # Display result for current file (Req 14.1)
+            if show_progress:
+                if parsed_doc.parse_errors:
+                    print(f"⚠️  (with errors)")
+                else:
+                    print(f"✓")
+            
             # Log parsing result
             if parsed_doc.parse_errors:
                 logger.warning(
@@ -100,6 +113,8 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
         except FileNotFoundError:
             # File was deleted between discovery and parsing
             logger.error(f"File not found during parsing: {file_path}")
+            if show_progress:
+                print(f"✗ (file not found)")
             parsed_documents.append(ParsedDocument(
                 file_path=file_path,
                 content="",
@@ -110,6 +125,8 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
         except PermissionError:
             # Permission denied reading file
             logger.error(f"Permission denied reading file: {file_path}")
+            if show_progress:
+                print(f"✗ (permission denied)")
             parsed_documents.append(ParsedDocument(
                 file_path=file_path,
                 content="",
@@ -120,6 +137,8 @@ def parse_directory(staging_dir: Path) -> List[ParsedDocument]:
         except Exception as e:
             # Unexpected error - log and continue with other files
             logger.error(f"Unexpected error parsing {file_path}: {e}", exc_info=True)
+            if show_progress:
+                print(f"✗ (error: {str(e)[:50]})")
             parsed_documents.append(ParsedDocument(
                 file_path=file_path,
                 content="",
