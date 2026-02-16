@@ -1,16 +1,16 @@
 # 🏗️ Architecture
 
-This document explains the internal architecture of **kiro-init** and how it works.
+This document explains the internal architecture of **hiveforge** and how it works.
 
 ---
 
 ## Overview
 
-kiro-init is a **CLI scaffolding tool** that generates KIRO Methodology v05 project structures. It's designed to be simple, fast, and reliable.
+hiveforge is a **CLI scaffolding tool** that generates KIRO Methodology v05 project structures. It's designed to be simple, fast, and reliable.
 
 ```
 ┌─────────────┐
-│   CLI       │  User runs: kiro-init -n my-project
+│   CLI       │  User runs: hiveforge -n my-project
 │  (cli.py)   │
 └──────┬──────┘
        │
@@ -38,8 +38,8 @@ kiro-init is a **CLI scaffolding tool** that generates KIRO Methodology v05 proj
 ## Project Structure
 
 ```
-kiro-init/
-├── src/kiro_init/
+hiveforge/
+├── src/hiveforge/
 │   ├── __init__.py          # Package metadata (__version__)
 │   ├── cli.py               # CLI entry point (Typer app)
 │   ├── validators.py        # Input validation (kebab-case)
@@ -366,7 +366,7 @@ def expected_agent_files():
 1. **Tech-Stack Templates** - Multiple template variants (FastAPI, Django, React, etc.)
 2. **Plugin System** - Allow custom templates via plugins
 3. **IDE-Agnostic Mode** - Generate projects without Kiro-specific features
-4. **Configuration File** - `.kiro-init.yaml` for project defaults
+4. **Configuration File** - `.hiveforge.yaml` for project defaults
 
 ### Architectural Considerations
 
@@ -378,7 +378,7 @@ def expected_agent_files():
 
 ## Conclusion
 
-kiro-init's architecture is intentionally simple:
+hiveforge's architecture is intentionally simple:
 - **4 core modules** (cli, validators, generator, templates)
 - **Static templates** (no complex templating engine)
 - **Minimal dependencies** (typer, pathlib, datetime)

@@ -1,41 +1,71 @@
 # 🚀 Quick Start Guide
 
-Get started with **kiro-init** in 5 minutes! This guide walks you through creating your first KIRO v05 project.
+Get started with **hiveforge** in 5 minutes! This guide walks you through creating your first KIRO v05 project.
 
 ---
 
 ## Prerequisites
 
 - Python 3.11 or higher
-- pip or poetry package manager
+- Git (to clone the repository)
+- pip package manager
 - Basic familiarity with command line
 
 ---
 
-## Step 1: Install kiro-init
+## Step 1: Install hiveforge
 
-### Option A: Using pip (Recommended)
+### Clone the Repository
+
+Since HiveForge is not yet published to PyPI, you'll need to install it from source:
 
 ```bash
-pip install kiro-init
+# Clone the repository
+git clone https://github.com/asoshnin/HiveForge.git
+cd HiveForge
 ```
 
-### Option B: Using poetry
+### Create a Virtual Environment (Recommended)
+
+Using a virtual environment keeps your project dependencies isolated and prevents conflicts.
 
 ```bash
-poetry add kiro-init
+# macOS/Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+# Windows (Command Prompt):
+python -m venv venv
+venv\Scripts\activate.bat
+
+# Windows (PowerShell):
+python -m venv venv
+venv\Scripts\Activate.ps1
+```
+
+You should see `(venv)` in your terminal prompt, indicating the virtual environment is active.
+
+### Install hiveforge
+
+```bash
+# Install in editable mode (recommended - changes reflect immediately)
+pip install -e .
+
+# OR use Poetry
+poetry install
+poetry shell
 ```
 
 ### Verify Installation
 
 ```bash
-kiro-init --help
+hiveforge --help
 ```
 
 You should see:
 
 ```
-Usage: kiro-init [OPTIONS]
+Usage: hiveforge [OPTIONS]
 
 Initialize KIRO v05 project (7 agents, 8 steering files, swarm_state.md)
 
@@ -45,22 +75,47 @@ Options:
   --help                   Show this message and exit.
 ```
 
+**Note:** Remember to activate your virtual environment each time you open a new terminal session:
+
+```bash
+# macOS/Linux:
+source venv/bin/activate
+
+# Windows (Command Prompt):
+venv\Scripts\activate.bat
+
+# Windows (PowerShell):
+venv\Scripts\Activate.ps1
+```
+
 ---
 
 ## Step 2: Create Your First Project
 
 ### Navigate to Your Workspace
 
+Create a new folder for your project. This can be anywhere on your system (Desktop, Documents, ~/projects, etc.) - it does NOT need to be inside the HiveForge installation directory.
+
 ```bash
+# Create project folder anywhere you like
 cd ~/projects
 mkdir my-awesome-app
 cd my-awesome-app
 ```
 
+**Important Notes:**
+- The folder name (`my-awesome-app`) doesn't have to match the project name you pass to `-n`
+- HiveForge creates files in the current directory where you run the command
+- Each project is completely independent
+
 ### Initialize the Project
 
 ```bash
-kiro-init --project-name my-awesome-app
+# The -n flag is just a label used in swarm_state.md
+hiveforge --project-name my-awesome-app
+
+# Or use a different name than the folder:
+hiveforge -n awesome-task-manager
 ```
 
 **Output:**
@@ -74,7 +129,18 @@ kiro-init --project-name my-awesome-app
 
 ---
 
-## Step 3: Explore the Generated Structure
+## Step 3: Open in Kiro IDE
+
+Now open your project folder in Kiro IDE:
+
+1. Open Kiro IDE
+2. File → Open Folder
+3. Select the `my-awesome-app` folder you just created
+4. The `.kiro/` structure will be recognized automatically
+
+---
+
+## Step 4: Explore the Generated Structure
 
 ```bash
 tree -L 3
@@ -251,7 +317,7 @@ Implement POST /auth/login and POST /auth/register endpoints using the schema fr
 
 ```bash
 # If you need to reset agent definitions
-kiro-init -n my-awesome-app --force
+hiveforge -n my-awesome-app --force
 
 # This preserves swarm_state.md but resets agent templates
 ```
@@ -282,7 +348,7 @@ kiro-init -n my-awesome-app --force
 ### Learn More
 
 - 📖 **[Architecture Guide](./docs/architecture.md)** - Understand how it works
-- 🛠️ **[Development Guide](./docs/development.md)** - Contribute to kiro-init
+- 🛠️ **[Development Guide](./docs/development.md)** - Contribute to hiveforge
 - 🔍 **[Troubleshooting](./docs/troubleshooting.md)** - Common issues
 
 ### Join the Community
@@ -295,6 +361,22 @@ kiro-init -n my-awesome-app --force
 
 ## Troubleshooting
 
+### "Could not find a version that satisfies the requirement hiveforge"
+
+**Problem:**
+```bash
+ERROR: Could not find a version that satisfies the requirement hiveforge (from versions: none)
+```
+
+**Cause:** HiveForge is not yet published to PyPI.
+
+**Solution:** Install from source instead:
+```bash
+git clone https://github.com/asoshnin/HiveForge.git
+cd HiveForge
+pip install -e .
+```
+
 ### "Invalid project name" Error
 
 **Problem:**
@@ -305,7 +387,7 @@ kiro-init -n my-awesome-app --force
 **Solution:**
 Use lowercase letters, numbers, and hyphens only:
 ```bash
-kiro-init -n my-project  # ✅ Correct
+hiveforge -n my-project  # ✅ Correct
 ```
 
 ### ".kiro/ exists" Error
@@ -318,23 +400,47 @@ kiro-init -n my-project  # ✅ Correct
 **Solution:**
 Add the `--force` flag:
 ```bash
-kiro-init -n my-project --force
+hiveforge -n my-project --force
 ```
 
 ### Command Not Found
 
 **Problem:**
 ```bash
-kiro-init: command not found
+hiveforge: command not found
 ```
 
 **Solution:**
-Ensure kiro-init is installed and in your PATH:
+
+1. Ensure hiveforge is installed:
 ```bash
-pip install --user kiro-init
-# or
-poetry install
-poetry shell
+pip install hiveforge
+```
+
+2. If using a virtual environment, make sure it's activated:
+```bash
+# macOS/Linux:
+source venv/bin/activate
+
+# Windows (Command Prompt):
+venv\Scripts\activate.bat
+
+# Windows (PowerShell):
+venv\Scripts\Activate.ps1
+```
+
+3. If installed with `--user` flag, ensure your PATH includes the user bin directory:
+```bash
+# macOS/Linux: Add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
+
+# Windows: Add %APPDATA%\Python\Scripts to your PATH environment variable
+```
+
+4. Try reinstalling:
+```bash
+pip uninstall hiveforge
+pip install hiveforge
 ```
 
 ---

@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for kiro-init tests."""
+"""Shared pytest fixtures for hiveforge tests."""
 import pytest
 from pathlib import Path
 
@@ -25,7 +25,7 @@ def invalid_project_names():
 @pytest.fixture
 def template_dir():
     """Path to templates directory."""
-    return Path(__file__).parent.parent / "src" / "kiro_init" / "templates"
+    return Path(__file__).parent.parent / "src" / "hiveforge" / "templates"
 
 
 @pytest.fixture

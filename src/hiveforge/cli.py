@@ -4,7 +4,7 @@ from typing import Optional
 from .validators import validate_project_name
 from .generator import generate_project
 
-app = typer.Typer(name="kiro-init", help="Scaffold KIRO v05 projects", add_completion=False)
+app = typer.Typer(name="hiveforge", help="Scaffold KIRO v05 projects", add_completion=False)
 
 @app.command()
 def main(

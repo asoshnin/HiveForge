@@ -1,6 +1,6 @@
 """Unit tests for validators module."""
 import pytest
-from kiro_init.validators import validate_project_name
+from hiveforge.validators import validate_project_name
 
 
 class TestValidateProjectName:

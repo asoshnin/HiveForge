@@ -1,6 +1,6 @@
 # 🔄 KIRO Methodology Workflow Guide
 
-This guide explains **how to use kiro-init and KIRO Methodology v05** in real-world scenarios, from initial project setup to ongoing development.
+This guide explains **how to use hiveforge and KIRO Methodology v05** in real-world scenarios, from initial project setup to ongoing development.
 
 ---
 
@@ -34,7 +34,7 @@ KIRO Methodology v05 uses a **multi-agent architecture** where specialized AI ag
 
 ```mermaid
 graph TD
-    A[Project Idea] --> B[Run kiro-init]
+    A[Project Idea] --> B[Run hiveforge]
     B --> C[Generated Structure]
     C --> D[Fill Steering Files]
     D --> E[Update swarm_state.md]
@@ -58,7 +58,7 @@ graph TD
 ```bash
 mkdir my-awesome-app
 cd my-awesome-app
-kiro-init -n my-awesome-app
+hiveforge -n my-awesome-app
 ```
 
 **Result:**
@@ -172,7 +172,7 @@ graph TD
     J -->|No| K[User Provides Feedback]
     K --> E
     J -->|Yes| L[Save to .kiro/steering/]
-    L --> M[Run kiro-init]
+    L --> M[Run hiveforge]
     M --> N[Continue with Workflow 1]
 ```
 
@@ -180,7 +180,7 @@ graph TD
 
 #### Option A: Manual Conversion (Simple)
 
-1. **Run kiro-init** to generate template structure
+1. **Run hiveforge** to generate template structure
 2. **Copy-paste** relevant sections from your documents into steering files
 3. **Refine** to match template structure
 
@@ -261,7 +261,7 @@ For each file, extract relevant information from my documents and format it acco
 graph TD
     A[Existing Codebase] --> B[Analyze Current State]
     B --> C[Document Current Architecture]
-    C --> D[Run kiro-init in Repo Root]
+    C --> D[Run hiveforge in Repo Root]
     D --> E[Fill Steering Files Based on Existing Code]
     E --> F[Update swarm_state.md]
     F --> G[Create Initial Delegation Tree]
@@ -302,8 +302,8 @@ existing-project/
 #### 2. Initialize KIRO
 
 ```bash
-# Run kiro-init in your existing repo
-kiro-init -n existing-project
+# Run hiveforge in your existing repo
+hiveforge -n existing-project
 ```
 
 **Result:**
@@ -574,9 +574,9 @@ Just ensure all agents reference them.
 
 **KIRO Methodology Workflow:**
 
-1. **New Project:** `kiro-init` → Fill steering files → Develop with agents
-2. **Existing Docs:** Convert to steering files → `kiro-init` → Develop
-3. **Existing Code:** `kiro-init` → Reverse-engineer steering files → Improve iteratively
+1. **New Project:** `hiveforge` → Fill steering files → Develop with agents
+2. **Existing Docs:** Convert to steering files → `hiveforge` → Develop
+3. **Existing Code:** `hiveforge` → Reverse-engineer steering files → Improve iteratively
 4. **Pivot:** Update steering files → Document in swarm state → Delegate refactoring
 
 **Key Principles:**

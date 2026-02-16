@@ -2,7 +2,7 @@
 from pathlib import Path
 import pytest
 from typer.testing import CliRunner
-from kiro_init.cli import app
+from hiveforge.cli import app
 
 
 runner = CliRunner()

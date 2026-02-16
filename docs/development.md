@@ -1,6 +1,6 @@
 # 🔧 Development Guide
 
-This guide helps you set up a development environment and contribute to **kiro-init**.
+This guide helps you set up a development environment and contribute to **hiveforge**.
 
 ---
 
@@ -9,7 +9,7 @@ This guide helps you set up a development environment and contribute to **kiro-i
 ```bash
 # Clone repository
 git clone https://github.com/asoshnin/HiveForge.git
-cd kiro-init
+cd hiveforge
 
 # Install dependencies
 poetry install
@@ -45,8 +45,8 @@ pytest tests/ -v
 ## Project Structure
 
 ```
-kiro-init/
-├── src/kiro_init/        # Source code
+hiveforge/
+├── src/hiveforge/        # Source code
 ├── tests/                # Test suite
 ├── docs/                 # Documentation
 ├── pyproject.toml        # Poetry configuration
@@ -73,13 +73,13 @@ pytest tests/test_cli.py -v
 ### With Coverage
 
 ```bash
-pytest tests/ --cov=src/kiro_init --cov-report=term-missing
+pytest tests/ --cov=src/hiveforge --cov-report=term-missing
 ```
 
 ### Generate HTML Coverage Report
 
 ```bash
-pytest tests/ --cov=src/kiro_init --cov-report=html
+pytest tests/ --cov=src/hiveforge --cov-report=html
 # Open htmlcov/index.html in browser
 ```
 
@@ -150,13 +150,13 @@ poetry build
 pip install -e .
 
 # Test CLI
-kiro-init --help
+hiveforge --help
 ```
 
 ### Uninstall
 
 ```bash
-pip uninstall kiro-init
+pip uninstall hiveforge
 ```
 
 ---
@@ -223,8 +223,8 @@ Add to `.vscode/launch.json`:
 
 ### Updating Templates
 
-1. Edit files in `src/kiro_init/templates/`
-2. Test with: `kiro-init -n test-project --force`
+1. Edit files in `src/hiveforge/templates/`
+2. Test with: `hiveforge -n test-project --force`
 3. Verify generated files
 4. Update tests if needed
 
@@ -244,7 +244,7 @@ Add to `.vscode/launch.json`:
 
 ## Troubleshooting
 
-### "ModuleNotFoundError: No module named 'kiro_init'"
+### "ModuleNotFoundError: No module named 'hiveforge'"
 
 **Solution:** Install in editable mode:
 ```bash
@@ -262,7 +262,7 @@ poetry shell
 
 **Solution:** Ensure you're in project root:
 ```bash
-cd /path/to/kiro-init
+cd /path/to/hiveforge
 pytest tests/ -v
 ```
 

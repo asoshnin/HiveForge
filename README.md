@@ -1,14 +1,14 @@
-# 🚀 kiro-init
+# 🚀 hiveforge
 
 > **Scaffold KIRO Methodology v05 projects in seconds**
 
-[![PyPI version](https://badge.fury.io/py/kiro-init.svg)](https://badge.fury.io/py/kiro-init)
+[![PyPI version](https://badge.fury.io/py/hiveforge.svg)](https://badge.fury.io/py/hiveforge)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://img.shields.io/badge/tests-66%20passed-brightgreen)](https://github.com/asoshnin/HiveForge)
 [![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen)](https://github.com/asoshnin/HiveForge)
 
-**kiro-init** is a CLI tool that scaffolds [KIRO Methodology v05](https://kiro.ai) projects with a complete multi-agent architecture, steering files, and swarm state management—ready for use with Kiro IDE.
+**hiveforge** is a CLI tool that scaffolds [KIRO Methodology v05](https://kiro.ai) projects with a complete multi-agent architecture, steering files, and swarm state management—ready for use with Kiro IDE.
 
 ---
 
@@ -26,18 +26,62 @@
 
 ## 📦 Installation
 
-### From PyPI (Recommended)
+### From Source (Current Method)
+
+Since HiveForge is not yet published to PyPI, install it directly from source:
 
 ```bash
-pip install kiro-init
+# Clone repository
+git clone https://github.com/asoshnin/HiveForge.git
+cd HiveForge
+
+# Create and activate virtual environment
+# macOS/Linux:
+python3 -m venv venv
+source venv/bin/activate
+
+# Windows (Command Prompt):
+python -m venv venv
+venv\Scripts\activate.bat
+
+# Windows (PowerShell):
+python -m venv venv
+venv\Scripts\Activate.ps1
+
+# Install in editable mode (recommended for development)
+pip install -e .
+
+# OR install with Poetry
+poetry install
+poetry shell
+
+# Verify installation
+hiveforge --help
 ```
 
-### From Source
+### From PyPI (Coming Soon)
+
+Once published to PyPI, you'll be able to install with:
 
 ```bash
-git clone https://github.com/yourusername/kiro-init.git
-cd kiro-init
+pip install hiveforge
+```
+
+### For Contributors
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/hiveforge.git
+cd hiveforge
+
+# Install with Poetry (creates virtual environment automatically)
 poetry install
+
+# Activate Poetry's virtual environment
+poetry shell
+
+# Verify installation
+hiveforge --help
 ```
 
 ---
@@ -48,11 +92,11 @@ poetry install
 
 ```bash
 # Using explicit project name
-kiro-init --project-name my-awesome-app
+hiveforge --project-name my-awesome-app
 
 # Using current directory name
 cd my-awesome-app
-kiro-init
+hiveforge
 ```
 
 ### 2. What Gets Created
@@ -99,18 +143,18 @@ my-awesome-app/
 
 ```bash
 # Initialize with project name
-kiro-init --project-name my-project
+hiveforge --project-name my-project
 
 # Use short flags
-kiro-init -n my-project
+hiveforge -n my-project
 
 # Overwrite existing project
-kiro-init -n my-project --force
-kiro-init -n my-project -f
+hiveforge -n my-project --force
+hiveforge -n my-project -f
 
 # Use current directory name
 cd my-existing-project
-kiro-init
+hiveforge
 ```
 
 ### Project Name Rules
@@ -155,9 +199,9 @@ KIRO v05 is a **multi-agent development methodology** that uses:
 
 ```bash
 # Generate project, modify steering files, regenerate
-kiro-init -n my-app
+hiveforge -n my-app
 # ... edit .kiro/steering/tech-stack.md ...
-kiro-init -n my-app --force  # Preserves your steering edits
+hiveforge -n my-app --force  # Preserves your steering edits
 ```
 
 ### Integration with CI/CD
@@ -166,8 +210,8 @@ kiro-init -n my-app --force  # Preserves your steering edits
 # .github/workflows/init.yml
 - name: Initialize KIRO project
   run: |
-    pip install kiro-init
-    kiro-init -n ${{ github.event.repository.name }}
+    pip install hiveforge
+    hiveforge -n ${{ github.event.repository.name }}
 ```
 
 ---
@@ -176,7 +220,7 @@ kiro-init -n my-app --force  # Preserves your steering edits
 
 - **[Workflow Guide](./WORKFLOW.md)** - End-to-end workflows with diagrams
 - **[Quick Start Guide](./QUICKSTART.md)** - 5-minute walkthrough
-- **[Architecture](./docs/architecture.md)** - How kiro-init works
+- **[Architecture](./docs/architecture.md)** - How hiveforge works
 - **[Development Guide](./docs/development.md)** - Contributing & testing
 - **[Troubleshooting](./docs/troubleshooting.md)** - Common issues & FAQ
 - **[Changelog](./CHANGELOG.md)** - Version history
@@ -196,16 +240,24 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 
 ```bash
 # Clone and setup
-git clone https://github.com/yourusername/kiro-init.git
-cd kiro-init
+git clone https://github.com/yourusername/hiveforge.git
+cd hiveforge
+
+# Install with Poetry (automatically creates and manages virtual environment)
 poetry install
 
+# Activate Poetry's virtual environment
+poetry shell
+
 # Run tests
-pytest tests/ -v --cov=src/kiro_init
+pytest tests/ -v --cov=src/hiveforge
 
 # Make changes and test
 # ... edit code ...
 pytest tests/ -v
+
+# Deactivate virtual environment when done
+exit
 ```
 
 ---

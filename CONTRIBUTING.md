@@ -1,6 +1,6 @@
-# 🤝 Contributing to kiro-init
+# 🤝 Contributing to hiveforge
 
-Thank you for your interest in contributing to **kiro-init**! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to **hiveforge**! This document provides guidelines and instructions for contributing.
 
 ---
 
@@ -51,7 +51,7 @@ We are committed to providing a welcoming and inspiring community for all. Pleas
 ```bash
 # Fork the repository on GitHub, then:
 git clone https://github.com/asoshnin/HiveForge.git
-cd kiro-init
+cd hiveforge
 ```
 
 ### Install Dependencies
@@ -71,10 +71,10 @@ poetry shell
 pytest tests/ -v
 
 # Check coverage
-pytest tests/ --cov=src/kiro_init --cov-report=term
+pytest tests/ --cov=src/hiveforge --cov-report=term
 
 # Run the CLI
-kiro-init --help
+hiveforge --help
 ```
 
 ---
@@ -108,7 +108,7 @@ pytest tests/ -v
 pytest tests/test_cli.py -v
 
 # Check coverage
-pytest tests/ --cov=src/kiro_init --cov-report=term-missing
+pytest tests/ --cov=src/hiveforge --cov-report=term-missing
 ```
 
 ### 4. Commit Your Changes
@@ -184,7 +184,7 @@ def validate_project_name(name: Optional[str]) -> str:
 ### File Organization
 
 ```
-src/kiro_init/
+src/hiveforge/
 ├── __init__.py          # Package metadata
 ├── cli.py               # CLI entry point
 ├── validators.py        # Input validation
@@ -244,7 +244,7 @@ pytest tests/test_validators.py -v
 pytest tests/test_cli.py::TestCLI::test_help_command -v
 
 # With coverage
-pytest tests/ --cov=src/kiro_init --cov-report=html
+pytest tests/ --cov=src/hiveforge --cov-report=html
 
 # Fast (skip slow tests)
 pytest tests/ -v -m "not slow"
@@ -348,7 +348,7 @@ We follow [Semantic Versioning](https://semver.org/):
 Clear description of the bug
 
 **To Reproduce**
-1. Run `kiro-init -n test-project`
+1. Run `hiveforge -n test-project`
 2. See error
 
 **Expected behavior**
@@ -360,7 +360,7 @@ What actually happens
 **Environment:**
 - OS: Windows 11
 - Python: 3.11.5
-- kiro-init: 1.0.0
+- hiveforge: 1.0.0
 
 **Additional context**
 Any other relevant information
@@ -414,7 +414,7 @@ Contributors are recognized in:
 
 <div align="center">
 
-**Thank you for contributing to kiro-init!** 🎉
+**Thank you for contributing to hiveforge!** 🎉
 
 Your contributions help make multi-agent development accessible to everyone.
 

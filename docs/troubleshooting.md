@@ -1,6 +1,6 @@
 # 🔍 Troubleshooting Guide
 
-Common issues and solutions for **kiro-init**.
+Common issues and solutions for **hiveforge**.
 
 ---
 
@@ -51,7 +51,7 @@ pyenv global 3.11.5
 
 ## CLI Issues
 
-### "kiro-init: command not found"
+### "hiveforge: command not found"
 
 **Problem:** CLI not installed or not in PATH.
 
@@ -59,19 +59,19 @@ pyenv global 3.11.5
 
 **Option 1:** Install globally
 ```bash
-pip install kiro-init
+pip install hiveforge
 ```
 
 **Option 2:** Use with poetry
 ```bash
 poetry install
-poetry run kiro-init --help
+poetry run hiveforge --help
 ```
 
 **Option 3:** Add to PATH
 ```bash
 # Find installation path
-pip show kiro-init
+pip show hiveforge
 
 # Add to PATH (Linux/Mac)
 export PATH="$PATH:/path/to/bin"
@@ -90,15 +90,15 @@ set PATH=%PATH%;C:\path\to\Scripts
 **Solution:** Use kebab-case format:
 ```bash
 # ✅ Valid
-kiro-init -n my-project
-kiro-init -n awesome-app-123
-kiro-init -n app
+hiveforge -n my-project
+hiveforge -n awesome-app-123
+hiveforge -n app
 
 # ❌ Invalid
-kiro-init -n "My Project"      # Spaces
-kiro-init -n my_project         # Underscores
-kiro-init -n MyProject          # PascalCase
-kiro-init -n my.project         # Dots
+hiveforge -n "My Project"      # Spaces
+hiveforge -n my_project         # Underscores
+hiveforge -n MyProject          # PascalCase
+hiveforge -n my.project         # Dots
 ```
 
 ### ".kiro/ exists" Error
@@ -112,20 +112,20 @@ kiro-init -n my.project         # Dots
 
 **Option 1:** Use force flag
 ```bash
-kiro-init -n my-project --force
+hiveforge -n my-project --force
 ```
 
 **Option 2:** Remove existing directory
 ```bash
 rm -rf .kiro .swarm swarm_state.md
-kiro-init -n my-project
+hiveforge -n my-project
 ```
 
 **Option 3:** Create in new directory
 ```bash
 mkdir new-project
 cd new-project
-kiro-init -n new-project
+hiveforge -n new-project
 ```
 
 ---
@@ -138,13 +138,13 @@ kiro-init -n new-project
 
 **Solution:**
 ```bash
-# Reinstall kiro-init
-pip uninstall kiro-init
-pip install kiro-init
+# Reinstall hiveforge
+pip uninstall hiveforge
+pip install hiveforge
 
 # Or reinstall from source
-git clone https://github.com/yourusername/kiro-init.git
-cd kiro-init
+git clone https://github.com/yourusername/hiveforge.git
+cd hiveforge
 poetry install
 ```
 
@@ -157,7 +157,7 @@ poetry install
 **Option 1:** Run with appropriate permissions
 ```bash
 # Linux/Mac
-sudo kiro-init -n my-project
+sudo hiveforge -n my-project
 
 # Or change directory permissions
 chmod +w .
@@ -166,7 +166,7 @@ chmod +w .
 **Option 2:** Create in user directory
 ```bash
 cd ~/projects
-kiro-init -n my-project
+hiveforge -n my-project
 ```
 
 ### "UTF-8 encoding error"
@@ -236,7 +236,7 @@ toolsSettings:
 **Diagnosis:**
 ```bash
 # Time the generation
-time kiro-init -n test-project
+time hiveforge -n test-project
 ```
 
 **Solutions:**
@@ -261,7 +261,7 @@ dd if=/dev/zero of=testfile bs=1M count=100
 ### Q: Can I customize agent definitions?
 
 **A:** Yes, but not recommended. Instead:
-1. Generate project with `kiro-init`
+1. Generate project with `hiveforge`
 2. Edit `.kiro/agents/` files after generation
 3. Don't use `--force` to avoid overwriting your changes
 
@@ -286,11 +286,11 @@ EOF
 
 **A:** Yes! The generated files are just markdown. You can use them with any IDE or text editor. IDE-agnostic mode planned for v2.0.
 
-### Q: How do I update kiro-init?
+### Q: How do I update hiveforge?
 
 **A:**
 ```bash
-pip install --upgrade kiro-init
+pip install --upgrade hiveforge
 ```
 
 ### Q: Where are templates stored?
@@ -298,10 +298,10 @@ pip install --upgrade kiro-init
 **A:**
 ```bash
 # Find installation path
-pip show kiro-init
+pip show hiveforge
 
 # Templates are in:
-# <site-packages>/kiro_init/templates/
+# <site-packages>/hiveforge/templates/
 ```
 
 ### Q: Can I contribute custom templates?
@@ -316,7 +316,7 @@ pip show kiro-init
 |-------|-------|----------|
 | `Invalid: 'X'. Use kebab-case` | Invalid project name | Use lowercase, hyphens only |
 | `.kiro/ exists` | Project already initialized | Use `--force` flag |
-| `No agent templates found` | Missing template files | Reinstall kiro-init |
+| `No agent templates found` | Missing template files | Reinstall hiveforge |
 | `Permission denied` | Insufficient permissions | Run with sudo or change directory |
 | `command not found` | CLI not in PATH | Install globally or use `poetry run` |
 
@@ -328,7 +328,7 @@ pip show kiro-init
 
 ```bash
 # Run with Python's verbose mode
-python -v -m kiro_init.cli -n my-project
+python -v -m hiveforge.cli -n my-project
 
 # Or use pytest for debugging
 pytest tests/test_cli.py::TestCLI::test_generate_project_with_name_flag -vv -s
@@ -338,14 +338,14 @@ pytest tests/test_cli.py::TestCLI::test_generate_project_with_name_flag -vv -s
 
 ```bash
 # Verify package is installed
-pip show kiro-init
+pip show hiveforge
 
 # Check CLI entry point
-which kiro-init  # Linux/Mac
-where kiro-init  # Windows
+which hiveforge  # Linux/Mac
+where hiveforge  # Windows
 
 # Test import
-python -c "import kiro_init; print(kiro_init.__version__)"
+python -c "import hiveforge; print(hiveforge.__version__)"
 ```
 
 ---
@@ -360,7 +360,7 @@ If you're still stuck:
    - OS and Python version
    - Full error message
    - Steps to reproduce
-   - Output of `pip show kiro-init`
+   - Output of `pip show hiveforge`
 
 ---
 
@@ -372,10 +372,10 @@ When reporting bugs, include:
 # System information
 python --version
 pip --version
-pip show kiro-init
+pip show hiveforge
 
 # Error output
-kiro-init -n test-project 2>&1 | tee error.log
+hiveforge -n test-project 2>&1 | tee error.log
 
 # Directory structure
 tree -L 2 .kiro/

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-14
 
 ### Added
-- Initial release of kiro-init CLI tool
+- Initial release of hiveforge CLI tool
 - 7 specialized agent definitions (Orchestrator, Data Architect, Backend Engineer, Frontend Engineer, QA Engineer, DevOps Engineer, Red Team)
 - 8 steering files (project-vision, tech-stack, conventions, architecture, db-standards, api-standards, ui-standards, qa-standards)
 - Swarm state management with dynamic placeholders
@@ -72,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 No migration needed. Simply install the new version:
 
 ```bash
-pip install --upgrade kiro-init
+pip install --upgrade hiveforge
 ```
 
 ---

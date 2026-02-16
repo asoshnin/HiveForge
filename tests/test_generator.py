@@ -3,7 +3,7 @@ import os
 import re
 from pathlib import Path
 import pytest
-from kiro_init.generator import generate_project
+from hiveforge.generator import generate_project
 
 
 class TestGenerateProject:
