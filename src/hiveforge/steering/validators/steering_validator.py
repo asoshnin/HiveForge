@@ -9,7 +9,7 @@ rule-based validation with optional LLM-based semantic checks for ambiguous case
 import hashlib
 import json
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..models import ValidationIssue, ValidationReport, Template
 from ..templates import get_all_templates
@@ -367,3 +367,236 @@ class SteeringValidator:
         
         # For now, return empty list (rule-based checks are primary)
         return []
+
+    def check_consistency_semantic(
+        self,
+        files: Dict[str, str],
+        max_tokens: int = 1000
+    ) -> List[ValidationIssue]:
+        """
+        Check semantic consistency using LLM for ambiguous cases.
+
+        This method is optional and only used when rule-based checks cannot
+        determine consistency. It sends a token-limited summary to the LLM
+        to check for semantic contradictions.
+
+        Args:
+            files: Dictionary mapping file names to their content
+            max_tokens: Maximum tokens to use per check
+
+        Returns:
+            List of validation issues found through semantic analysis
+        """
+        # TODO: Implement LLM-based semantic consistency checking
+        # This would:
+        # 1. Extract key information from each file (token-limited)
+        # 2. Send to LLM with prompt asking for contradictions
+        # 3. Parse LLM response for issues
+        # 4. Track LLM calls and tokens used
+        # 5. Return ValidationIssue objects
+
+        # For now, return empty list (rule-based checks are primary)
+        return []
+
+    def validate_with_rules(
+        self,
+        files: Dict[str, str],
+        framework_classifications: Dict[str, List[str]],
+        rules: List[Dict[str, Any]]
+    ) -> List[ValidationIssue]:
+        """
+        Validate content using rule-based semantic validation.
+
+        Args:
+            files: Dictionary mapping file names to their content
+            framework_classifications: Framework classification database
+            rules: List of validation rules to execute
+
+        Returns:
+            List of validation issues found
+        """
+        from .validation_rules_loader import ValidationRulesLoader
+        from .tech_stack_validator import TechStackValidator
+        from .contradiction_detector import ContradictionDetector
+
+        issues: List[ValidationIssue] = []
+
+        # Create validators
+        tech_validator = TechStackValidator(framework_classifications)
+        contradiction_detector = ContradictionDetector()
+
+        # Run each rule
+        for rule in rules:
+            rule_id = rule.get("id", "unknown")
+            severity = rule.get("severity", "MAJOR")
+
+            try:
+                # Execute rule-specific validation
+                if rule_id == "tech_stack_backend_framework_classification":
+                    rule_issues = tech_validator.validate_framework_pairings(
+                        files, "backend", "frontend"
+                    )
+                    issues.extend(rule_issues)
+
+                elif rule_id == "tech_stack_frontend_framework_classification":
+                    rule_issues = tech_validator.validate_framework_pairings(
+                        files, "frontend", "backend"
+                    )
+                    issues.extend(rule_issues)
+
+                elif rule_id == "version_consistency_across_files":
+                    rule_issues = tech_validator.validate_version_consistency(files)
+                    issues.extend(rule_issues)
+
+                elif rule_id == "database_standards_tech_stack_consistency":
+                    rule_issues = tech_validator.validate_database_consistency(files)
+                    issues.extend(rule_issues)
+
+                elif rule_id == "api_standards_tech_stack_consistency":
+                    rule_issues = tech_validator.validate_api_consistency(files)
+                    issues.extend(rule_issues)
+
+                elif rule_id == "architecture_tech_stack_consistency":
+                    # Use contradiction detector for architecture consistency
+                    rule_issues = contradiction_detector.detect_implicit_contradictions(
+                        files, ["architecture", "tech-stack"]
+                    )
+                    for issue in rule_issues:
+                        issues.append(ValidationIssue(
+                            severity=severity.lower(),
+                            file_name=issue.get("file", "unknown"),
+                            issue_type="architecture_inconsistency",
+                            message=issue.get("message", "Architecture inconsistency detected"),
+                            suggestion=issue.get("suggestion")
+                        ))
+
+            except Exception as e:
+                # Rule execution failed - log and continue
+                issues.append(ValidationIssue(
+                    severity="warning",
+                    file_name="validation_rules.yaml",
+                    issue_type="rule_execution_error",
+                    message=f"Failed to execute rule {rule_id}: {str(e)}",
+                    suggestion="Check rule syntax in validation_rules.yaml"
+                ))
+
+        return issues
+
+    def check_structural_consistency(
+        self,
+        files: Dict[str, str]
+    ) -> List[ValidationIssue]:
+        """
+        Check structural consistency across files.
+
+        Examples:
+        - If tech-stack.md mentions database X, db-standards.md should reference X
+        - If tech-stack.md mentions API framework Y, api-standards.md should reference Y
+
+        Args:
+            files: Dictionary mapping file names to their content
+
+        Returns:
+            List of validation issues found
+        """
+        issues: List[ValidationIssue] = []
+
+        # Check database consistency
+        tech_stack_content = files.get("tech-stack.md", "")
+        db_standards_content = files.get("db-standards.md", "")
+
+        if tech_stack_content and db_standards_content:
+            # Extract database mentions from tech-stack
+            tech_db = self._extract_database(tech_stack_content)
+            db_standards_db = self._extract_database(db_standards_content)
+
+            if tech_db and not any(db in db_standards_db for db in tech_db):
+                issues.append(ValidationIssue(
+                    severity="warning",
+                    file_name="tech-stack.md",
+                    issue_type="database_mismatch",
+                    message=f"Database '{tech_db[0]}' in tech-stack.md not found in db-standards.md",
+                    suggestion="Add database reference to db-standards.md"
+                ))
+
+        # Check API framework consistency
+        api_standards_content = files.get("api-standards.md", "")
+
+        if tech_stack_content and api_standards_content:
+            tech_api = self._extract_api_framework(tech_stack_content)
+            api_framework = self._extract_api_framework(api_standards_content)
+
+            if tech_api and api_framework and tech_api != api_framework:
+                issues.append(ValidationIssue(
+                    severity="warning",
+                    file_name="api-standards.md",
+                    issue_type="api_framework_mismatch",
+                    message=f"API framework '{api_framework}' doesn't match backend framework '{tech_api}'",
+                    suggestion="Update API framework to match backend"
+                ))
+
+        return issues
+
+    def _extract_database(self, content: str) -> List[str]:
+        """Extract database mentions from content."""
+        databases = ["PostgreSQL", "MongoDB", "MySQL", "Redis", "Cassandra"]
+        found = []
+        for db in databases:
+            if db.lower() in content.lower():
+                found.append(db)
+        return found
+
+    def _extract_api_framework(self, content: str) -> Optional[str]:
+        """Extract API framework from content."""
+        frameworks = ["FastAPI", "Express", "Django", "Flask", "Gin", "Spring Boot"]
+        for framework in frameworks:
+            if framework.lower() in content.lower():
+                return framework
+        return None
+
+    def generate_validation_report(
+        self,
+        files: Dict[str, str],
+        framework_classifications: Dict[str, List[str]],
+        rules: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Generate a comprehensive validation report.
+
+        Args:
+            files: Dictionary mapping file names to their content
+            framework_classifications: Framework classification database
+            rules: List of validation rules to execute
+
+        Returns:
+            Validation report dictionary with errors and warnings
+        """
+        issues = self.validate_with_rules(files, framework_classifications, rules)
+        structural_issues = self.check_structural_consistency(files)
+
+        # Categorize issues
+        errors = []
+        warnings = []
+
+        for issue in issues + structural_issues:
+            if issue.severity in ["critical", "warning"]:
+                warnings.append({
+                    "file": issue.file_name,
+                    "type": issue.issue_type,
+                    "message": issue.message,
+                    "suggestion": issue.suggestion
+                })
+            else:
+                errors.append({
+                    "file": issue.file_name,
+                    "type": issue.issue_type,
+                    "message": issue.message,
+                    "suggestion": issue.suggestion
+                })
+
+        return {
+            "errors": errors,
+            "warnings": warnings,
+            "total_issues": len(issues) + len(structural_issues),
+            "status": "pass" if len(errors) == 0 else "fail"
+        }

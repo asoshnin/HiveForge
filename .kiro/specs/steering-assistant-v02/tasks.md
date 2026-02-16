@@ -15,8 +15,8 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
 
 ## Phase 1: Foundation (Feature Flags, Discovery, Validation Rules)
 
-- [ ] 1.1 Create feature flag configuration system
-  - [ ] 1.1.1 Create FeatureFlagConfig dataclass in `src/hiveforge/steering/models.py`
+- [x] 1.1 Create feature flag configuration system
+  - [x] 1.1.1 Create FeatureFlagConfig dataclass in `src/hiveforge/steering/models.py`
     - Implement `use_autonomous_generation: bool` (default: False)
     - Implement `confidence_threshold: float` (default: 0.7 for MEDIUM threshold)
     - Implement `max_tokens: Optional[int]` (default: None)
@@ -27,7 +27,7 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `max_file_size_mb: int` (default: 10)
     - _Requirements: 1.1-1.5, 18.1-18.8, 24.2-24.4_
 
-  - [ ] 1.1.2 Create FeatureFlagManager class in `src/hiveforge/steering/feature_flags.py`
+  - [x] 1.1.2 Create FeatureFlagManager class in `src/hiveforge/steering/feature_flags.py`
     - Implement `load_from_cli()` to parse CLI flags
     - Implement `validate()` to check flag combinations and ranges (0.0-1.0 for confidence)
     - Implement `get_workflow_type()` to return AUTONOMOUS or FALLBACK
@@ -35,13 +35,13 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `warn_high_threshold()` to warn when threshold >0.95
     - _Requirements: 1.1-1.5, 8.1-8.8, 18.1-18.8_
 
-  - [ ]* 1.1.3 Write property tests for feature flag routing in `tests/test_feature_flags.py`
+  - [x]* 1.1.3 Write property tests for feature flag routing in `tests/test_feature_flags.py`
     - **Property 1: Feature Flag Routing**
     - **Validates: Requirements 1.1-1.5**
 
 
-- [ ] 1.2 Expand discovery phase (extends existing DocumentParserOrchestrator)
-  - [ ] 1.2.1 Create DocumentationSearcher class in `src/hiveforge/steering/analyzers/documentation_searcher.py`
+- [x] 1.2 Expand discovery phase (extends existing DocumentParserOrchestrator)
+  - [x] 1.2.1 Create DocumentationSearcher class in `src/hiveforge/steering/analyzers/documentation_searcher.py`
     - Implement `search_docs_files()` to find README*, CONTRIBUTING*, ARCHITECTURE*, DESIGN*, SPEC*, REQUIREMENTS*
     - Implement `search_docs_dirs()` to find docs/, documentation/, design/, .github/
     - Implement `search_package_files()` to find package.json, pyproject.toml, Cargo.toml, pom.xml
@@ -51,13 +51,13 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement file count limiting (stop at max_discovery_files)
     - _Requirements: 2.1-2.7, 24.1-24.8_
 
-  - [ ] 1.2.2 Create GitHistoryAnalyzer class in `src/hiveforge/steering/analyzers/git_history_analyzer.py`
+  - [x] 1.2.2 Create GitHistoryAnalyzer class in `src/hiveforge/steering/analyzers/git_history_analyzer.py`
     - Implement `analyze_commits()` to extract commit messages (last 100 commits)
     - Implement `analyze_prs()` to extract PR descriptions (if .git/refs/pull exists)
     - Implement `get_summary()` to create token-limited summary (max 2000 tokens)
     - _Requirements: 2.4_
 
-  - [ ] 1.2.3 Update DiscoveryOrchestrator in `src/hiveforge/steering/parsers/orchestrator.py`
+  - [x] 1.2.3 Update DiscoveryOrchestrator in `src/hiveforge/steering/parsers/orchestrator.py`
     - Extend existing DocumentParserOrchestrator with new discovery methods
     - Implement `discover_all()` to run DocumentationSearcher and GitHistoryAnalyzer
     - Implement `present_to_user()` to show discovered files with relevance indicators
@@ -67,12 +67,12 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement cancellation support after 30 seconds
     - _Requirements: 2.1-2.10, 24.5-24.7_
 
-  - [ ]* 1.2.4 Write property tests for discovery in `tests/test_discovery_phase.py`
+  - [x]* 1.2.4 Write property tests for discovery in `tests/test_discovery_phase.py`
     - **Property 2: Discovery Completeness**
     - **Validates: Requirements 2.1-2.10**
 
-- [ ] 1.3 Create validation_rules.yaml specification
-  - [ ] 1.3.1 Create validation_rules.yaml in `src/hiveforge/steering/validation_rules.yaml`
+- [x] 1.3 Create validation_rules.yaml specification
+  - [x] 1.3.1 Create validation_rules.yaml in `src/hiveforge/steering/validation_rules.yaml`
     - Define framework_classifications (frontend: React/Vue/Angular, backend: FastAPI/Express/Django, database: PostgreSQL/MongoDB/MySQL)
     - Define rule: tech_stack_backend_framework_classification (backend framework must not be frontend)
     - Define rule: tech_stack_frontend_framework_classification (frontend framework must not be backend)
@@ -82,29 +82,29 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Define rule: api_standards_tech_stack_consistency (API framework must match backend framework)
     - _Requirements: 5.1-5.10_
 
-  - [ ] 1.3.2 Create ValidationRulesLoader class in `src/hiveforge/steering/validators/validation_rules_loader.py`
+  - [x] 1.3.2 Create ValidationRulesLoader class in `src/hiveforge/steering/validators/validation_rules_loader.py`
     - Implement `load_rules()` to parse validation_rules.yaml
     - Implement `get_framework_classifications()` to return framework database
     - Implement `get_rules()` to return list of validation rules
     - Implement `validate_rule_syntax()` to check rule definitions
     - _Requirements: 5.10_
 
-- [ ] 1.4 Implement rule-based semantic validation (extends existing SteeringValidator)
-  - [ ] 1.4.1 Create TechStackValidator class in `src/hiveforge/steering/validators/tech_stack_validator.py`
+- [x] 1.4 Implement rule-based semantic validation (extends existing SteeringValidator)
+  - [x] 1.4.1 Create TechStackValidator class in `src/hiveforge/steering/validators/tech_stack_validator.py`
     - Implement `validate_tech_stack()` to cross-reference against code analysis
     - Implement `validate_framework_pairings()` to verify frontend/backend correctness using framework_classifications
     - Implement `validate_version_consistency()` to check version consistency across files
     - Implement `extract_versions()` to parse version strings from content
     - _Requirements: 5.1-5.4_
 
-  - [ ] 1.4.2 Create ContradictionDetector class in `src/hiveforge/steering/validators/contradiction_detector.py`
+  - [x] 1.4.2 Create ContradictionDetector class in `src/hiveforge/steering/validators/contradiction_detector.py`
     - Implement `detect_direct_contradictions()` to find explicit contradictions (Python vs JavaScript)
     - Implement `detect_implicit_contradictions()` to find logical inconsistencies (microservices vs monolithic)
     - Implement `calculate_confidence()` for conflict detection confidence
     - Implement keyword matching rules for common contradictions
     - _Requirements: 5.2-5.3_
 
-  - [ ] 1.4.3 Update SemanticValidator in `src/hiveforge/steering/validators/steering_validator.py`
+  - [x] 1.4.3 Update SemanticValidator in `src/hiveforge/steering/validators/steering_validator.py`
     - Extend existing SteeringValidator with semantic validation
     - Implement `validate_with_rules()` to execute validation_rules.yaml rules
     - Implement `check_structural_consistency()` for cross-file consistency (e.g., database in tech-stack must be in db-standards)
@@ -112,33 +112,33 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement rule execution engine (parse condition, evaluate, report errors)
     - _Requirements: 5.1-5.10_
 
-  - [ ]* 1.4.4 Write property tests for semantic validation in `tests/test_semantic_validation.py`
+  - [x]* 1.4.4 Write property tests for semantic validation in `tests/test_semantic_validation.py`
     - **Property 5: Semantic Validation Correctness**
     - **Validates: Requirements 5.1-5.10**
 
-- [ ] 1.5 Implement confidence scoring system
-  - [ ] 1.5.1 Create Evidence and ConfidenceScore dataclasses in `src/hiveforge/steering/models.py`
+- [x] 1.5 Implement confidence scoring system
+  - [x] 1.5.1 Create Evidence and ConfidenceScore dataclasses in `src/hiveforge/steering/models.py`
     - Implement Evidence with source (ARTIFACT, CODE_ANALYSIS, INFERENCE, USER), strength (0.0-1.0), description
     - Implement ConfidenceScore with value (0.0-1.0), level (HIGH/MEDIUM/LOW), evidence list
     - Implement ConfidenceLevel enum (HIGH ≥0.9, MEDIUM ≥0.7, LOW <0.7)
     - _Requirements: 4.1-4.7_
 
-  - [ ] 1.5.2 Create ConfidenceScorer class in `src/hiveforge/steering/confidence_scorer.py`
+  - [x] 1.5.2 Create ConfidenceScorer class in `src/hiveforge/steering/confidence_scorer.py`
     - Implement `calculate_confidence()` based on evidence strength (HIGH for direct extraction, MEDIUM for inference, LOW for placeholders)
     - Implement `get_level()` to convert score to HIGH/MEDIUM/LOW using conservative thresholds
     - Implement `calibrate()` to adjust scores based on actual correctness (deferred to v02.1, stub for now)
     - Implement `aggregate_section_confidences()` to calculate overall file confidence
     - _Requirements: 4.1-4.8_
 
-  - [ ]* 1.5.3 Write property tests for confidence scoring in `tests/test_confidence_scorer.py`
+  - [x]* 1.5.3 Write property tests for confidence scoring in `tests/test_confidence_scorer.py`
     - **Property 4: Confidence Score Accuracy**
     - **Validates: Requirements 4.1-4.8**
 
 
 ## Phase 2: Autonomous Generation (Sequential, Extends v01)
 
-- [ ] 2.1 Create autonomous generator (extends InitWorkflow)
-  - [ ] 2.1.1 Create AutonomousWorkflow class in `src/hiveforge/steering/workflows/autonomous_workflow.py`
+- [x] 2.1 Create autonomous generator (extends InitWorkflow)
+  - [x] 2.1.1 Create AutonomousWorkflow class in `src/hiveforge/steering/workflows/autonomous_workflow.py`
     - Extend existing InitWorkflow class from `src/hiveforge/steering/workflows/init_workflow.py`
     - Implement `generate_files_sequentially()` to generate files one at a time (NOT batch)
     - Implement generation order: project-vision.md → tech-stack.md → architecture.md → conventions.md → api-standards.md, db-standards.md, qa-standards.md, ui-standards.md
@@ -148,7 +148,7 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Add `workflow_type` parameter to distinguish AUTONOMOUS vs FALLBACK mode
     - _Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7_
 
-  - [ ] 2.1.2 Create InferenceEngine class in `src/hiveforge/steering/inference_engine.py`
+  - [x] 2.1.2 Create InferenceEngine class in `src/hiveforge/steering/inference_engine.py`
     - Implement `infer_from_patterns()` to use industry standards (e.g., if FastAPI detected, infer Python backend)
     - Implement `infer_from_context()` to use project context (e.g., if React in package.json, infer frontend framework)
     - Implement `mark_as_inferred()` to add inference markers with confidence levels
@@ -156,18 +156,18 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `--conservative-inference` support to reduce inference aggressiveness
     - _Requirements: 3.4-3.6, 26.1-26.7_
 
-  - [ ] 2.1.3 Update existing KnowledgeBase in `src/hiveforge/steering/knowledge_base.py`
+  - [x] 2.1.3 Update existing KnowledgeBase in `src/hiveforge/steering/knowledge_base.py`
     - Add `get_relevant_content_for_file()` to extract context for specific file generation
     - Add `track_generated_files()` to maintain list of already-generated files for context
     - Add `get_token_limited_context()` to respect token budget when building context
     - _Requirements: 3.2, 11.1-11.7_
 
-  - [ ]* 2.1.4 Write property tests for autonomous generation in `tests/test_autonomous_workflow.py`
+  - [x]* 2.1.4 Write property tests for autonomous generation in `tests/test_autonomous_workflow.py`
     - **Property 3: Autonomous Generation Completeness**
     - **Validates: Requirements 3.1-3.10**
 
-- [ ] 2.2 Implement fallback trigger (integrates with v01 question workflow)
-  - [ ] 2.2.1 Create FallbackTrigger class in `src/hiveforge/steering/fallback_trigger.py`
+- [x] 2.2 Implement fallback trigger (integrates with v01 question workflow)
+  - [x] 2.2.1 Create FallbackTrigger class in `src/hiveforge/steering/fallback_trigger.py`
     - Implement `should_trigger()` to check confidence (<0.6 for critical sections), validation failures, token budget exceeded, `--interactive` flag
     - Implement `get_fallback_reason()` to explain why fallback was triggered
     - Implement `get_fallback_workflow()` to return existing SteeringAssistant question-asking workflow
@@ -175,12 +175,12 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement context provision for questions (what was found, why it's unclear)
     - _Requirements: 8.1-8.8_
 
-  - [ ]* 2.2.2 Write property tests for fallback triggering in `tests/test_fallback_trigger.py`
+  - [x]* 2.2.2 Write property tests for fallback triggering in `tests/test_fallback_trigger.py`
     - **Property 8: Fallback Triggering**
     - **Validates: Requirements 8.1-8.8**
 
-- [ ] 2.3 Implement token budget management
-  - [ ] 2.3.1 Create TokenBudgetManager class in `src/hiveforge/steering/token_budget.py`
+- [x] 2.3 Implement token budget management
+  - [x] 2.3.1 Create TokenBudgetManager class in `src/hiveforge/steering/token_budget.py`
     - Implement `track_usage()` to track LLM token usage per file generation
     - Implement `warn_at_threshold()` to warn at 90% of budget
     - Implement `exceeded()` to check if budget exceeded
@@ -189,7 +189,7 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `get_usage_summary()` to display total usage at end
     - _Requirements: 11.1-11.7_
 
-  - [ ]* 2.3.2 Write property tests for token budget in `tests/test_token_budget.py`
+  - [x]* 2.3.2 Write property tests for token budget in `tests/test_token_budget.py`
     - **Property 10: Performance Bounds**
     - **Property 11: Token Budget Enforcement**
     - **Validates: Requirements 10.1-10.7, 11.1-11.7**
@@ -197,8 +197,8 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
 
 ## Phase 3: Conflict Resolution and Customization (Reuses v01 Components)
 
-- [ ] 3.1 Implement conflict detection (extends existing ConflictResolver)
-  - [ ] 3.1.1 Update ConflictDetector in `src/hiveforge/steering/conflict_resolver.py`
+- [x] 3.1 Implement conflict detection (extends existing ConflictResolver)
+  - [x] 3.1.1 Update ConflictDetector in `src/hiveforge/steering/conflict_resolver.py`
     - Extend existing ConflictResolver with confidence-based conflict detection
     - Implement `detect_direct_conflicts()` to find explicit contradictions (Python vs JavaScript)
     - Implement `detect_implicit_conflicts()` to find logical inconsistencies (REST vs GraphQL)
@@ -207,7 +207,7 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `present_side_by_side()` to show comparisons with evidence
     - _Requirements: 6.1-6.8_
 
-  - [ ] 3.1.2 Add batch conflict resolution to ConflictResolver
+  - [x] 3.1.2 Add batch conflict resolution to ConflictResolver
     - Implement `batch_conflicts()` to group similar conflicts (e.g., all version mismatches)
     - Implement `present_batch_view()` to show multiple conflicts together
     - Implement `apply_batch_resolution()` to apply same strategy to similar conflicts
@@ -215,13 +215,13 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `skip_conflicts()` to allow resolving later
     - _Requirements: 6.1-6.8, 19.1-19.7_
 
-  - [ ]* 3.1.3 Write property tests for conflict detection in `tests/test_conflict_detection.py`
+  - [x]* 3.1.3 Write property tests for conflict detection in `tests/test_conflict_detection.py`
     - **Property 6: Conflict Detection Precision**
     - **Property 19: Batch Conflict Resolution**
     - **Validates: Requirements 6.1-6.8, 19.1-19.7**
 
-- [ ] 3.2 Update customization preservation (extends existing CustomizationDetector)
-  - [ ] 3.2.1 Update CustomizationDetector in `src/hiveforge/steering/customization_detector.py`
+- [x] 3.2 Update customization preservation (extends existing CustomizationDetector)
+  - [x] 3.2.1 Update CustomizationDetector in `src/hiveforge/steering/customization_detector.py`
     - Extend existing CustomizationDetector with confidence scoring
     - Implement `detect_customizations()` to find user modifications by diffing against templates
     - Implement `mark_protected()` to mark customized sections as protected
@@ -230,33 +230,33 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `highlight_customizations()` to add visual indicators in diffs
     - _Requirements: 7.1-7.7_
 
-  - [ ]* 3.2.2 Write property tests for customization preservation in `tests/test_customization_preservation.py`
+  - [x]* 3.2.2 Write property tests for customization preservation in `tests/test_customization_preservation.py`
     - **Property 7: Customization Preservation**
     - **Validates: Requirements 7.1-7.7**
 
 ## Phase 4: Rollback, Performance, Telemetry, and Testing
 
-- [ ] 4.1 Implement rollback mechanism
-  - [ ] 4.1.1 Create BackupManager class in `src/hiveforge/steering/backup_manager.py`
+- [x] 4.1 Implement rollback mechanism
+  - [x] 4.1.1 Create BackupManager class in `src/hiveforge/steering/backup_manager.py`
     - Implement `create_backup()` to save current state before writing to `.kiro/backups/steering/`
     - Implement `restore_backup()` to restore previous version
     - Implement `cleanup_old_backups()` to delete backups exceeding limit (default: 5 versions)
     - Implement `list_backups()` to show available backups with timestamps
     - _Requirements: 9.1-9.7_
 
-  - [ ] 4.1.2 Create RollbackCommand in `src/hiveforge/steering/cli.py`
+  - [x] 4.1.2 Create RollbackCommand in `src/hiveforge/steering/cli.py`
     - Implement `steering rollback` command to restore all files to previous version
     - Implement `--dry-run` flag to preview changes without writing
     - Implement `--preview` flag to display summary of changes before committing
     - _Requirements: 9.1-9.7, 20.1-20.7_
 
-  - [ ]* 4.1.3 Write property tests for rollback in `tests/test_rollback.py`
+  - [x]* 4.1.3 Write property tests for rollback in `tests/test_rollback.py`
     - **Property 9: Rollback Integrity**
     - **Property 20: Preview Mode Correctness**
     - **Validates: Requirements 9.1-9.7, 20.1-20.7**
 
-- [ ] 4.2 Implement performance monitoring
-  - [ ] 4.2.1 Create PerformanceMonitor class in `src/hiveforge/steering/performance_monitor.py`
+- [x] 4.2 Implement performance monitoring
+  - [x] 4.2.1 Create PerformanceMonitor class in `src/hiveforge/steering/performance_monitor.py`
     - Implement `start_timer()` to track operation duration
     - Implement `display_working_message()` to show progress after 5 seconds
     - Implement `display_progress_indicators()` to show file generation progress
@@ -266,12 +266,12 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement streaming response support for better UX
     - _Requirements: 10.1-10.7_
 
-  - [ ]* 4.2.2 Write property tests for performance in `tests/test_performance_monitor.py`
+  - [x]* 4.2.2 Write property tests for performance in `tests/test_performance_monitor.py`
     - **Property 10: Performance Bounds**
     - **Validates: Requirements 10.1-10.7**
 
-- [ ] 4.3 Implement file-based telemetry logging
-  - [ ] 4.3.1 Create TelemetryLogger class in `src/hiveforge/steering/telemetry_logger.py`
+- [x] 4.3 Implement file-based telemetry logging
+  - [x] 4.3.1 Create TelemetryLogger class in `src/hiveforge/steering/telemetry_logger.py`
     - Implement `log_session()` to write session data to `.kiro/.telemetry/sessions/{timestamp}_{session_id}.json`
     - Implement `log_workflow_type()` to log AUTONOMOUS vs FALLBACK
     - Implement `log_confidence_scores()` to log confidence scores per file and section
@@ -283,31 +283,31 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - Implement `--telemetry-off` flag support to disable data collection
     - _Requirements: 14.1-14.9_
 
-  - [ ]* 4.3.2 Write property tests for telemetry in `tests/test_telemetry_logger.py`
+  - [x]* 4.3.2 Write property tests for telemetry in `tests/test_telemetry_logger.py`
     - **Property 14: Telemetry Completeness**
     - **Validates: Requirements 14.1-14.9**
 
-- [ ] 4.4 Implement testing strategy for non-deterministic generation
-  - [ ] 4.4.1 Create MockLLM class in `tests/mocks/mock_llm.py`
+- [x] 4.4 Implement testing strategy for non-deterministic generation
+  - [x] 4.4.1 Create MockLLM class in `tests/mocks/mock_llm.py`
     - Implement `generate()` with mocked responses for deterministic unit tests
     - Implement `set_response()` to configure mock responses
     - Implement `get_call_count()` to track LLM calls
     - Implement `get_call_history()` to inspect prompts sent to LLM
     - _Requirements: 12.1_
 
-  - [ ] 4.4.2 Create SemanticSimilarityChecker class in `tests/utils/semantic_checker.py`
+  - [x] 4.4.2 Create SemanticSimilarityChecker class in `tests/utils/semantic_checker.py`
     - Implement `check_similarity()` to compare content semantically (not exact match)
     - Implement `calculate_similarity_score()` to return 0.0-1.0
     - Implement `check_properties()` to test structure, completeness, confidence scores
     - _Requirements: 12.2-12.3_
 
-  - [ ] 4.4.3 Create regression test suite in `tests/test_regression.py`
+  - [x] 4.4.3 Create regression test suite in `tests/test_regression.py`
     - Implement tests with known-good examples from real projects
     - Implement integration tests with real LLM calls (marked as slow/optional with pytest.mark.slow)
     - Implement error handling and recovery tests
     - _Requirements: 12.4-12.7_
 
-  - [ ]* 4.4.4 Write property tests for testability in `tests/test_testability.py`
+  - [x]* 4.4.4 Write property tests for testability in `tests/test_testability.py`
     - **Property 12: Testability for Non-Deterministic Generation**
     - **Validates: Requirements 12.1-12.7**
 

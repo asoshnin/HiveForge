@@ -249,3 +249,265 @@ class ConflictResolver:
         presentation += f"{separator}\n"
         
         return presentation
+
+    @staticmethod
+    def format_conflict_presentation(conflict: Conflict) -> str:
+        """
+        Format a conflict for side-by-side presentation to the user.
+
+        Args:
+            conflict: The Conflict object to format
+
+        Returns:
+            Formatted string showing the conflict details
+        """
+        separator = "=" * 70
+
+        presentation = f"\n{separator}\n"
+        presentation += f"CONFLICT in section: {conflict.section}\n"
+        presentation += f"{separator}\n\n"
+
+        presentation += f"Explanation:\n{conflict.explanation}\n\n"
+
+        presentation += f"OLD VALUE:\n"
+        presentation += f"{'-' * 70}\n"
+        presentation += f"{conflict.old_value}\n"
+        presentation += f"{'-' * 70}\n\n"
+
+        presentation += f"NEW VALUE:\n"
+        presentation += f"{'-' * 70}\n"
+        presentation += f"{conflict.new_value}\n"
+        presentation += f"{'-' * 70}\n\n"
+
+        presentation += f"Resolution options: {', '.join(conflict.resolution_options)}\n"
+        presentation += f"{separator}\n"
+
+        return presentation
+
+    @staticmethod
+    def detect_direct_conflicts(
+        old_content: Dict[str, Any],
+        new_content: Dict[str, Any]
+    ) -> List[Conflict]:
+        """
+        Detect direct contradictions between old and new content.
+
+        Args:
+            old_content: Dictionary of existing steering file content
+            new_content: Dictionary of new/updated content
+
+        Returns:
+            List of Conflict objects for direct contradictions
+        """
+        return ConflictResolver.detect_conflicts(old_content, new_content)
+
+    @staticmethod
+    def detect_implicit_conflicts(
+        old_content: Dict[str, Any],
+        new_content: Dict[str, Any]
+    ) -> List[Conflict]:
+        """
+        Detect implicit contradictions between old and new content.
+
+        Args:
+            old_content: Dictionary of existing steering file content
+            new_content: Dictionary of new/updated content
+
+        Returns:
+            List of Conflict objects for implicit contradictions
+        """
+        conflicts = []
+
+        # Check for implicit contradictions
+        old_str = str(old_content).lower()
+        new_str = str(new_content).lower()
+
+        # Check for microservices vs monolithic
+        if ("microservices" in old_str and "monolithic" in new_str) or \
+           ("monolithic" in old_str and "microservices" in new_str):
+            conflicts.append(Conflict(
+                section="architecture",
+                old_value="microservices" if "microservices" in old_str else "monolithic",
+                new_value="monolithic" if "monolithic" in new_str else "microservices",
+                explanation="Architecture pattern conflict: microservices vs monolithic",
+                resolution_options=["keep_old", "use_new", "merge"]
+            ))
+
+        # Check for REST vs GraphQL
+        if ("rest" in old_str and "graphql" in new_str) or \
+           ("graphql" in old_str and "rest" in new_str):
+            conflicts.append(Conflict(
+                section="api",
+                old_value="REST" if "rest" in old_str else "GraphQL",
+                new_value="GraphQL" if "graphql" in new_str else "REST",
+                explanation="API pattern conflict: REST vs GraphQL",
+                resolution_options=["keep_old", "use_new", "merge"]
+            ))
+
+        return conflicts
+
+    @staticmethod
+    def detect_version_conflicts(
+        old_content: Dict[str, Any],
+        new_content: Dict[str, Any]
+    ) -> List[Conflict]:
+        """
+        Detect version mismatches between old and new content.
+
+        Args:
+            old_content: Dictionary of existing steering file content
+            new_content: Dictionary of new/updated content
+
+        Returns:
+            List of Conflict objects for version mismatches
+        """
+        conflicts = []
+
+        # Extract version information
+        import re
+
+        version_pattern = r"(\d+\.\d+)"
+
+        old_versions = re.findall(version_pattern, str(old_content))
+        new_versions = re.findall(version_pattern, str(new_content))
+
+        # Check for version mismatches
+        for old_v in old_versions:
+            for new_v in new_versions:
+                if old_v != new_v:
+                    conflicts.append(Conflict(
+                        section="version",
+                        old_value=old_v,
+                        new_value=new_v,
+                        explanation=f"Version mismatch: {old_v} vs {new_v}",
+                        resolution_options=["keep_old", "use_new", "merge"]
+                    ))
+
+        return conflicts
+
+    @staticmethod
+    def calculate_conflict_confidence(
+        conflict: Conflict,
+    ) -> float:
+        """
+        Calculate confidence score for a detected conflict.
+
+        Args:
+            conflict: The Conflict object
+
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
+        # Base confidence for direct conflicts
+        base_confidence = 0.95
+
+        # Reduce confidence for implicit conflicts
+        if "implicit" in conflict.explanation.lower():
+            base_confidence = 0.85
+
+        # Ensure confidence is in valid range
+        return max(0.0, min(1.0, base_confidence))
+
+    @staticmethod
+    def batch_conflicts(
+        conflicts: List[Conflict],
+    ) -> Dict[str, List[Conflict]]:
+        """
+        Group similar conflicts together.
+
+        Args:
+            conflicts: List of Conflict objects
+
+        Returns:
+            Dictionary mapping conflict type to list of conflicts
+        """
+        batches = {}
+
+        for conflict in conflicts:
+            conflict_type = conflict.section.lower()
+
+            if conflict_type not in batches:
+                batches[conflict_type] = []
+
+            batches[conflict_type].append(conflict)
+
+        return batches
+
+    @staticmethod
+    def present_batch_view(
+        batches: Dict[str, List[Conflict]],
+    ) -> str:
+        """
+        Present multiple conflicts together.
+
+        Args:
+            batches: Dictionary of conflict batches
+
+        Returns:
+            Formatted string showing all conflicts
+        """
+        output = []
+        output.append("=" * 70)
+        output.append("BATCH CONFLICT RESOLUTION")
+        output.append("=" * 70)
+
+        for conflict_type, conflicts in batches.items():
+            output.append(f"\n{conflict_type.upper()} ({len(conflicts)} conflicts):")
+            output.append("-" * 70)
+
+            for i, conflict in enumerate(conflicts, 1):
+                output.append(f"\n  Conflict {i}:")
+                output.append(f"    Section: {conflict.section}")
+                output.append(f"    Old: {conflict.old_value}")
+                output.append(f"    New: {conflict.new_value}")
+
+        output.append("\n" + "=" * 70)
+        output.append("Resolution options: keep_all_old, use_all_new, review_individual")
+        output.append("=" * 70)
+
+        return "\n".join(output)
+
+    @staticmethod
+    def apply_batch_resolution(
+        conflicts: List[Conflict],
+        resolution: str,
+    ) -> List[str]:
+        """
+        Apply same resolution strategy to all conflicts in batch.
+
+        Args:
+            conflicts: List of Conflict objects
+            resolution: Resolution strategy ("keep_all_old", "use_all_new", "review_individual")
+
+        Returns:
+            List of resolved values
+        """
+        resolved = []
+
+        for conflict in conflicts:
+            if resolution == "keep_all_old":
+                resolved.append(conflict.old_value)
+            elif resolution == "use_all_new":
+                resolved.append(conflict.new_value)
+            elif resolution == "review_individual":
+                # Keep conflict for individual review
+                resolved.append(None)
+            else:
+                resolved.append(None)
+
+        return resolved
+
+    @staticmethod
+    def skip_conflicts(
+        conflicts: List[Conflict],
+    ) -> List[Conflict]:
+        """
+        Mark conflicts to be resolved later.
+
+        Args:
+            conflicts: List of Conflict objects
+
+        Returns:
+            List of conflicts to be resolved later
+        """
+        return conflicts

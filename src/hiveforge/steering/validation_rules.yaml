@@ -1,0 +1,83 @@
+# Validation Rules for Steering Assistant v02
+# This file defines semantic validation rules for generated steering files.
+
+version: "1.0"
+
+# Framework classification for language/framework pairing validation
+framework_classifications:
+  frontend:
+    - React
+    - Vue
+    - Angular
+    - Svelte
+    - Next.js
+    - Nuxt.js
+  backend:
+    - FastAPI
+    - Express
+    - Django
+    - Flask
+    - Gin
+    - Spring Boot
+  database:
+    - PostgreSQL
+    - MongoDB
+    - MySQL
+    - Redis
+    - Cassandra
+
+# Semantic validation rules
+rules:
+  - id: tech_stack_backend_framework_classification
+    description: "Backend framework must not be a frontend framework"
+    severity: CRITICAL
+    check:
+      file: tech-stack.md
+      section: "Backend.Framework"
+      condition: "value not in framework_classifications.frontend"
+      error_message: "Backend framework '{value}' is classified as a frontend framework"
+
+  - id: tech_stack_frontend_framework_classification
+    description: "Frontend framework must not be a backend framework"
+    severity: CRITICAL
+    check:
+      file: tech-stack.md
+      section: "Frontend.Framework"
+      condition: "value not in framework_classifications.backend"
+      error_message: "Frontend framework '{value}' is classified as a backend framework"
+
+  - id: architecture_tech_stack_consistency
+    description: "Architecture pattern must be consistent with tech stack description"
+    severity: MAJOR
+    check:
+      files: [architecture.md, tech-stack.md]
+      condition: |
+        if "microservices" in architecture.md.pattern.lower():
+          assert "microservices" in tech-stack.md.rationale.lower() or "distributed" in tech-stack.md.rationale.lower()
+        if "monolithic" in architecture.md.pattern.lower():
+          assert "monolithic" in tech-stack.md.rationale.lower() or "single" in tech-stack.md.rationale.lower()
+      error_message: "Architecture pattern '{architecture_pattern}' is inconsistent with tech stack description"
+
+  - id: version_consistency_across_files
+    description: "Technology versions must be consistent across all files"
+    severity: MAJOR
+    check:
+      files: [tech-stack.md, api-standards.md, db-standards.md]
+      condition: "extract_versions() and check_consistency()"
+      error_message: "Version mismatch for '{technology}': {file1} says '{version1}', {file2} says '{version2}'"
+
+  - id: database_standards_tech_stack_consistency
+    description: "Database mentioned in db-standards.md must be in tech-stack.md"
+    severity: MAJOR
+    check:
+      files: [tech-stack.md, db-standards.md]
+      condition: "db_standards.database in tech_stack.database"
+      error_message: "Database '{database}' in db-standards.md is not mentioned in tech-stack.md"
+
+  - id: api_standards_tech_stack_consistency
+    description: "API framework in api-standards.md must match backend framework in tech-stack.md"
+    severity: MAJOR
+    check:
+      files: [tech-stack.md, api-standards.md]
+      condition: "api_standards.framework == tech_stack.backend.framework"
+      error_message: "API framework '{api_framework}' does not match backend framework '{backend_framework}'"

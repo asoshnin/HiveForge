@@ -271,3 +271,108 @@ class CustomizationDetector:
         merged.append(current)
         
         return merged
+
+    def _merge_adjacent_customizations(
+        self, customizations: List[Customization]
+    ) -> List[Customization]:
+        """
+        Merge adjacent customizations in the same section.
+
+        Combines consecutive customizations that belong to the same section
+        to reduce fragmentation and provide a clearer view of changes.
+
+        Args:
+            customizations: List of detected customizations
+
+        Returns:
+            List of merged customizations
+        """
+        if not customizations:
+            return []
+
+        merged = []
+        current = customizations[0]
+
+        for next_custom in customizations[1:]:
+            # Merge if same section and high confidence
+            if (current.section == next_custom.section and
+                current.confidence >= 0.5 and next_custom.confidence >= 0.5):
+                # Combine the content
+                current = Customization(
+                    section=current.section,
+                    original=current.original + '\n' + next_custom.original,
+                    customized=current.customized + '\n' + next_custom.customized,
+                    confidence=max(current.confidence, next_custom.confidence)
+                )
+            else:
+                # Save current and start new
+                merged.append(current)
+                current = next_custom
+
+        # Add the last one
+        merged.append(current)
+
+        return merged
+
+    def mark_protected(self, customizations: List[Customization]) -> List[Customization]:
+        """
+        Mark customized sections as protected.
+
+        Args:
+            customizations: List of detected customizations
+
+        Returns:
+            List of customizations with protected flag
+        """
+        for customization in customizations:
+            customization.protected = True
+        return customizations
+
+    def calculate_customization_confidence(
+        self,
+        customization: Customization,
+    ) -> float:
+        """
+        Calculate confidence score for a detected customization.
+
+        Args:
+            customization: The Customization object
+
+        Returns:
+            Confidence score between 0.0 and 1.0
+        """
+        return customization.confidence
+
+    def highlight_customizations(
+        self,
+        content: str,
+        customizations: List[Customization],
+    ) -> str:
+        """
+        Add visual indicators for customizations in content.
+
+        Args:
+            content: Original content
+            customizations: List of detected customizations
+
+        Returns:
+            Content with visual indicators for customizations
+        """
+        # Add markers for customizations
+        result = content
+
+        for customization in customizations:
+            if customization.confidence >= 0.7:
+                # High confidence - mark with strong indicator
+                result = result.replace(
+                    customization.customized,
+                    f"[CUSTOMIZED: {customization.section}] {customization.customized} [END CUSTOMIZED]"
+                )
+            elif customization.confidence >= 0.5:
+                # Medium confidence - mark with medium indicator
+                result = result.replace(
+                    customization.customized,
+                    f"[POSSIBLE CUSTOMIZATION: {customization.section}] {customization.customized} [END]"
+                )
+
+        return result

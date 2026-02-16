@@ -340,3 +340,129 @@ class CachedResponse:
     response: str
     timestamp: float
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+# ============================================================================
+# Feature Flag Models
+# ============================================================================
+
+class ConfidenceLevel(Enum):
+    """Confidence score levels for generated content."""
+    HIGH = "HIGH"      # ≥0.9 - Direct extraction or strong evidence
+    MEDIUM = "MEDIUM"  # 0.7-0.9 - Reasonable inference
+    LOW = "LOW"        # <0.7 - Generic placeholder or weak evidence
+
+
+@dataclass
+class Evidence:
+    """Evidence supporting a confidence score."""
+    
+    source: Literal["ARTIFACT", "CODE_ANALYSIS", "INFERENCE", "USER"]
+    strength: float  # 0.0-1.0
+    description: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ConfidenceScore:
+    """Represents a confidence score with calibration data."""
+    
+    value: float  # 0.0-1.0
+    level: ConfidenceLevel
+    evidence: List[Evidence] = field(default_factory=list)
+    
+    def __post_init__(self):
+        """Validate and set confidence level based on value."""
+        if not (0.0 <= self.value <= 1.0):
+            raise ValueError(f"Confidence value must be between 0.0 and 1.0, got {self.value}")
+        
+        if self.value >= 0.9:
+            self.level = ConfidenceLevel.HIGH
+        elif self.value >= 0.7:
+            self.level = ConfidenceLevel.MEDIUM
+        else:
+            self.level = ConfidenceLevel.LOW
+
+
+@dataclass
+class FeatureFlagConfig:
+    """Configuration for feature flags controlling autonomous generation."""
+    
+    use_autonomous_generation: bool = False
+    confidence_threshold: float = 0.7  # MEDIUM threshold
+    max_tokens: Optional[int] = None
+    discovery_paths: List[str] = field(default_factory=list)
+    preserve_all: bool = False
+    telemetry_off: bool = False
+    max_discovery_files: int = 1000
+    max_file_size_mb: int = 10
+    conservative_inference: bool = False
+    interactive: bool = False
+    
+    def validate(self) -> List[str]:
+        """
+        Validate feature flag combinations and ranges.
+        
+        Returns:
+            List of validation error messages (empty if valid)
+        """
+        errors = []
+        
+        # Validate confidence_threshold range
+        if not (0.0 <= self.confidence_threshold <= 1.0):
+            errors.append(
+                f"confidence_threshold must be between 0.0 and 1.0, got {self.confidence_threshold}"
+            )
+        
+        # Validate max_discovery_files
+        if self.max_discovery_files < 1:
+            errors.append(
+                f"max_discovery_files must be at least 1, got {self.max_discovery_files}"
+            )
+        
+        # Validate max_file_size_mb
+        if self.max_file_size_mb < 1:
+            errors.append(
+                f"max_file_size_mb must be at least 1, got {self.max_file_size_mb}"
+            )
+        
+        # Warn about high confidence threshold
+        if self.confidence_threshold > 0.95:
+            errors.append(
+                f"confidence_threshold is very high ({self.confidence_threshold}), "
+                "most sections may trigger fallback to question workflow"
+            )
+        
+        return errors
+    
+    def get_workflow_type(self) -> Literal["AUTONOMOUS", "FALLBACK"]:
+        """
+        Determine which workflow type to use based on feature flags.
+        
+        Returns:
+            "AUTONOMOUS" if autonomous generation is enabled, "FALLBACK" otherwise
+        """
+        if self.use_autonomous_generation and not self.interactive:
+            return "AUTONOMOUS"
+        return "FALLBACK"
+    
+    def should_fallback(self, confidence: float) -> bool:
+        """
+        Check if fallback should be triggered based on confidence.
+        
+        Args:
+            confidence: The confidence score to check
+            
+        Returns:
+            True if fallback should be triggered
+        """
+        return confidence < self.confidence_threshold
+    
+    def warn_high_threshold(self) -> bool:
+        """
+        Check if confidence threshold is high enough to warrant a warning.
+        
+        Returns:
+            True if threshold > 0.95
+        """
+        return self.confidence_threshold > 0.95

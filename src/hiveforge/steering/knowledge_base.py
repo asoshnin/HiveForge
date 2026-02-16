@@ -6,7 +6,7 @@ content for efficient retrieval. It combines information from parsed documents
 (markdown, PDF, images) and optional code analysis results.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 from .models import (
     ParsedDocument,
     CodeAnalysisResult,
@@ -244,3 +244,69 @@ class KnowledgeBase:
         if self.code_analysis:
             return self.code_analysis.architecture
         return None
+
+    def get_architecture(self) -> Optional[ArchitectureInfo]:
+        """
+        Get architecture information from code analysis.
+
+        Returns:
+            ArchitectureInfo if code analysis was performed, None otherwise
+        """
+        if self.code_analysis:
+            return self.code_analysis.architecture
+        return None
+
+    def get_relevant_content_for_file(
+        self,
+        filename: str,
+        max_tokens: int = 4000
+    ) -> str:
+        """
+        Get relevant content for a specific file generation.
+
+        Args:
+            filename: Name of the file to generate
+            max_tokens: Maximum number of tokens to include
+
+        Returns:
+            Token-limited relevant content string
+        """
+        # Map filename to template name
+        template_name = filename.replace(".md", "")
+        return self.get_relevant_content(template_name, max_tokens)
+
+    def track_generated_files(
+        self,
+        generated_files: Dict[str, str],
+    ) -> None:
+        """
+        Track generated files for context in subsequent generations.
+
+        Args:
+            generated_files: Dictionary of generated file contents
+        """
+        self._generated_files = generated_files
+
+    def get_token_limited_context(
+        self,
+        max_tokens: int = 4000,
+    ) -> str:
+        """
+        Get token-limited context from knowledge base.
+
+        Args:
+            max_tokens: Maximum number of tokens to include
+
+        Returns:
+            Token-limited context string
+        """
+        # Rough estimation: 1 token ≈ 4 characters
+        max_chars = max_tokens * 4
+
+        # Use the content index
+        context = self._content_index
+
+        if len(context) > max_chars:
+            context = context[:max_chars] + "\n... (truncated for token limit)"
+
+        return context

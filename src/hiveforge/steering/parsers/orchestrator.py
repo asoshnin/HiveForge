@@ -201,3 +201,297 @@ def get_parsing_summary(parsed_documents: List[ParsedDocument]) -> dict:
         "files_by_type": files_by_type,
         "error_summary": error_summary
     }
+
+"""
+Discovery orchestrator for the Steering Assistant v02.
+
+This module extends the DocumentParserOrchestrator with discovery capabilities
+for finding documentation, analyzing git history, and managing user selections.
+"""
+
+import json
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+from ..models import ParsedDocument
+from ..analyzers.documentation_searcher import DocumentationSearcher
+from ..analyzers.git_history_analyzer import GitHistoryAnalyzer
+
+
+class DiscoveryOrchestrator:
+    """Orchestrates the discovery phase for the Steering Assistant v02."""
+    
+    def __init__(
+        self,
+        max_discovery_files: int = 1000,
+        max_file_size_mb: int = 10,
+        discovery_paths: Optional[List[str]] = None,
+        timeout_seconds: int = 30,
+    ):
+        """
+        Initialize the DiscoveryOrchestrator.
+        
+        Args:
+            max_discovery_files: Maximum files to analyze during discovery
+            max_file_size_mb: Maximum file size in MB to analyze
+            discovery_paths: Custom paths to search in addition to defaults
+            timeout_seconds: Timeout for discovery operations
+        """
+        self.max_discovery_files = max_discovery_files
+        self.max_file_size_mb = max_file_size_mb
+        self.discovery_paths = discovery_paths or []
+        self.timeout_seconds = timeout_seconds
+        self._searcher: Optional[DocumentationSearcher] = None
+        self._git_analyzer: Optional[GitHistoryAnalyzer] = None
+        self._discovery_cache: Dict = {}
+    
+    def _get_searcher(self) -> DocumentationSearcher:
+        """Get or create the DocumentationSearcher instance."""
+        if self._searcher is None:
+            self._searcher = DocumentationSearcher(
+                max_file_size_mb=self.max_file_size_mb,
+                max_files=self.max_discovery_files,
+                custom_paths=self.discovery_paths,
+            )
+        return self._searcher
+    
+    def _get_git_analyzer(self) -> GitHistoryAnalyzer:
+        """Get or create the GitHistoryAnalyzer instance."""
+        if self._git_analyzer is None:
+            self._git_analyzer = GitHistoryAnalyzer()
+        return self._git_analyzer
+    
+    def discover_all(self, project_path: Path) -> Tuple[List[Path], Dict[str, any]]:
+        """
+        Run all discovery methods and return combined results.
+        
+        Args:
+            project_path: Root path of the project
+            
+        Returns:
+            Tuple of (list of discovered files, discovery metadata)
+        """
+        searcher = self._get_searcher()
+        
+        # Run discovery
+        discovered_files, file_count = searcher.discover_all(project_path)
+        
+        # Get git history summary
+        git_analyzer = self._get_git_analyzer()
+        git_summary = git_analyzer.get_summary(project_path)
+        commit_count = git_analyzer.get_commit_count(project_path)
+        
+        # Build metadata
+        metadata = {
+            "file_count": file_count,
+            "commit_count": commit_count,
+            "git_summary_available": len(git_summary) > 0,
+            "custom_paths": self.discovery_paths,
+            "max_files": self.max_discovery_files,
+            "max_file_size_mb": self.max_file_size_mb,
+        }
+        
+        return discovered_files, metadata
+    
+    def present_to_user(
+        self,
+        discovered_files: List[Path],
+        metadata: Dict[str, any],
+        show_relevance: bool = True,
+    ) -> List[Path]:
+        """
+        Present discovered files to the user with relevance indicators.
+        
+        Args:
+            discovered_files: List of discovered file paths
+            metadata: Discovery metadata
+            show_relevance: Whether to show relevance indicators
+            
+        Returns:
+            List of files selected by the user (all by default)
+        """
+        print("\n=== Discovery Results ===")
+        print(f"Files found: {metadata['file_count']}")
+        print(f"Commits analyzed: {metadata['commit_count']}")
+        
+        if metadata['custom_paths']:
+            print(f"Custom paths: {', '.join(metadata['custom_paths'])}")
+        
+        print("\nDiscovered files:")
+        
+        # Group files by type
+        docs_files = []
+        config_files = []
+        package_files = []
+        other_files = []
+        
+        for file_path in discovered_files:
+            file_str = str(file_path)
+            if any(doc in file_str for doc in ["README", "CONTRIBUTING", "ARCHITECTURE", "DESIGN", "SPEC", "REQUIREMENTS"]):
+                docs_files.append(file_path)
+            elif any(cfg in file_str for cfg in [".github", ".gitlab", ".circleci", "Jenkinsfile", "docker", "k8s", "helm"]):
+                config_files.append(file_path)
+            elif any(pkg in file_str for pkg in ["package.json", "pyproject.toml", "Cargo.toml", "pom.xml"]):
+                package_files.append(file_path)
+            else:
+                other_files.append(file_path)
+        
+        # Display grouped
+        if docs_files:
+            print("\nDocumentation files:")
+            for f in docs_files[:20]:  # Show first 20
+                relevance = self._calculate_relevance(f)
+                if show_relevance:
+                    print(f"  {f} (relevance: {relevance:.1%})")
+                else:
+                    print(f"  {f}")
+        
+        if config_files:
+            print("\nConfiguration files:")
+            for f in config_files[:20]:
+                relevance = self._calculate_relevance(f)
+                if show_relevance:
+                    print(f"  {f} (relevance: {relevance:.1%})")
+                else:
+                    print(f"  {f}")
+        
+        if package_files:
+            print("\nPackage metadata files:")
+            for f in package_files:
+                relevance = self._calculate_relevance(f)
+                if show_relevance:
+                    print(f"  {f} (relevance: {relevance:.1%})")
+                else:
+                    print(f"  {f}")
+        
+        if other_files:
+            print("\nOther files:")
+            for f in other_files[:10]:
+                relevance = self._calculate_relevance(f)
+                if show_relevance:
+                    print(f"  {f} (relevance: {relevance:.1%})")
+                else:
+                    print(f"  {f}")
+        
+        # If more than 50 files, indicate truncation
+        total_shown = len(docs_files) + len(config_files) + len(package_files) + len(other_files)
+        if total_shown < metadata['file_count']:
+            print(f"\n... and {metadata['file_count'] - total_shown} more files")
+        
+        # For now, return all files (user selection can be added later)
+        return discovered_files
+    
+    def _calculate_relevance(self, file_path: Path) -> float:
+        """
+        Calculate relevance score for a discovered file.
+        
+        Args:
+            file_path: Path to the file
+            
+        Returns:
+            Relevance score between 0.0 and 1.0
+        """
+        file_str = str(file_path).lower()
+        
+        # High relevance for standard documentation
+        if any(doc in file_str for doc in ["readme", "contributing"]):
+            return 0.95
+        if any(doc in file_str for doc in ["architecture", "design"]):
+            return 0.90
+        if any(doc in file_str for doc in ["spec", "requirements"]):
+            return 0.85
+        
+        # Medium relevance for configuration
+        if any(cfg in file_str for cfg in ["docker", "k8s", "helm"]):
+            return 0.70
+        if any(cfg in file_str for cfg in [".github", ".gitlab", ".circleci"]):
+            return 0.65
+        
+        # Lower relevance for package files
+        if any(pkg in file_str for pkg in ["package.json", "pyproject.toml"]):
+            return 0.60
+        
+        return 0.50
+    
+    def filter_by_user_selection(
+        self,
+        discovered_files: List[Path],
+        user_selection: Optional[List[Path]] = None,
+    ) -> List[Path]:
+        """
+        Filter discovered files based on user selection.
+        
+        Args:
+            discovered_files: All discovered files
+            user_selection: User-selected files (None = select all)
+            
+        Returns:
+            Filtered list of files
+        """
+        if user_selection is None or len(user_selection) == 0:
+            return discovered_files
+        
+        # Return only selected files that were discovered
+        return [f for f in user_selection if f in discovered_files]
+    
+    def cache_results(
+        self,
+        discovered_files: List[Path],
+        metadata: Dict[str, any],
+        cache_dir: Path = Path(".kiro/.cache"),
+    ) -> None:
+        """
+        Save discovery results to cache.
+        
+        Args:
+            discovered_files: List of discovered file paths
+            metadata: Discovery metadata
+            cache_dir: Directory to save cache to
+        """
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file = cache_dir / "discovery_cache.json"
+        
+        self._discovery_cache = {
+            "files": [str(f) for f in discovered_files],
+            "metadata": metadata,
+            "timestamp": metadata.get("timestamp", ""),
+        }
+        
+        with open(cache_file, "w") as f:
+            json.dump(self._discovery_cache, f, indent=2)
+    
+    def load_cached_results(
+        self,
+        cache_dir: Path = Path(".kiro/.cache"),
+    ) -> Optional[Dict]:
+        """
+        Load discovery results from cache.
+        
+        Args:
+            cache_dir: Directory containing cache
+            
+        Returns:
+            Cached results or None if not found
+        """
+        cache_file = cache_dir / "discovery_cache.json"
+        
+        if cache_file.exists():
+            with open(cache_file, "r") as f:
+                return json.load(f)
+        
+        return None
+    
+    def clear_cache(
+        self,
+        cache_dir: Path = Path(".kiro/.cache"),
+    ) -> None:
+        """
+        Clear discovery cache.
+        
+        Args:
+            cache_dir: Directory containing cache
+        """
+        cache_file = cache_dir / "discovery_cache.json"
+        
+        if cache_file.exists():
+            cache_file.unlink()

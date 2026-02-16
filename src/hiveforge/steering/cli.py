@@ -258,3 +258,150 @@ def steering_callback(ctx: typer.Context) -> None:
 
 if __name__ == "__main__":
     app()
+
+@app.command("rollback")
+def steering_rollback(
+    list_backups: bool = typer.Option(
+        False,
+        "--list",
+        help="List available backups instead of restoring"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Preview changes without writing files"
+    ),
+    backup_name: Optional[str] = typer.Option(
+        None,
+        "--backup",
+        help="Name of backup to restore (defaults to latest)"
+    ),
+) -> None:
+    """
+    Rollback steering files to a previous version.
+    
+    Restores steering files from a previous backup:
+    1. Lists available backups (with --list)
+    2. Selects backup to restore (or use latest)
+    3. Shows preview of changes (with --dry-run)
+    4. Restores files from backup
+    
+    Examples:
+        # List available backups
+        hiveforge steering rollback --list
+        
+        # Restore to latest backup
+        hiveforge steering rollback
+        
+        # Preview changes before committing
+        hiveforge steering rollback --dry-run
+        
+        # Restore to specific backup
+        hiveforge steering rollback --backup backup_20260216_143045
+    
+    Requirements: 9.1-9.7, 20.1-20.7
+    """
+    try:
+        from .backup_manager import BackupManager
+        
+        backup_dir = Path.cwd() / ".kiro" / "backups" / "steering"
+        backup_manager = BackupManager(backup_dir=backup_dir)
+        
+        # List backups if requested
+        if list_backups:
+            backups = backup_manager.list_backups()
+            
+            if not backups:
+                typer.secho("No backups found.", fg=typer.colors.YELLOW)
+                sys.exit(0)
+            
+            typer.secho("\nAvailable backups:", fg=typer.colors.CYAN)
+            for i, backup in enumerate(backups, 1):
+                typer.echo(f"  {i}. {backup['name']}")
+                typer.echo(f"     Timestamp: {backup['timestamp']}")
+                typer.echo(f"     Files: {backup['file_count']}")
+            
+            sys.exit(0)
+        
+        # Get backup to restore
+        if backup_name:
+            backup_path = backup_dir / backup_name
+            if not backup_path.exists():
+                typer.secho(f"Backup not found: {backup_name}", fg=typer.colors.RED)
+                sys.exit(1)
+        else:
+            backup_path = backup_manager.get_latest_backup()
+            if backup_path is None:
+                typer.secho("No backups found.", fg=typer.colors.YELLOW)
+                sys.exit(1)
+        
+        # Get target directory
+        target_dir = Path.cwd() / ".kiro" / "steering"
+        
+        # Show preview if dry-run
+        if dry_run:
+            typer.secho(f"\nPreview of rollback to {backup_path.name}:", fg=typer.colors.CYAN)
+            typer.echo(f"Target directory: {target_dir}")
+            
+            # Show files that would be restored
+            files_to_restore = list(backup_path.glob("*.md"))
+            typer.echo(f"\nFiles to restore ({len(files_to_restore)}):")
+            for file_path in files_to_restore:
+                typer.echo(f"  - {file_path.name}")
+            
+            typer.echo("\n(No changes written - use without --dry-run to apply)")
+            sys.exit(0)
+        
+        # Restore backup
+        restored_files = backup_manager.restore_backup(backup_path, target_dir)
+        
+        typer.secho(f"\n✓ Restored {len(restored_files)} file(s) from {backup_path.name}", fg=typer.colors.GREEN)
+        for file_path in restored_files:
+            typer.echo(f"  - {file_path.name}")
+        
+        sys.exit(0)
+    
+    except KeyboardInterrupt:
+        typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
+        sys.exit(130)
+    
+    except Exception as e:
+        logger.error(f"Rollback command failed: {e}", exc_info=True)
+        typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED, err=True)
+        sys.exit(1)
+
+
+@app.command("calibrate")
+def steering_calibrate(
+    calibrate_confidence: bool = typer.Option(
+        False,
+        "--calibrate-confidence",
+        help="Run confidence calibration analysis"
+    ),
+) -> None:
+    """
+    Run calibration analysis for confidence scores.
+    
+    Examples:
+        # Run confidence calibration
+        hiveforge steering calibrate --calibrate-confidence
+    
+    Requirements: 22.6
+    """
+    try:
+        if calibrate_confidence:
+            typer.secho("\nConfidence calibration analysis (stub for v02.1)", fg=typer.colors.YELLOW)
+            typer.echo("This feature will be implemented in v02.1")
+        else:
+            typer.echo("Usage: hiveforge steering calibrate --calibrate-confidence")
+        
+        sys.exit(0)
+    
+    except KeyboardInterrupt:
+        typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
+        sys.exit(130)
+    
+    except Exception as e:
+        logger.error(f"Calibrate command failed: {e}", exc_info=True)
+        typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED, err=True)
+        sys.exit(1)
