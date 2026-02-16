@@ -328,7 +328,7 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - Write `.kiro/agents/steering-validator.md` with agent description, capabilities, and usage instructions
     - _Requirements: 10.1-10.10, 11.1-11.7_
 
-- [ ] 18. Write documentation
+- [x] 18. Write documentation
   - [x] 18.1 Update HiveForge README
     - Add section on steering assistant feature
     - Document CLI commands and flags
@@ -342,35 +342,47 @@ This implementation plan breaks down the Steering Assistant feature into discret
     - Include troubleshooting section
     - _Requirements: 4.1-4.8, 5.1-5.11, 11.1-11.7_
 
-- [ ] 19. Final checkpoint - Integration testing
-  - [ ] 19.1 Test end-to-end init workflow with real artifacts
-    - Test with markdown files, PDFs, images
-    - Verify all 8 steering files are generated correctly
-    - _Requirements: 4.1-4.8_
+- [ ] 19. Final checkpoint - Integration testing with VeriQ_MVP
+  - [ ] 19.1 Test init workflow with VeriQ_MVP codebase
+    - Clone VeriQ_MVP to `/Users/alexeysoshnin/Documents/_playground/VeriQ_MVP` (already done)
+    - Run `hiveforge steering init --analyze-code` on VeriQ_MVP
+    - Verify code analysis detects languages, frameworks, and architecture
+    - Verify all 8 steering files are generated with VeriQ_MVP-specific content
+    - Check that tech-stack.md contains actual technologies used in VeriQ_MVP
+    - Check that architecture.md reflects VeriQ_MVP's actual structure
+    - Check that conventions.md matches VeriQ_MVP's coding style
+    - _Requirements: 3A.1-3A.15, 4.1-4.8_
 
-  - [ ] 19.2 Test end-to-end init workflow with code analysis
-    - Test with real codebases in multiple languages
-    - Verify tech stack, architecture, conventions are extracted correctly
-    - _Requirements: 3A.1-3A.15_
+  - [ ] 19.2 Test validation workflow on generated VeriQ_MVP steering files
+    - Run `hiveforge steering validate` on VeriQ_MVP steering files
+    - Verify no unreplaced placeholders remain
+    - Verify all required sections are present
+    - Run `hiveforge steering validate --strict` and check exit code
+    - _Requirements: 10.1-10.10, 11.1-11.7_
 
-  - [ ] 19.3 Test end-to-end update workflow
-    - Test with existing steering files and new artifacts
-    - Verify conflicts are detected and resolved
-    - Verify customizations are preserved
-    - _Requirements: 5.1-5.11_
+  - [ ] 19.3 Test update workflow with VeriQ_MVP
+    - Create a mock artifact in `.kiro/onboarding/` (e.g., updated requirements)
+    - Run `hiveforge steering update`
+    - Verify diffs are generated correctly
+    - Verify customizations are preserved (if any manual edits were made)
+    - Verify conflicts are detected if contradictory information is provided
+    - _Requirements: 5.1-5.11, 15.1-15.5_
 
-  - [ ] 19.4 Test end-to-end validate workflow
-    - Test with valid and invalid steering files
-    - Verify validation report is comprehensive
-    - Verify exit codes are correct
-    - _Requirements: 11.1-11.7_
+  - [ ] 19.4 Verify VeriQ_MVP steering files quality
+    - Manually review generated steering files for accuracy
+    - Check that project-vision.md captures VeriQ_MVP's purpose
+    - Check that tech-stack.md lists correct dependencies
+    - Check that architecture.md describes actual system design
+    - Check that conventions.md matches actual code patterns
+    - Verify no hallucinated or incorrect information
+    - _Requirements: 4.1-4.8, 3A.1-3A.15_
 
-  - [ ] 19.5 Test with complex real-world documents
-    - Test with multi-language documents (Cyrillic, CJK, mixed scripts)
-    - Test with documents containing Mermaid diagrams, code blocks, tables
-    - Test with deeply nested section hierarchies
-    - Verify all content is preserved correctly
-    - _Requirements: 3.1_
+  - [ ] 19.5 Test error handling with VeriQ_MVP edge cases
+    - Test with missing dependencies (remove package.json temporarily)
+    - Test with corrupted files (create invalid Python file)
+    - Test with very large files (if any exist in VeriQ_MVP)
+    - Verify graceful degradation and error messages
+    - _Requirements: 3B.1-3B.7_
 
 - [ ] 20. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.

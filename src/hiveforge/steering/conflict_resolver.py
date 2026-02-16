@@ -8,7 +8,7 @@ old and new information when updating steering files.
 from typing import Dict, Any, List
 import re
 
-from src.hiveforge.steering.models import Conflict
+from .models import Conflict
 
 
 class ConflictResolver:
