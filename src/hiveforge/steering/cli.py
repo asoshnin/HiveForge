@@ -16,10 +16,12 @@ from typing import List, Optional
 
 import typer
 
-from .models import SteeringConfig, FeatureFlagConfig
-from .workflows.init_workflow import InitWorkflow
-from .workflows.update_workflow import UpdateWorkflow
-from .workflows.validate_workflow import ValidateWorkflow
+from .shared.adapters import (
+    SharedInitWorkflow,
+    SharedUpdateWorkflow,
+    SharedValidateWorkflow,
+    SharedResetWorkflow,
+)
 
 # Create steering subcommand app
 app = typer.Typer(
@@ -128,43 +130,34 @@ def steering_init(
     Requirements: 1.1, 1.4, 1.5, 1.6, 1.7
     """
     try:
-        # Create feature flag configuration
-        feature_flags = FeatureFlagConfig(
-            use_autonomous_generation=use_autonomous_generation,
+        # Create shared workflow adapter
+        workflow = SharedInitWorkflow(
+            project_root=Path.cwd(),
+            auto_discover=analyze_code,
+            autonomous=use_autonomous_generation,
             confidence_threshold=confidence_threshold,
-            max_tokens=max_tokens,
-            discovery_paths=discovery_paths,
-            preserve_all=preserve_all,
-            telemetry_off=telemetry_off,
-            max_discovery_files=max_discovery_files,
-            max_file_size_mb=max_file_size,
-            conservative_inference=conservative_inference,
-            interactive=not interactive,  # --no-interactive sets interactive=True
+            config={
+                "research_enabled": research,
+                "skip_validation": skip_validation,
+                "interactive": interactive,
+                "max_tokens": max_tokens,
+                "discovery_paths": discovery_paths,
+                "preserve_all": preserve_all,
+                "telemetry_off": telemetry_off,
+                "max_discovery_files": max_discovery_files,
+                "max_file_size_mb": max_file_size,
+                "conservative_inference": conservative_inference,
+            }
         )
         
-        # Validate feature flags
-        errors = feature_flags.validate()
-        if errors:
-            for error in errors:
-                typer.secho(f"Warning: {error}", fg=typer.colors.YELLOW)
+        # Execute workflow
+        result = workflow.execute()
         
-        # Create configuration
-        config = SteeringConfig(
-            research_enabled=research,
-            skip_validation=skip_validation,
-            interactive=interactive,
-            analyze_code=analyze_code,
-            backup_enabled=True,
-            backup_dir=Path.cwd() / ".kiro" / "backups",
-            feature_flags=feature_flags,
-        )
-        
-        # Create and execute workflow
-        workflow = InitWorkflow(config=config, project_root=Path.cwd())
-        success = workflow.execute()
+        # Display result
+        typer.echo(result.format_for_cli())
         
         # Exit with appropriate code
-        sys.exit(0 if success else 1)
+        sys.exit(0 if result.success else 1)
     
     except KeyboardInterrupt:
         typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
@@ -233,24 +226,28 @@ def steering_update(
     Requirements: 1.2, 1.5, 1.6, 1.7, 20.1-20.7, 23.1-23.8
     """
     try:
-        # Create configuration
-        config = SteeringConfig(
-            research_enabled=research,
-            skip_validation=skip_validation,
-            interactive=interactive,
-            analyze_code=False,  # Update doesn't do code analysis
-            backup_enabled=True,
-            backup_dir=Path.cwd() / ".kiro" / "backups",
+        # Create shared workflow adapter
+        workflow = SharedUpdateWorkflow(
+            project_root=Path.cwd(),
+            files_to_update=None,  # Update all files
+            preserve_customizations=not preview,  # In preview mode, don't preserve
             incremental=incremental,
-            preview=preview,
+            config={
+                "research_enabled": research,
+                "skip_validation": skip_validation,
+                "interactive": interactive,
+                "preview": preview,
+            }
         )
         
-        # Create and execute workflow
-        workflow = UpdateWorkflow(config=config, project_root=Path.cwd())
-        success = workflow.execute()
+        # Execute workflow
+        result = workflow.execute()
+        
+        # Display result
+        typer.echo(result.format_for_cli())
         
         # Exit with appropriate code
-        sys.exit(0 if success else 1)
+        sys.exit(0 if result.success else 1)
     
     except KeyboardInterrupt:
         typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
@@ -293,22 +290,22 @@ def steering_validate(
     Requirements: 1.3, 1.7
     """
     try:
-        # Create configuration
-        config = SteeringConfig(
-            strict_mode=strict,
-            research_enabled=False,
-            skip_validation=False,
-            interactive=False,
-            analyze_code=False,
-            backup_enabled=False
+        # Create shared workflow adapter
+        workflow = SharedValidateWorkflow(
+            project_root=Path.cwd(),
+            strict=strict,
+            use_llm=True,  # Enable semantic validation
+            config={}
         )
         
-        # Create and execute workflow
-        workflow = ValidateWorkflow(config=config, project_root=Path.cwd())
-        exit_code = workflow.execute()
+        # Execute workflow
+        result = workflow.execute()
         
-        # Exit with workflow's exit code
-        sys.exit(exit_code)
+        # Display result
+        typer.echo(result.format_for_cli())
+        
+        # Exit with workflow's exit code (0 for success, 1 for failure)
+        sys.exit(0 if result.success else 1)
     
     except KeyboardInterrupt:
         typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
@@ -316,6 +313,67 @@ def steering_validate(
     
     except Exception as e:
         logger.error(f"Validate command failed: {e}", exc_info=True)
+        typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED, err=True)
+        sys.exit(1)
+
+
+@app.command("reset")
+def steering_reset(
+    file: Optional[str] = typer.Option(
+        None,
+        "--file",
+        help="Specific file to reset (e.g., 'tech-stack.md'). If not provided, resets all files."
+    ),
+    confirm: bool = typer.Option(
+        False,
+        "--yes",
+        help="Skip confirmation prompt"
+    ),
+) -> None:
+    """
+    Reset steering files to default templates.
+    
+    Resets steering files by:
+    1. Creating backup of current files
+    2. Replacing files with default templates
+    3. Preserving backup for rollback if needed
+    
+    Examples:
+        # Reset all steering files
+        hiveforge steering reset
+        
+        # Reset specific file
+        hiveforge steering reset --file tech-stack.md
+        
+        # Skip confirmation
+        hiveforge steering reset --yes
+    
+    Requirements: Phase 3 - New command using SharedResetWorkflow
+    """
+    try:
+        # Create shared workflow adapter
+        workflow = SharedResetWorkflow(
+            project_root=Path.cwd(),
+            file=file,
+            confirm=confirm,
+            config={}
+        )
+        
+        # Execute workflow
+        result = workflow.execute()
+        
+        # Display result
+        typer.echo(result.format_for_cli())
+        
+        # Exit with appropriate code
+        sys.exit(0 if result.success else 1)
+    
+    except KeyboardInterrupt:
+        typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
+        sys.exit(130)
+    
+    except Exception as e:
+        logger.error(f"Reset command failed: {e}", exc_info=True)
         typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED, err=True)
         sys.exit(1)
 

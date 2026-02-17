@@ -29,30 +29,48 @@ def cli_runner():
 
 @pytest.fixture
 def mock_init_workflow():
-    """Mock InitWorkflow for testing."""
-    with patch('hiveforge.steering.cli.InitWorkflow') as mock:
+    """Mock SharedInitWorkflow for testing."""
+    with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock:
         workflow_instance = Mock()
-        workflow_instance.execute.return_value = True
+        # Mock execute to return a WorkflowResult
+        from hiveforge.steering.shared.base import WorkflowResult
+        workflow_instance.execute.return_value = WorkflowResult(
+            success=True,
+            message="Init completed successfully",
+            files_created=[".kiro/steering/tech-stack.md"]
+        )
         mock.return_value = workflow_instance
         yield mock
 
 
 @pytest.fixture
 def mock_update_workflow():
-    """Mock UpdateWorkflow for testing."""
-    with patch('hiveforge.steering.cli.UpdateWorkflow') as mock:
+    """Mock SharedUpdateWorkflow for testing."""
+    with patch('hiveforge.steering.cli.SharedUpdateWorkflow') as mock:
         workflow_instance = Mock()
-        workflow_instance.execute.return_value = True
+        # Mock execute to return a WorkflowResult
+        from hiveforge.steering.shared.base import WorkflowResult
+        workflow_instance.execute.return_value = WorkflowResult(
+            success=True,
+            message="Update completed successfully",
+            files_modified=[".kiro/steering/tech-stack.md"]
+        )
         mock.return_value = workflow_instance
         yield mock
 
 
 @pytest.fixture
 def mock_validate_workflow():
-    """Mock ValidateWorkflow for testing."""
-    with patch('hiveforge.steering.cli.ValidateWorkflow') as mock:
+    """Mock SharedValidateWorkflow for testing."""
+    with patch('hiveforge.steering.cli.SharedValidateWorkflow') as mock:
         workflow_instance = Mock()
-        workflow_instance.execute.return_value = 0
+        # Mock execute to return a WorkflowResult
+        from hiveforge.steering.shared.base import WorkflowResult
+        workflow_instance.execute.return_value = WorkflowResult(
+            success=True,
+            message="Validation passed",
+            metadata={"files_checked": 8}
+        )
         mock.return_value = workflow_instance
         yield mock
 
@@ -67,14 +85,15 @@ class TestSteeringInitCommand:
         assert result.exit_code == 0
         mock_init_workflow.assert_called_once()
         
-        # Verify default config
+        # Verify default parameters for SharedInitWorkflow
         call_args = mock_init_workflow.call_args
+        assert call_args.kwargs['auto_discover'] is False  # --analyze-code not set
+        assert call_args.kwargs['autonomous'] is False  # --use-autonomous-generation not set
+        assert call_args.kwargs['confidence_threshold'] == 0.7
         config = call_args.kwargs['config']
-        assert isinstance(config, SteeringConfig)
-        assert config.research_enabled is False
-        assert config.skip_validation is False
-        assert config.interactive is True
-        assert config.analyze_code is False
+        assert config['research_enabled'] is False
+        assert config['skip_validation'] is False
+        assert config['interactive'] is True
     
     def test_init_with_research_flag(self, cli_runner, mock_init_workflow):
         """Test init command with --research flag."""
@@ -82,10 +101,10 @@ class TestSteeringInitCommand:
         
         assert result.exit_code == 0
         
-        # Verify research is enabled
+        # Verify research is enabled in config
         call_args = mock_init_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.research_enabled is True
+        assert config['research_enabled'] is True
     
     def test_init_with_skip_validation_flag(self, cli_runner, mock_init_workflow):
         """Test init command with --skip-validation flag."""
@@ -93,10 +112,10 @@ class TestSteeringInitCommand:
         
         assert result.exit_code == 0
         
-        # Verify validation is skipped
+        # Verify validation is skipped in config
         call_args = mock_init_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.skip_validation is True
+        assert config['skip_validation'] is True
     
     def test_init_with_no_interactive_flag(self, cli_runner, mock_init_workflow):
         """Test init command with --no-interactive flag."""
@@ -104,10 +123,10 @@ class TestSteeringInitCommand:
         
         assert result.exit_code == 0
         
-        # Verify interactive is disabled
+        # Verify interactive is disabled in config
         call_args = mock_init_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.interactive is False
+        assert config['interactive'] is False
     
     def test_init_with_interactive_flag(self, cli_runner, mock_init_workflow):
         """Test init command with --interactive flag (explicit)."""
@@ -115,10 +134,10 @@ class TestSteeringInitCommand:
         
         assert result.exit_code == 0
         
-        # Verify interactive is enabled
+        # Verify interactive is enabled in config
         call_args = mock_init_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.interactive is True
+        assert config['interactive'] is True
     
     def test_init_with_analyze_code_flag(self, cli_runner, mock_init_workflow):
         """Test init command with --analyze-code flag."""
@@ -126,10 +145,9 @@ class TestSteeringInitCommand:
         
         assert result.exit_code == 0
         
-        # Verify code analysis is enabled
+        # Verify auto_discover is enabled (maps to --analyze-code)
         call_args = mock_init_workflow.call_args
-        config = call_args.kwargs['config']
-        assert config.analyze_code is True
+        assert call_args.kwargs['auto_discover'] is True
     
     def test_init_with_multiple_flags(self, cli_runner, mock_init_workflow):
         """Test init command with multiple flags combined."""
@@ -143,18 +161,23 @@ class TestSteeringInitCommand:
         
         assert result.exit_code == 0
         
-        # Verify all flags are set correctly
+        # Verify all parameters are set correctly
         call_args = mock_init_workflow.call_args
+        assert call_args.kwargs['auto_discover'] is True
         config = call_args.kwargs['config']
-        assert config.research_enabled is True
-        assert config.skip_validation is True
-        assert config.interactive is False
-        assert config.analyze_code is True
+        assert config['research_enabled'] is True
+        assert config['skip_validation'] is True
+        assert config['interactive'] is False
     
     def test_init_workflow_failure(self, cli_runner, mock_init_workflow):
         """Test init command when workflow fails."""
-        # Make workflow return False (failure)
-        mock_init_workflow.return_value.execute.return_value = False
+        # Make workflow return failure result
+        from hiveforge.steering.shared.base import WorkflowResult
+        mock_init_workflow.return_value.execute.return_value = WorkflowResult(
+            success=False,
+            message="Init failed",
+            errors=["Test error"]
+        )
         
         result = cli_runner.invoke(app, ["steering", "init"])
         
@@ -202,14 +225,14 @@ class TestSteeringUpdateCommand:
         assert result.exit_code == 0
         mock_update_workflow.assert_called_once()
         
-        # Verify default config
+        # Verify default parameters for SharedUpdateWorkflow
         call_args = mock_update_workflow.call_args
+        assert call_args.kwargs['files_to_update'] is None  # Update all files
+        assert call_args.kwargs['incremental'] is False  # Default incremental mode
         config = call_args.kwargs['config']
-        assert isinstance(config, SteeringConfig)
-        assert config.research_enabled is False
-        assert config.skip_validation is False
-        assert config.interactive is True
-        assert config.analyze_code is False  # Update doesn't do code analysis
+        assert config['research_enabled'] is False
+        assert config['skip_validation'] is False
+        assert config['interactive'] is True
     
     def test_update_with_research_flag(self, cli_runner, mock_update_workflow):
         """Test update command with --research flag."""
@@ -217,10 +240,10 @@ class TestSteeringUpdateCommand:
         
         assert result.exit_code == 0
         
-        # Verify research is enabled
+        # Verify research is enabled in config
         call_args = mock_update_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.research_enabled is True
+        assert config['research_enabled'] is True
     
     def test_update_with_skip_validation_flag(self, cli_runner, mock_update_workflow):
         """Test update command with --skip-validation flag."""
@@ -228,10 +251,10 @@ class TestSteeringUpdateCommand:
         
         assert result.exit_code == 0
         
-        # Verify validation is skipped
+        # Verify validation is skipped in config
         call_args = mock_update_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.skip_validation is True
+        assert config['skip_validation'] is True
     
     def test_update_with_no_interactive_flag(self, cli_runner, mock_update_workflow):
         """Test update command with --no-interactive flag."""
@@ -239,10 +262,10 @@ class TestSteeringUpdateCommand:
         
         assert result.exit_code == 0
         
-        # Verify interactive is disabled
+        # Verify interactive is disabled in config
         call_args = mock_update_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.interactive is False
+        assert config['interactive'] is False
     
     def test_update_with_multiple_flags(self, cli_runner, mock_update_workflow):
         """Test update command with multiple flags combined."""
@@ -255,17 +278,22 @@ class TestSteeringUpdateCommand:
         
         assert result.exit_code == 0
         
-        # Verify all flags are set correctly
+        # Verify all parameters are set correctly
         call_args = mock_update_workflow.call_args
         config = call_args.kwargs['config']
-        assert config.research_enabled is True
-        assert config.skip_validation is True
-        assert config.interactive is False
+        assert config['research_enabled'] is True
+        assert config['skip_validation'] is True
+        assert config['interactive'] is False
     
     def test_update_workflow_failure(self, cli_runner, mock_update_workflow):
         """Test update command when workflow fails."""
-        # Make workflow return False (failure)
-        mock_update_workflow.return_value.execute.return_value = False
+        # Make workflow return failure result
+        from hiveforge.steering.shared.base import WorkflowResult
+        mock_update_workflow.return_value.execute.return_value = WorkflowResult(
+            success=False,
+            message="Update failed",
+            errors=["Test error"]
+        )
         
         result = cli_runner.invoke(app, ["steering", "update"])
         
@@ -312,11 +340,10 @@ class TestSteeringValidateCommand:
         assert result.exit_code == 0
         mock_validate_workflow.assert_called_once()
         
-        # Verify default config
+        # Verify default parameters for SharedValidateWorkflow
         call_args = mock_validate_workflow.call_args
-        config = call_args.kwargs['config']
-        assert isinstance(config, SteeringConfig)
-        assert config.strict_mode is False
+        assert call_args.kwargs['strict'] is False
+        assert call_args.kwargs['use_llm'] is True
     
     def test_validate_with_strict_flag(self, cli_runner, mock_validate_workflow):
         """Test validate command with --strict flag."""
@@ -326,13 +353,16 @@ class TestSteeringValidateCommand:
         
         # Verify strict mode is enabled
         call_args = mock_validate_workflow.call_args
-        config = call_args.kwargs['config']
-        assert config.strict_mode is True
+        assert call_args.kwargs['strict'] is True
     
     def test_validate_exit_code_pass(self, cli_runner, mock_validate_workflow):
         """Test validate command returns 0 when validation passes."""
-        # Make workflow return 0 (pass)
-        mock_validate_workflow.return_value.execute.return_value = 0
+        # Make workflow return success result
+        from hiveforge.steering.shared.base import WorkflowResult
+        mock_validate_workflow.return_value.execute.return_value = WorkflowResult(
+            success=True,
+            message="Validation passed"
+        )
         
         result = cli_runner.invoke(app, ["steering", "validate"])
         
@@ -340,8 +370,13 @@ class TestSteeringValidateCommand:
     
     def test_validate_exit_code_fail(self, cli_runner, mock_validate_workflow):
         """Test validate command returns 1 when validation fails."""
-        # Make workflow return 1 (fail)
-        mock_validate_workflow.return_value.execute.return_value = 1
+        # Make workflow return failure result
+        from hiveforge.steering.shared.base import WorkflowResult
+        mock_validate_workflow.return_value.execute.return_value = WorkflowResult(
+            success=False,
+            message="Validation failed",
+            errors=["Critical issue found"]
+        )
         
         result = cli_runner.invoke(app, ["steering", "validate"])
         
@@ -411,7 +446,7 @@ class TestSteeringCommandIntegration:
     """Integration tests for steering commands."""
     
     def test_init_creates_config_correctly(self, cli_runner, mock_init_workflow):
-        """Test that init command creates SteeringConfig with correct values."""
+        """Test that init command creates SharedInitWorkflow with correct values."""
         result = cli_runner.invoke(app, [
             "steering", "init",
             "--research",
@@ -420,17 +455,14 @@ class TestSteeringCommandIntegration:
         
         assert result.exit_code == 0
         
-        # Verify config was created correctly
+        # Verify workflow was created correctly
         call_args = mock_init_workflow.call_args
+        assert call_args.kwargs['auto_discover'] is True  # --analyze-code
         config = call_args.kwargs['config']
-        
-        assert config.research_enabled is True
-        assert config.analyze_code is True
-        assert config.backup_enabled is True
-        assert config.backup_dir == Path.cwd() / ".kiro" / "backups"
+        assert config['research_enabled'] is True
     
     def test_update_creates_config_correctly(self, cli_runner, mock_update_workflow):
-        """Test that update command creates SteeringConfig with correct values."""
+        """Test that update command creates SharedUpdateWorkflow with correct values."""
         result = cli_runner.invoke(app, [
             "steering", "update",
             "--skip-validation"
@@ -438,16 +470,13 @@ class TestSteeringCommandIntegration:
         
         assert result.exit_code == 0
         
-        # Verify config was created correctly
+        # Verify workflow was created correctly
         call_args = mock_update_workflow.call_args
         config = call_args.kwargs['config']
-        
-        assert config.skip_validation is True
-        assert config.analyze_code is False  # Update never does code analysis
-        assert config.backup_enabled is True
+        assert config['skip_validation'] is True
     
     def test_validate_creates_config_correctly(self, cli_runner, mock_validate_workflow):
-        """Test that validate command creates SteeringConfig with correct values."""
+        """Test that validate command creates SharedValidateWorkflow with correct values."""
         result = cli_runner.invoke(app, [
             "steering", "validate",
             "--strict"
@@ -455,14 +484,10 @@ class TestSteeringCommandIntegration:
         
         assert result.exit_code == 0
         
-        # Verify config was created correctly
+        # Verify workflow was created correctly
         call_args = mock_validate_workflow.call_args
-        config = call_args.kwargs['config']
-        
-        assert config.strict_mode is True
-        assert config.research_enabled is False
-        assert config.interactive is False
-        assert config.backup_enabled is False
+        assert call_args.kwargs['strict'] is True
+        assert call_args.kwargs['use_llm'] is True
 
 
 class TestSteeringCommandErrorHandling:
