@@ -183,7 +183,7 @@ class TestErrorObfuscation:
             
             # Neither should contain the API key
             assert "sk-1234567890" not in cli_result.stdout
-            assert "sk-1234567890" not in power_result.get("error", ""))
+            assert "sk-1234567890" not in power_result.get("error", "")
     
     @pytest.mark.asyncio
     async def test_file_paths_not_exposed(self):
@@ -205,7 +205,7 @@ class TestErrorObfuscation:
             
             # Neither should contain the full internal path
             assert "/home/user/.config" not in cli_result.stdout
-            assert "/home/user/.config" not in power_result.get("error", ""))
+            assert "/home/user/.config" not in power_result.get("error", "")
 
 
 class TestSecurityLogging:

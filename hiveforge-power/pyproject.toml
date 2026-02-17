@@ -57,7 +57,7 @@ Issues = "https://github.com/yourusername/hiveforge-steering-mcp/issues"
 hiveforge-steering-mcp = "mcp_server.server:main"
 
 [tool.setuptools]
-packages = ["mcp_server", "mcp_server.tools"]
+packages = ["mcp_server", "mcp_server.tools", "hiveforge", "hiveforge.steering", "hiveforge.steering.shared"]
 
 [tool.setuptools.package-dir]
 "" = "."
