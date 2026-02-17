@@ -5,15 +5,12 @@ This tool uses SharedUpdateWorkflow from the shared backend to ensure
 identical behavior with the CLI.
 """
 
-from pathlib import Path
 from typing import Any, Optional
 
 from fastmcp import Context
 
-# Import security decorator
-import sys
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-from src.hiveforge.steering.shared.security import secure_execution
+# Import security decorator from packaged version
+from hiveforge.steering.shared.security import secure_execution
 
 
 @secure_execution(

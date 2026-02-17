@@ -2,6 +2,86 @@
 
 This guide walks you through refactoring an existing project using KIRO Methodology v05. You'll transform original project documentation into HiveForge steering documents, analyze discrepancies between documented intent and actual implementation, and take action to align your codebase with project standards.
 
+## v2.1.0 Shared Backend Architecture
+
+The v2.1.0 release introduced a **Shared Backend Architecture** that unifies CLI and Power (MCP) implementations.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      KIRO Orchestrator                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐                          ┌─────────────────┐ │
+│  │    CLI       │                          │   Power (MCP)   │ │
+│  └──────┬───────┘                          └────────┬────────┘ │
+│         │                                            │          │
+│         └──────────────────┬─────────────────────────┘          │
+│                            │                                      │
+│                            ▼                                      │
+│              ┌─────────────────────────────┐                     │
+│              │   Shared Backend Adapters   │                     │
+│              └──────────────┬──────────────┘                     │
+│                             │                                     │
+│         ┌───────────────────┼───────────────────┐                │
+│         │                   │                   │                │
+│         ▼                   ▼                   ▼                │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │   Error     │    │  Security   │    │  Telemetry  │         │
+│  │  Handling   │    │  Wrapper    │    │  Collector  │         │
+│  │  + Rollback │    │             │    │             │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│                             │                                     │
+│                             ▼                                     │
+│              ┌─────────────────────────────┐                     │
+│              │      v02 Workflows          │                     │
+│              └─────────────────────────────┘                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key v2.1.0 Features
+
+#### Error Handling with Automatic Rollback
+
+When workflows fail, the system automatically creates backups:
+
+```bash
+# If refactoring workflow fails, backup is created automatically
+hiveforge steering init --analyze-code
+
+# Output on failure:
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+#### Security Validation
+
+All workflows validate inputs and sanitize paths:
+
+```python
+from hiveforge.steering.shared.security import validate_parameters, sanitize_path
+
+# Validate project root
+result = validate_parameters(project_root=Path("/valid/path"))
+
+# Sanitize paths to prevent traversal attacks
+safe_path = sanitize_path(user_path=Path("/user/input"), base_path=Path("/valid"))
+```
+
+#### Telemetry Collection
+
+Workflow execution is tracked for monitoring:
+
+```bash
+# Telemetry data is stored in .kiro/.telemetry/
+ls -la .kiro/.telemetry/
+
+# Example telemetry file:
+# workflow_start_2026-02-17T10-30-00.json
+# workflow_complete_2026-02-17T10-30-05.json
+```
+
 ## Who This Guide Is For
 
 This guide is for developers who have:
@@ -283,38 +363,81 @@ hiveforge steering validate --strict
 
 **Verified in:** `src/hiveforge/steering/cli.py` (validate command)
 
+### v2.1.0: Error Handling During Validation
+
+If validation fails, the system provides detailed error information:
+
+```bash
+$ hiveforge steering validate --strict
+
+# ⚠️  Validation failed with 2 critical issues
+# ⚠️  Backup created at: .kiro/backups/backup_20260217_103000
+#
+# Critical Issues:
+# 1. architecture.md: Missing required section "Data Flow"
+# 2. tech-stack.md: Unreplaced placeholder "{DATABASE_VERSION}"
+#
+# Suggestions:
+# - Review and complete missing sections
+# - Replace placeholders with actual values
+```
+
+**Error Handling Features:**
+- Detailed error messages with line numbers
+- Suggestions for fixing issues
+- Automatic backup on failure
+- Graceful degradation
+
 ---
 
 ## Phase 3: Discrepancy Analysis
 
 **⚠️ Critical Limitation:** HiveForge does NOT have built-in discrepancy analysis.
 
-The Steering Assistant can:
-- Create steering documents from artifacts and code analysis
-- Validate steering document completeness
-- Update existing steering documents
+### What HiveForge DOES:
+- Generate steering files from your documents
+- Validate that steering files are complete and well-formed
+- Update steering files with new information
 
-The Steering Assistant CANNOT:
-- Compare steering documents against actual code implementation
-- Identify features described in docs but not implemented
-- Generate automated discrepancy reports
+### What HiveForge does NOT do:
+- Read your source code and check if it matches the documentation
+- Find features described in docs but missing in code
+- Identify convention violations in your codebase
 
-**Solution:** Use KIRO IDE with the Orchestrator agent to perform manual analysis.
+**Solution for Gap Analysis:** You need KIRO IDE + Orchestrator for that - it uses LLM-powered agents to manually analyze the gap between what's documented and what's implemented.
 
 ### Step 3.1: Open VeriQ in KIRO IDE
 
 Load the project in KIRO IDE. Steering files from `.kiro/steering/` and swarm state from `swarm_state.md` are automatically loaded.
 
+**How to open:**
+1. Launch KIRO IDE
+2. File → Open Folder → Select your project directory (e.g., `~/projects/veriq`)
+3. Wait for KIRO to index the project (status bar shows progress)
+
+**Verify setup:**
+- Check that `.kiro/steering/` contains your 8 steering files
+- Check that `swarm_state.md` exists in the root
+- Ensure no syntax errors in steering files (KIRO will highlight them)
+
 ### Step 3.2: Act as Orchestrator
 
-Use this exact prompt template in KIRO IDE:
+**How to invoke the Orchestrator:**
+
+1. Open the KIRO chat panel (usually on the right side)
+2. Click the agent selector dropdown (top of chat)
+3. Select "Orchestrator" from the list
+4. Paste the prompt below into the chat input
+5. Press Enter to start the analysis
+
+**Use this exact prompt template:**
 
 ```
 I have steering documents in .kiro/steering/ that describe the intended system design.
 I need you to analyze the actual codebase and compare it against these steering documents.
 
 Please:
-1. readFile all steering files in .kiro/steering/
+1. Read all steering files in .kiro/steering/
 2. Analyze the actual code implementation in src/
 3. Create a comprehensive discrepancy report that identifies:
    - Features described in steering docs but not implemented in code
@@ -329,20 +452,74 @@ Save the report to: DISCREPANCY_REPORT.md in the project root directory
 Delegate this analysis to appropriate specialized agents (Backend Engineer, Frontend Engineer, Data Architect, QA Engineer, Red Team).
 ```
 
+**What happens next:**
+- Orchestrator reads all steering files
+- Orchestrator creates a delegation plan
+- Orchestrator assigns tasks to specialized agents
+- Each agent reports back with findings
+- Orchestrator compiles the final report
+
+### v2.1.0: Security Validation During Analysis
+
+The code analysis includes security validation:
+
+```python
+from hiveforge.steering.shared.security import validate_parameters, sanitize_path
+
+# Validate analysis parameters
+result = validate_parameters(
+    project_root=Path("/path/to/project"),
+    confidence_threshold=0.7
+)
+
+# Sanitize paths to prevent traversal attacks
+safe_path = sanitize_path(
+    user_path=Path("/path/to/analyze"),
+    base_path=Path("/path/to/project")
+)
+```
+
+**Security Checks:**
+- Path traversal prevention
+- Input validation
+- Resource limits (memory, CPU time)
+
 ### Step 3.3: Orchestrator Delegation Flow
 
-The Orchestrator will delegate to specialized agents:
+**Understanding the delegation sequence:**
 
-1. **Steering Validator** - Reads and understands steering documents
-2. **Backend Engineer** - Analyzes backend code against api-standards.md, db-standards.md
-3. **Frontend Engineer** - Analyzes frontend code against ui-standards.md
-4. **Data Architect** - Analyzes database schema against db-standards.md
-5. **QA Engineer** - Checks test coverage against qa-standards.md
-6. **Red Team** - Audits for security and quality issues
+The Orchestrator follows this workflow:
 
-### Step 3.4: Expected Output
+1. **Phase 1: Document Understanding**
+   - **Steering Validator** reads all 8 steering files
+   - Extracts requirements, standards, and expectations
+   - Creates a checklist of items to verify in code
 
-The Orchestrator will generate `DISCREPANCY_REPORT.md` in the project root:
+2. **Phase 2: Code Analysis (Parallel)**
+   - **Backend Engineer** → Analyzes `src/api/`, `src/services/` against `api-standards.md`, `db-standards.md`
+   - **Frontend Engineer** → Analyzes `src/components/`, `src/pages/` against `ui-standards.md`
+   - **Data Architect** → Analyzes database schema, migrations against `db-standards.md`
+   - **QA Engineer** → Analyzes test files, coverage reports against `qa-standards.md`
+
+3. **Phase 3: Cross-Cutting Concerns**
+   - **Red Team** → Audits all findings for security issues, quality gaps, and architectural risks
+
+4. **Phase 4: Report Compilation**
+   - **Orchestrator** → Aggregates all findings
+   - Prioritizes issues (Critical, Warning, Info)
+   - Generates `DISCREPANCY_REPORT.md`
+
+**Monitoring progress:**
+- Watch the KIRO chat for delegation messages
+- Each agent will report completion status
+- Typical analysis takes 5-15 minutes depending on codebase size
+- Check `swarm_state.md` for real-time delegation tree updates
+
+### Step 3.4: Expected Output and Interpretation
+
+**Location:** The Orchestrator will generate `DISCREPANCY_REPORT.md` in the project root.
+
+**Report Structure:**
 
 ```markdown
 # Discrepancy Report for VeriQ
@@ -359,11 +536,13 @@ The Orchestrator will generate `DISCREPANCY_REPORT.md` in the project root:
 **Steering Doc:** architecture.md specifies JWT authentication
 **Actual Code:** No authentication endpoints found in src/api/
 **Impact:** Security vulnerability, feature gap
+**Recommendation:** Implement JWT auth middleware (Priority: HIGH)
 
 ### 2. Test Coverage Below Target
 **Steering Doc:** qa-standards.md requires 80% coverage
 **Actual Code:** Current coverage is 45%
 **Impact:** Quality risk
+**Recommendation:** Add unit tests for core modules (Priority: MEDIUM)
 
 ## Convention Violations
 
@@ -371,13 +550,81 @@ The Orchestrator will generate `DISCREPANCY_REPORT.md` in the project root:
 **Steering Doc:** conventions.md specifies snake_case
 **Actual Code:** Found camelCase in src/utils/helper.js
 **Files affected:** src/utils/helper.js, src/api/user.js
+**Recommendation:** Refactor to snake_case (Priority: LOW)
 
 ## Missing Components
 
 ### 1. Error Handling Middleware
 **Steering Doc:** api-standards.md requires standardized error handling
 **Status:** Not implemented
+**Recommendation:** Create error middleware (Priority: MEDIUM)
+
+## Architectural Differences
+
+### 1. Database Connection Pooling
+**Steering Doc:** architecture.md specifies connection pooling
+**Actual Code:** Direct connections without pooling
+**Impact:** Performance bottleneck under load
+**Recommendation:** Implement connection pool (Priority: MEDIUM)
 ```
+
+**How to interpret the report:**
+
+1. **Priority Levels:**
+   - **Critical** → Security vulnerabilities, missing core features, blocking issues
+   - **Warning** → Quality issues, performance concerns, incomplete implementations
+   - **Info** → Style violations, minor inconsistencies, optimization opportunities
+
+2. **Decision Framework:**
+   - **Critical issues** → Address immediately (Phase 4, Path 3: Refactor)
+   - **Warnings** → Plan for next sprint (Phase 4, Path 2: Document in swarm_state.md)
+   - **Info** → Consider for future cleanup (Phase 4, Path 2: Technical debt log)
+
+3. **Common Patterns:**
+   - **"Not Implemented"** → Feature gap, needs development work
+   - **"Mismatch"** → Code exists but doesn't follow standards
+   - **"Missing"** → Component described in docs but absent in code
+   - **"Outdated"** → Docs describe old design, code has evolved
+
+**Next Steps:**
+- Review the report with your team
+- Prioritize issues based on business impact
+- Choose a path from Phase 4 for each issue category
+
+### v2.1.0: Telemetry During Discrepancy Analysis
+
+The analysis workflow tracks execution for monitoring:
+
+```python
+from hiveforge.steering.shared.telemetry import TelemetryCollector, InterfaceType
+
+# Create telemetry collector
+telemetry = TelemetryCollector(telemetry_dir=Path(".kiro/.telemetry"))
+
+# Record analysis start
+telemetry.record_workflow_start(
+    workflow_name="discrepancy_analysis",
+    interface_type=InterfaceType.CLI,
+    parameters={"analyze_code": True}
+)
+
+# Record analysis completion
+telemetry.record_workflow_complete(
+    workflow_name="discrepancy_analysis",
+    success=True,
+    duration_ms=45234,
+    files_created=1,  # DISCREPANCY_REPORT.md
+    files_modified=0
+)
+```
+
+**Telemetry Data:**
+- Analysis start/complete timestamps
+- Duration, files created
+- Error types and messages (if any)
+- Interface type (CLI, MCP, API)
+
+**Privacy:** Data is stored locally only, never sent externally.
 
 ---
 
@@ -460,6 +707,61 @@ Focus on:
 - QA Engineer: Increase test coverage
 - Red Team: Verify fixes
 
+### v2.1.0: Error Handling During Refactoring
+
+If refactoring fails, automatic rollback preserves your work:
+
+```bash
+# During refactoring, if error occurs:
+hiveforge steering update
+
+# ⚠️  Error: Failed to parse updated artifact
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Rollback Features:**
+- Automatic backup creation on failure
+- Preserves partially completed work
+- Detailed error messages
+- Easy restore process
+
+### v2.1.0: Security Validation During Refactoring
+
+All refactoring operations validate inputs:
+
+```python
+from hiveforge.steering.shared.security import (
+    validate_parameters,
+    sanitize_path,
+    ResourceLimiter
+)
+
+# Validate refactoring parameters
+result = validate_parameters(
+    project_root=Path("/path/to/project"),
+    files_to_update=[Path("/path/to/file1.md"), Path("/path/to/file2.md")],
+    confidence_threshold=0.7
+)
+
+# Sanitize paths to prevent traversal attacks
+for file_path in result.files_to_update:
+    safe_path = sanitize_path(file_path, Path("/path/to/project"))
+
+# Limit resources during refactoring
+with ResourceLimiter(max_memory_mb=512, max_cpu_time_sec=300):
+    # Refactoring operations here
+    pass
+```
+
+**Security Features:**
+- Input parameter validation
+- Path traversal prevention
+- Resource limits (memory, CPU time, file size)
+
 ---
 
 ## Phase 5: Validation and Iteration
@@ -503,6 +805,67 @@ To prevent future drift:
 1. **Update steering files first** - When planning code changes, update relevant steering documents
 2. **Validate before commits** - Run `hiveforge steering validate --strict` in pre-commit hooks
 3. **Regular audits** - Periodically run discrepancy analysis to catch drift early
+
+### v2.1.0: Error Handling During Validation
+
+If validation fails, the system provides detailed error information:
+
+```bash
+$ hiveforge steering validate --strict
+
+# ⚠️  Validation failed with 2 critical issues
+# ⚠️  Backup created at: .kiro/backups/backup_20260217_103000
+#
+# Critical Issues:
+# 1. architecture.md: Missing required section "Data Flow"
+# 2. tech-stack.md: Unreplaced placeholder "{DATABASE_VERSION}"
+#
+# Suggestions:
+# - Review and complete missing sections
+# - Replace placeholders with actual values
+```
+
+### v2.1.0: Telemetry During Validation
+
+Validation execution is tracked for monitoring:
+
+```python
+from hiveforge.steering.shared.telemetry import TelemetryCollector, InterfaceType
+
+# Create telemetry collector
+telemetry = TelemetryCollector(telemetry_dir=Path(".kiro/.telemetry"))
+
+# Record validation start
+telemetry.record_workflow_start(
+    workflow_name="validate",
+    interface_type=InterfaceType.CLI,
+    parameters={"strict": True}
+)
+
+# Record validation completion
+telemetry.record_workflow_complete(
+    workflow_name="validate",
+    success=False,  # Validation failed
+    duration_ms=1234,
+    files_created=0,
+    files_modified=0
+)
+
+# Record error
+telemetry.record_error(
+    error_type="VALIDATION_ERROR",
+    error_message="Missing required section 'Data Flow'",
+    workflow_name="validate"
+)
+```
+
+**Telemetry Data:**
+- Validation start/complete timestamps
+- Duration, validation results
+- Error types and messages
+- Interface type (CLI, MCP, API)
+
+**Privacy:** Data is stored locally only, never sent externally.
 
 ---
 
@@ -701,6 +1064,34 @@ git add .kiro/steering/ swarm_state.md
 git commit -m "docs: update steering files for new feature"
 ```
 
+### 9. Ignoring v2.1.0 Error Handling
+
+**Problem:** Not using automatic rollback during refactoring.
+
+**Solution:** v2.1.0 includes automatic rollback on failure:
+```bash
+# If refactoring fails, backup is created automatically
+hiveforge steering update
+
+# Check backup location if workflow fails
+# Backup is in: .kiro/backups/backup_YYYYMMDD_HHMMSS/
+```
+
+### 10. Skipping Security Validation
+
+**Problem:** Not validating inputs during refactoring.
+
+**Solution:** v2.1.0 includes security validation:
+```python
+from hiveforge.steering.shared.security import validate_parameters, sanitize_path
+
+# Validate all inputs
+result = validate_parameters(project_root=Path("/valid/path"))
+
+# Sanitize paths
+safe_path = sanitize_path(Path("/user/input"), Path("/valid"))
+```
+
 ---
 
 ## FAQ
@@ -800,6 +1191,79 @@ hiveforge steering init --analyze-code
 ```
 
 The analysis respects `.gitignore` and focuses on relevant source files.
+
+### How does v2.1.0 automatic rollback work?
+
+**Answer:** When a workflow fails, v2.1.0 automatically:
+1. Creates a timestamped backup in `.kiro/backups/`
+2. Preserves all steering files and partial work
+3. Reports the backup location in error output
+
+**Example:**
+```bash
+$ hiveforge steering update
+
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Best Practice:** Always check the backup location after failures and restore if needed.
+
+### What does the security wrapper validate?
+
+**Answer:** The v2.1.0 security wrapper validates:
+- **Parameter validation:** Ensures all inputs are valid types and ranges
+- **Path sanitization:** Prevents path traversal attacks (e.g., `../../../etc/passwd`)
+- **Resource limits:** Prevents excessive memory, CPU, or file size usage
+
+**Example:**
+```python
+from hiveforge.steering.shared.security import validate_parameters, sanitize_path
+
+# Validate parameters
+result = validate_parameters(
+    project_root=Path("/valid/path"),
+    confidence_threshold=0.7
+)
+
+# Sanitize paths
+safe_path = sanitize_path(Path("/user/input"), Path("/valid"))
+```
+
+### What telemetry data is collected and where is it stored?
+
+**Answer:** v2.1.0 collects workflow telemetry for monitoring:
+- **Data collected:** Workflow start/complete timestamps, duration, interface type (CLI/MCP/API), files created/modified, error types
+- **Storage location:** `.kiro/.telemetry/` (local directory)
+- **Privacy:** Data is stored locally only, never sent externally
+
+**Example telemetry file:**
+```json
+{
+  "workflow_name": "discrepancy_analysis",
+  "interface_type": "CLI",
+  "parameters": {"analyze_code": true},
+  "start_time": "2026-02-17T10-30:00Z",
+  "complete_time": "2026-02-17T10-30:45Z",
+  "duration_ms": 45234,
+  "files_created": 1,
+  "success": true
+}
+```
+
+**Best Practice:** Review telemetry data to identify slow workflows or frequent errors.
+
+### Can I disable v2.1.0 features?
+
+**Answer:** Yes, but it's not recommended:
+- **Rollback:** Backups are created automatically; you can ignore them if not needed
+- **Security:** Validation is built into workflows; disabling requires code changes
+- **Telemetry:** Data is stored locally only; you can delete `.kiro/.telemetry/` anytime
+
+**Recommendation:** Keep all v2.1.0 safety features enabled for better reliability and debugging.
 
 ---
 

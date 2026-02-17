@@ -462,53 +462,75 @@
 **Estimated Duration**: 6-8 hours  
 **Current Session**: Security validation complete, error handling integration next
 
-### v2.1.1 Error Handling Integration (HIGH PRIORITY)
-**Estimated Time**: 2-3 hours
+### v2.1.1 Error Handling Integration (HIGH PRIORITY) ✅ COMPLETE
+**Estimated Time**: 2-3 hours  
+**Actual Time**: 1.5 hours  
+**Status**: ✅ COMPLETE
 
-- [ ] Integrate `ToolExecutor` into `SharedWorkflowBase`
-- [ ] Wrap file operations in `atomic_operation()` context in adapters
-- [ ] Add `ErrorCollector` to workflow execution
-- [ ] Test rollback with actual file operations
-- [ ] Create `tests/shared/test_error_handling.py` (move from old location)
-- [ ] Validate error handling works with security decorators
+- [x] Integrate `ToolExecutor` into `SharedWorkflowBase`
+- [x] Wrap file operations in `atomic_operation()` context in adapters
+- [x] Add `ErrorCollector` to workflow execution
+- [x] Test rollback with actual file operations (43/43 tests passing)
+- [x] Enhanced `handle_error()` to preserve collected errors/warnings
+- [x] Added `last_backup_path` property to `ToolExecutor`
+- [x] Updated all 5 workflow adapters (Init, Update, Validate, Reset, Discovery)
 
-**Files to Modify**:
-- `src/hiveforge/steering/shared/base.py`
-- `src/hiveforge/steering/shared/adapters.py`
+**Completion Report**: See `V2_1_1_ERROR_HANDLING_COMPLETE.md`
 
-**Files to Create**:
-- `tests/shared/test_error_handling.py`
+**Files Modified**:
+- `src/hiveforge/steering/shared/base.py` - Added ToolExecutor, ErrorCollector, helper methods
+- `src/hiveforge/steering/shared/adapters.py` - Updated all 5 adapters with error handling
+- `src/hiveforge/steering/shared/error_handling.py` - Added last_backup_path property
 
-### v2.1.2 Integration Testing (HIGH PRIORITY)
-**Estimated Time**: 3-4 hours
+**Test Results**:
+- ✅ 43/43 adapter tests passing (100%)
+- ✅ No regressions
+- ✅ All workflows have error collection
+- ✅ 4 workflows have automatic rollback (Init, Update, Reset, Discovery)
+- ✅ Validate workflow remains read-only (no rollback needed)
 
-- [ ] Create `tests/shared/test_backend_integration.py`
-- [ ] Test security + error handling + telemetry together
-- [ ] Test rollback scenarios with actual files
-- [ ] Test error propagation through layers
-- [ ] Test end-to-end workflow with all features
-- [ ] Achieve >80% integration test coverage
+### v2.1.2 Integration Testing (HIGH PRIORITY) ✅ COMPLETE
+**Estimated Time**: 3-4 hours  
+**Actual Time**: 45 minutes  
+**Status**: ✅ COMPLETE
 
-**Test Scenarios**:
+- [x] Create `tests/shared/test_backend_integration.py`
+- [x] Test security + error handling + telemetry together
+- [x] Test rollback scenarios with actual files
+- [x] Test error propagation through layers
+- [x] Test end-to-end workflow with all features
+- [x] Achieve >80% integration test coverage
+
+**Completion Report**: See `V2_1_2_INTEGRATION_TESTING_COMPLETE.md`
+
+**Test Results**:
+- ✅ 13/13 integration tests passing (100%)
+- ✅ 142 total shared backend tests
+- ✅ All feature combinations tested
+- ✅ >80% test coverage achieved
+
+**Test Scenarios Covered**:
 - Security validation failure → error handling → rollback
 - File operation failure → automatic rollback → user notification
 - Telemetry collection during success and failure paths
 - Multiple errors collected and reported together
+- Discovery workflow with empty results
+- Error propagation through all layers
 
 ### v2.1.3 Power Package Update
 **Estimated Time**: 1 hour
 
-- [ ] Copy updated shared backend to `hiveforge-power/hiveforge/steering/shared/`
-- [ ] Update version to v2.1.0 in `hiveforge-power/pyproject.toml`
-- [ ] Update version to v2.1.0 in `hiveforge-power/package.json`
-- [ ] Rebuild package: `cd hiveforge-power && python -m build`
-- [ ] Test local installation
-- [ ] Validate MCP server works with new features
+- [x] Copy updated shared backend to `hiveforge-power/hiveforge/steering/shared/`
+- [x] Update version to v2.1.0 in `hiveforge-power/pyproject.toml`
+- [x] Update version to v2.1.0 in `hiveforge-power/package.json`
+- [x] Rebuild package: `cd hiveforge-power && python -m build`
+- [x] Test local installation
+- [x] Validate MCP server works with new features
 
 ### v2.1.4 Testing and Validation
 **Estimated Time**: 1 hour
 
-- [ ] Run all test suites (shared, CLI, MCP, integration)
+- [x] Run all test suites (shared, CLI, MCP, integration)
 - [ ] Validate security features work end-to-end
 - [ ] Validate error handling and rollback work
 - [ ] Validate telemetry collection works
@@ -518,8 +540,8 @@
 ### v2.1.5 Release
 **Estimated Time**: 30 minutes
 
-- [ ] Update `CHANGELOG.md` with v2.1.0 changes
-- [ ] Create v2.1.0 release notes
+- [x] Update `CHANGELOG.md` with v2.1.0 changes
+- [x] Create v2.1.0 release notes
 - [ ] Upload to TestPyPI
 - [ ] Test installation from TestPyPI
 - [ ] Upload to PyPI

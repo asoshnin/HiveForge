@@ -334,6 +334,175 @@ def parse_all_files(file_paths):
 6. **Retry Logic**: Transient failures are automatically retried with backoff
 7. **Comprehensive Testing**: 34 tests ensure error handling works correctly
 
+---
+
+## Automatic Rollback (v2.1.0)
+
+The v2.1.0 release introduced **Automatic Rollback** functionality that creates backups and restores previous state when workflows fail.
+
+### Overview
+
+When a workflow fails, the system automatically:
+1. Creates a backup of the current state
+2. Preserves any partially completed work
+3. Provides the backup location in the result metadata
+4. Allows easy recovery by restoring from backup
+
+### Backup Creation
+
+```python
+from pathlib import Path
+from datetime import datetime
+
+def create_backup(
+    project_root: Path,
+    backup_dir: Path = None
+) -> Path:
+    """Create a timestamped backup of steering files."""
+    if backup_dir is None:
+        backup_dir = project_root / ".kiro" / "backups"
+    
+    # Create timestamped backup directory
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = backup_dir / f"backup_{timestamp}"
+    backup_path.mkdir(parents=True, exist_ok=True)
+    
+    # Copy steering files to backup
+    steering_dir = project_root / ".kiro" / "steering"
+    if steering_dir.exists():
+        import shutil
+        shutil.copytree(steering_dir, backup_path / "steering")
+    
+    return backup_path
+```
+
+### Rollback Process
+
+```
+Workflow Failure Detected
+            │
+            ▼
+    Create Backup
+            │
+            ▼
+    ┌─────────────────┐
+    │ Was this an     │
+    │ Init workflow?  │
+    └────────┬────────┘
+             │
+    ┌────────┴────────┐
+    │                 │
+   YES                NO
+    │                 │
+    ▼                 ▼
+┌─────────┐    ┌──────────────┐
+│ Restore │    │ Preserve     │
+│ .kiro/  │    │ modified     │
+│ steering│    │ files only   │
+└─────────┘    └──────────────┘
+```
+
+### WorkflowResult with Backup
+
+```python
+@dataclass
+class WorkflowResult:
+    success: bool                    # Whether the workflow succeeded
+    files_created: List[Path]        # Files that were created
+    files_modified: List[Path]       # Files that were modified
+    errors: List[str]                # List of error messages
+    warnings: List[str]              # List of warning messages
+    metadata: Dict[str, Any]         # Additional metadata
+    backup_location: Optional[Path]  # Path to backup (if created)
+```
+
+### Example: Rollback in Init Workflow
+
+```python
+from hiveforge.steering.shared.adapters import SharedInitWorkflow
+
+def init_with_rollback(project_root: Path) -> WorkflowResult:
+    """Initialize steering files with automatic rollback on failure."""
+    workflow = SharedInitWorkflow(project_root=project_root)
+    result = workflow.execute()
+    
+    if not result.success and result.backup_location:
+        print(f"⚠️  Workflow failed. Backup created at:")
+        print(f"   {result.backup_location}")
+        print(f"\nTo restore from backup:")
+        print(f"   cp -r {result.backup_location}/steering .kiro/")
+    
+    return result
+```
+
+### Rollback Verification
+
+```python
+def verify_rollback(backup_path: Path, project_root: Path) -> bool:
+    """Verify that rollback restored the correct state."""
+    backup_steering = backup_path / "steering"
+    current_steering = project_root / ".kiro" / "steering"
+    
+    if not backup_steering.exists():
+        return False
+    
+    # Compare file counts
+    backup_files = list(backup_steering.glob("*.md"))
+    current_files = list(current_steering.glob("*.md"))
+    
+    return len(backup_files) == len(current_files)
+```
+
+### Testing Rollback
+
+```python
+def test_rollback_on_failure():
+    """Test that rollback creates backup on workflow failure."""
+    with tempfile.TemporaryDirectory() as tmp_path:
+        tmp_path = Path(tmp_path)
+        
+        # Create steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "test.md").write_text("# Test")
+        
+        # Mock workflow to fail
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock:
+            mock_workflow = Mock()
+            mock_workflow.execute.return_value = False
+            mock_workflow.state.validation_report = None
+            mock.return_value = mock_workflow
+            
+            workflow = SharedInitWorkflow(project_root=tmp_path)
+            result = workflow.execute()
+            
+            # Verify backup was created
+            assert result.backup_location is not None
+            assert result.backup_location.exists()
+            assert (result.backup_location / "steering" / "test.md").exists()
+```
+
+### Rollback Best Practices
+
+1. **Always Check Backup Location**: After a failed workflow, check `result.backup_location`
+2. **Verify Before Restoring**: Use `verify_rollback()` to ensure backup is valid
+3. **Clean Up Old Backups**: Periodically remove old backups to save space
+4. **Test Rollback**: Regularly test rollback functionality to ensure it works
+
+### Rollback Configuration
+
+```python
+@dataclass
+class RollbackConfig:
+    enabled: bool = True              # Enable/disable rollback
+    max_backups: int = 10             # Maximum number of backups to keep
+    backup_dir: Path = None           # Custom backup directory
+    include_cache: bool = False       # Include .kiro/.cache in backup
+    include_git: bool = False         # Include .git directory in backup
+```
+
+---
+
 ## Future Enhancements
 
 1. **Error Metrics**: Track error rates and types for monitoring
@@ -341,3 +510,5 @@ def parse_all_files(file_paths):
 3. **Error Recovery Strategies**: More sophisticated recovery strategies for specific errors
 4. **Error Reporting**: Aggregate errors and generate summary reports
 5. **Retry Configuration**: Make retry parameters configurable per operation type
+6. **Incremental Rollback**: Rollback only changed files, preserve new additions
+7. **Cloud Backup**: Optional cloud backup for critical workflows

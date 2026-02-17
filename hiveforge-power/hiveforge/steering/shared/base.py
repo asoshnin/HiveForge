@@ -10,6 +10,9 @@ from pathlib import Path
 from typing import Any, Optional
 from abc import ABC, abstractmethod
 
+# Import error handling for rollback support
+from .error_handling import ToolExecutor, ErrorCollector, ErrorSeverity
+
 
 @dataclass
 class WorkflowResult:
@@ -94,17 +97,27 @@ class SharedWorkflowBase(ABC):
     def __init__(
         self,
         project_root: str | Path = ".",
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
+        enable_rollback: bool = True
     ):
         """Initialize workflow with configuration.
         
         Args:
             project_root: Path to project root directory
             config: Optional configuration dictionary
+            enable_rollback: Enable automatic rollback on failure (default: True)
         """
         self.project_root = Path(project_root).resolve()
         self.config = config or {}
         self.result = WorkflowResult(success=False, message="Not executed")
+        self.enable_rollback = enable_rollback
+        
+        # Initialize error handling components
+        self.tool_executor = ToolExecutor(
+            project_root=self.project_root,
+            enable_rollback=enable_rollback
+        )
+        self.error_collector = ErrorCollector()
         
         # Validate configuration
         self.validate_config()
@@ -177,6 +190,7 @@ class SharedWorkflowBase(ABC):
         """Handle workflow errors.
         
         This method provides consistent error handling across all workflows.
+        Preserves any errors and warnings collected before the exception.
         
         Args:
             error: Exception that occurred
@@ -186,11 +200,64 @@ class SharedWorkflowBase(ABC):
         """
         error_message = str(error)
         
+        # Add error to collector
+        self.error_collector.add_error(
+            error_type=type(error).__name__,
+            message=error_message,
+            severity=ErrorSeverity.ERROR
+        )
+        
+        # Get all collected errors and warnings (including the new one)
+        all_errors = self._get_collected_errors()
+        all_warnings = self._get_collected_warnings()
+        
         return WorkflowResult(
             success=False,
             message=f"Workflow failed: {error_message}",
-            errors=[error_message]
+            errors=all_errors,
+            warnings=all_warnings
         )
+    
+    def _add_warning(self, message: str) -> None:
+        """Add a warning to the error collector.
+        
+        Args:
+            message: Warning message
+        """
+        self.error_collector.add_error(
+            error_type="Warning",
+            message=message,
+            severity=ErrorSeverity.WARNING
+        )
+    
+    def _add_error(self, message: str, error_type: str = "Error") -> None:
+        """Add an error to the error collector.
+        
+        Args:
+            message: Error message
+            error_type: Type of error
+        """
+        self.error_collector.add_error(
+            error_type=error_type,
+            message=message,
+            severity=ErrorSeverity.ERROR
+        )
+    
+    def _get_collected_errors(self) -> list[str]:
+        """Get all collected error messages.
+        
+        Returns:
+            List of error messages
+        """
+        return [error.message for error in self.error_collector.errors]
+    
+    def _get_collected_warnings(self) -> list[str]:
+        """Get all collected warning messages.
+        
+        Returns:
+            List of warning messages
+        """
+        return [warning.message for warning in self.error_collector.warnings]
     
     def _create_success_result(
         self,

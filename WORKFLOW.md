@@ -7,11 +7,12 @@ This guide explains **how to use hiveforge and KIRO Methodology v05** in real-wo
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Workflow 1: Starting a New Project](#workflow-1-starting-a-new-project)
-3. [Workflow 2: Converting Existing Documents](#workflow-2-converting-existing-documents)
-4. [Workflow 3: Integrating with Existing Codebase](#workflow-3-integrating-with-existing-codebase)
-5. [Workflow 4: Pivoting/Updating Project](#workflow-4-pivotingupdating-project)
-6. [Best Practices](#best-practices)
+2. [v2.1.0 Shared Backend Architecture](#v21-shared-backend-architecture)
+3. [Workflow 1: Starting a New Project](#workflow-1-starting-a-new-project)
+4. [Workflow 2: Converting Existing Documents](#workflow-2-converting-existing-documents)
+5. [Workflow 3: Integrating with Existing Codebase](#workflow-3-integrating-with-existing-codebase)
+6. [Workflow 4: Pivoting/Updating Project](#workflow-4-pivotingupdating-project)
+7. [Best Practices](#best-practices)
 
 ---
 
@@ -23,6 +24,145 @@ KIRO Methodology v05 uses a **multi-agent architecture** where specialized AI ag
 - **Consistent standards** - Steering files define project-wide conventions
 - **Traceable decisions** - Swarm state tracks all delegation and decisions
 - **Safe boundaries** - toolsSettings prevent agents from overstepping
+
+---
+
+## v2.1.0 Shared Backend Architecture
+
+The v2.1.0 release introduced a **Shared Backend Architecture** that unifies CLI and Power (MCP) implementations.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      KIRO Orchestrator                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐                          ┌─────────────────┐ │
+│  │    CLI       │                          │   Power (MCP)   │ │
+│  │  Interface   │                          │   Interface     │ │
+│  └──────┬───────┘                          └────────┬────────┘ │
+│         │                                            │          │
+│         └──────────────────┬─────────────────────────┘          │
+│                            │                                      │
+│                            ▼                                      │
+│              ┌─────────────────────────────┐                     │
+│              │   Shared Backend Adapters   │                     │
+│              │   (src/hiveforge/steering/  │                     │
+│              │    shared/)                 │                     │
+│              └──────────────┬──────────────┘                     │
+│                             │                                     │
+│         ┌───────────────────┼───────────────────┐                │
+│         │                   │                   │                │
+│         ▼                   ▼                   ▼                │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │   Error     │    │  Security   │    │  Telemetry  │         │
+│  │  Handling   │    │  Wrapper    │    │  Collector  │         │
+│  │  + Rollback │    │             │    │             │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│                             │                                     │
+│                             ▼                                     │
+│              ┌─────────────────────────────┐                     │
+│              │      v02 Workflows          │                     │
+│              │  Init/Update/Validate/      │                     │
+│              │  Reset/Discover             │                     │
+│              └─────────────────────────────┘                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Benefits
+
+1. **Single Source of Truth**: Both CLI and Power use identical workflow logic
+2. **Consistent Behavior**: Same features, same error handling, same output
+3. **Easier Maintenance**: Bug fixes and features apply to both interfaces
+4. **Reduced Duplication**: No separate implementations to maintain
+
+### v2.1.0 Features
+
+#### Error Handling with Automatic Rollback
+
+When workflows fail, the system automatically:
+1. Creates a backup of the current state
+2. Preserves any partially completed work
+3. Provides the backup location in the result metadata
+4. Allows easy recovery by restoring from backup
+
+```python
+@dataclass
+class WorkflowResult:
+    success: bool                    # Whether the workflow succeeded
+    files_created: List[Path]        # Files that were created
+    files_modified: List[Path]       # Files that were modified
+    errors: List[str]                # List of error messages
+    warnings: List[str]              # List of warning messages
+    metadata: Dict[str, Any]         # Additional metadata
+    backup_location: Optional[Path]  # Path to backup (if created)
+```
+
+#### Security Wrapper
+
+The security wrapper provides input validation, path sanitization, and resource limits.
+
+**Components:**
+- **Parameter Validation**: Validates all input parameters before workflow execution
+- **Path Sanitization**: Prevents path traversal attacks (e.g., `../../../etc/passwd`)
+- **Resource Limiter**: Limits memory, CPU time, and file size
+
+```python
+from hiveforge.steering.shared.security import (
+    validate_parameters,
+    sanitize_path,
+    ResourceLimiter
+)
+
+# Validate parameters
+result = validate_parameters(
+    project_root="/valid/path",
+    confidence_threshold=0.7
+)
+
+# Sanitize paths
+safe = sanitize_path("/valid/path", "/valid")
+
+# Limit resources
+with ResourceLimiter(max_memory_mb=512, max_cpu_time_sec=300):
+    pass  # Your code here
+```
+
+#### Telemetry Collection
+
+The telemetry collector tracks workflow execution for monitoring and optimization.
+
+```python
+from hiveforge.steering.shared.telemetry import TelemetryCollector, InterfaceType
+
+# Create telemetry collector
+telemetry = TelemetryCollector(telemetry_dir=Path(".kiro/.telemetry"))
+
+# Record workflow events
+telemetry.record_workflow_start(
+    workflow_name="init",
+    interface_type=InterfaceType.CLI,
+    parameters={"analyze_code": True}
+)
+
+telemetry.record_workflow_complete(
+    workflow_name="init",
+    success=True,
+    duration_ms=15234,
+    files_created=8,
+    files_modified=0
+)
+```
+
+**Telemetry Data:**
+- Workflow start/complete/failure timestamps
+- Interface type (CLI, MCP, API)
+- Duration, files created/modified
+- Error types and messages
+
+**Privacy:** Telemetry data is stored locally only, never sent externally.
 
 ---
 
@@ -148,6 +288,49 @@ I'll delegate this to:
 Creating delegation tree in swarm_state.md...
 ```
 
+#### 5. v2.1.0: Error Handling with Automatic Rollback
+
+When workflows fail, the system automatically creates backups:
+
+```bash
+# If init fails, backup is created automatically
+hiveforge steering init
+
+# Output on failure:
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Backup Features:**
+- Automatic backup creation on failure
+- Timestamp-named backup directories
+- Preserves all steering files
+- Easy restore process
+
+#### 7. v2.1.0: Telemetry Collection
+
+Workflow execution is tracked for monitoring and optimization:
+
+```bash
+# Telemetry data is stored in .kiro/.telemetry/
+ls -la .kiro/.telemetry/
+
+# Example telemetry file:
+# workflow_start_2026-02-17T10-30-00.json
+# workflow_complete_2026-02-17T10-30-05.json
+```
+
+**Telemetry Includes:**
+- Workflow start/complete timestamps
+- Interface type (CLI, MCP, API)
+- Duration, files created/modified
+- Error types and messages
+
+**Privacy:** Data is stored locally only, never sent externally.
+
 ---
 
 ## Workflow 2: Converting Existing Documents
@@ -248,6 +431,27 @@ For each file, extract relevant information from my documents and format it acco
 - Asks clarifying questions
 - Generates steering files automatically
 - Validates consistency across files
+
+#### v2.1.0: Error Handling During Conversion
+
+If conversion fails, automatic rollback preserves your work:
+
+```bash
+# During conversion, if error occurs:
+hiveforge steering init --analyze-code
+
+# ⚠️  Error: Failed to parse PDF artifact
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Error Handling Features:**
+- Graceful degradation on parsing failures
+- Automatic backup creation
+- Detailed error messages with suggestions
 
 ---
 
@@ -941,6 +1145,33 @@ git commit -m "docs: pivot to OAuth authentication
 - Ignore lessons learned
 - Resist changing conventions
 
+### 5. Leverage v2.1.0 Safety Features
+
+✅ **Do:**
+- Use automatic rollback when making risky changes
+- Enable security validation for all workflows
+- Monitor telemetry to track workflow performance
+- Review backup locations after failures
+
+❌ **Don't:**
+- Ignore validation errors without addressing them
+- Skip security validation for external inputs
+- Disable telemetry collection (it's local-only and useful for debugging)
+- Forget to check backup locations after failures
+
+**v2.1.0 Safety Checklist:**
+```bash
+# Before running workflows
+✓ Review validation output
+✓ Check backup location is writable
+✓ Verify security validation is enabled
+
+# After workflow failures
+✓ Check backup location
+✓ Review error messages
+✓ Restore from backup if needed
+```
+
 ---
 
 ## Common Questions
@@ -970,6 +1201,79 @@ Just ensure all agents reference them.
 ### Q: How do I handle multiple projects?
 
 **A:** Each project gets its own `.kiro/` directory. You can reuse steering file patterns across projects.
+
+### Q: How does v2.1.0 automatic rollback work?
+
+**A:** When a workflow fails, v2.1.0 automatically:
+1. Creates a timestamped backup in `.kiro/backups/`
+2. Preserves all steering files and partial work
+3. Reports the backup location in error output
+
+**Example:**
+```bash
+$ hiveforge steering update
+
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Best Practice:** Always check the backup location after failures and restore if needed.
+
+### Q: What does the security wrapper validate?
+
+**A:** The v2.1.0 security wrapper validates:
+- **Parameter validation:** Ensures all inputs are valid types and ranges
+- **Path sanitization:** Prevents path traversal attacks (e.g., `../../../etc/passwd`)
+- **Resource limits:** Prevents excessive memory, CPU, or file size usage
+
+**Example:**
+```python
+from hiveforge.steering.shared.security import validate_parameters, sanitize_path
+
+# Validate parameters
+result = validate_parameters(
+    project_root=Path("/valid/path"),
+    confidence_threshold=0.7
+)
+
+# Sanitize paths
+safe_path = sanitize_path(Path("/user/input"), Path("/valid"))
+```
+
+### Q: What telemetry data is collected and where is it stored?
+
+**A:** v2.1.0 collects workflow telemetry for monitoring:
+- **Data collected:** Workflow start/complete timestamps, duration, interface type (CLI/MCP/API), files created/modified, error types
+- **Storage location:** `.kiro/.telemetry/` (local directory)
+- **Privacy:** Data is stored locally only, never sent externally
+
+**Example telemetry file:**
+```json
+{
+  "workflow_name": "init",
+  "interface_type": "CLI",
+  "parameters": {"analyze_code": true},
+  "start_time": "2026-02-17T10-30:00Z",
+  "complete_time": "2026-02-17T10-30:05Z",
+  "duration_ms": 5234,
+  "files_created": 8,
+  "success": true
+}
+```
+
+**Best Practice:** Review telemetry data to identify slow workflows or frequent errors.
+
+### Q: Can I disable v2.1.0 features?
+
+**A:** Yes, but it's not recommended:
+- **Rollback:** Backups are created automatically; you can ignore them if not needed
+- **Security:** Validation is built into workflows; disabling requires code changes
+- **Telemetry:** Data is stored locally only; you can delete `.kiro/.telemetry/` anytime
+
+**Recommendation:** Keep all v2.1.0 safety features enabled for better reliability and debugging.
 
 ---
 

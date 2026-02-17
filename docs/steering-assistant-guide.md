@@ -594,6 +594,111 @@ The Steering Assistant handles errors gracefully:
 - **Network Issues**: Retries with backoff, falls back to cached responses
 - **Parsing Errors**: Logs error, continues with remaining files
 
+#### Automatic Rollback (v2.1.0)
+
+When workflows fail, the system automatically creates backups:
+
+```bash
+# If init fails, backup is created automatically
+hiveforge steering init
+
+# Output on failure:
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Backup Features:**
+- Automatic backup creation on failure
+- Timestamp-named backup directories
+- Preserves all steering files
+- Easy restore process
+
+#### Rollback Configuration
+
+```python
+from hiveforge.steering.models import SteeringConfig
+
+config = SteeringConfig(
+    rollback_enabled=True,           # Enable automatic rollback
+    max_backups=10,                  # Maximum backups to keep
+    backup_dir=Path(".kiro/backups"),  # Custom backup location
+)
+```
+
+### Telemetry Collection (v2.1.0)
+
+The Steering Assistant collects telemetry data for monitoring and optimization.
+
+#### What is Collected
+
+**Workflow Events:**
+- Workflow start/complete/failure timestamps
+- Interface type (CLI, MCP, API)
+- Parameters used
+
+**Performance Metrics:**
+- Duration (milliseconds)
+- Files created/modified
+- Memory usage
+- CPU time
+
+**Error Tracking:**
+- Error types and messages
+- Error frequency
+- Recovery success rate
+
+#### Telemetry Storage
+
+Telemetry data is stored locally in `.kiro/.telemetry/`:
+
+```
+.kiro/.telemetry/
+├── workflow_start_2026-02-17T10-30-00.json
+├── workflow_complete_2026-02-17T10-30-05.json
+├── workflow_error_2026-02-17T10-31-00.json
+└── ...
+```
+
+#### Example Telemetry File
+
+```json
+{
+  "event_type": "workflow_complete",
+  "timestamp": "2026-02-17T10:30:05",
+  "workflow_name": "init",
+  "interface_type": "CLI",
+  "success": true,
+  "duration_ms": 15234,
+  "files_created": 8,
+  "files_modified": 0,
+  "parameters": {
+    "analyze_code": true,
+    "research": false
+  }
+}
+```
+
+#### Telemetry Configuration
+
+```python
+from hiveforge.steering.models import SteeringConfig
+
+config = SteeringConfig(
+    telemetry_enabled=True,          # Enable/disable telemetry
+    telemetry_dir=Path(".kiro/.telemetry"),  # Custom telemetry directory
+)
+```
+
+#### Privacy Notes
+
+- **Local Storage Only**: Telemetry data is never sent externally
+- **No PII Collected**: No personal information is tracked
+- **User Control**: Can be disabled via configuration
+- **Easy to Delete**: Simply remove `.kiro/.telemetry/` directory
+
 ## Related Documentation
 
 - [Steering Assistant Agent Definition](../.kiro/agents/steering_assistant.md)

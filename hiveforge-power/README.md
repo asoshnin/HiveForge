@@ -13,6 +13,9 @@ The HiveForge Steering Power provides intelligent steering file management throu
 - **Smart Updates**: Preserves customizations while updating content
 - **Validation**: Ensures steering files are complete and consistent
 - **Reset Capability**: Restore files to default templates
+- **Error Handling with Rollback**: Automatic backup on failure for safe recovery
+- **Security Validation**: Input validation and path sanitization for secure operation
+- **Telemetry Collection**: Execution tracking for monitoring and optimization
 
 ## Installation
 

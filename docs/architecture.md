@@ -827,3 +827,328 @@ hiveforge's architecture has evolved from a simple scaffolding tool to a compreh
 - **Error-resilient** (graceful degradation) - Handles failures gracefully
 
 This architecture balances simplicity with power, making it easy to use while providing sophisticated documentation capabilities.
+
+---
+
+## v2.1.0 Shared Backend Architecture
+
+The v2.1.0 release introduced a **Shared Backend Architecture** that unifies CLI and Power (MCP) implementations.
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      KIRO Orchestrator                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌──────────────┐                          ┌─────────────────┐ │
+│  │    CLI       │                          │   Power (MCP)   │ │
+│  │  Interface   │                          │   Interface     │ │
+│  └──────┬───────┘                          └────────┬────────┘ │
+│         │                                            │          │
+│         └──────────────────┬─────────────────────────┘          │
+│                            │                                      │
+│                            ▼                                      │
+│              ┌─────────────────────────────┐                     │
+│              │   Shared Backend Adapters   │                     │
+│              │   (src/hiveforge/steering/  │                     │
+│              │    shared/)                 │                     │
+│              └──────────────┬──────────────┘                     │
+│                             │                                     │
+│         ┌───────────────────┼───────────────────┐                │
+│         │                   │                   │                │
+│         ▼                   ▼                   ▼                │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
+│  │   Error     │    │  Security   │    │  Telemetry  │         │
+│  │  Handling   │    │  Wrapper    │    │  Collector  │         │
+│  └─────────────┘    └─────────────┘    └─────────────┘         │
+│                             │                                     │
+│                             ▼                                     │
+│              ┌─────────────────────────────┐                     │
+│              │      v02 Workflows          │                     │
+│              │  Init/Update/Validate/      │                     │
+│              │  Reset/Discover             │                     │
+│              └─────────────────────────────┘                     │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Benefits
+
+1. **Single Source of Truth**: Both CLI and Power use identical workflow logic
+2. **Consistent Behavior**: Same features, same error handling, same output
+3. **Easier Maintenance**: Bug fixes and features apply to both interfaces
+4. **Reduced Duplication**: No separate implementations to maintain
+
+---
+
+### Error Handling with Automatic Rollback
+
+The shared backend includes comprehensive error handling with automatic rollback.
+
+#### Key Features
+
+- **Automatic Backup Creation**: When workflows fail, backups are created automatically
+- **Graceful Degradation**: Partial results are preserved even on failure
+- **Detailed Error Context**: Every error includes category, severity, and suggestions
+- **Retry Logic**: Transient failures are retried with exponential backoff
+
+#### WorkflowResult Structure
+
+```python
+@dataclass
+class WorkflowResult:
+    success: bool                    # Whether the workflow succeeded
+    files_created: List[Path]        # Files that were created
+    files_modified: List[Path]       # Files that were modified
+    errors: List[str]                # List of error messages
+    warnings: List[str]              # List of warning messages
+    metadata: Dict[str, Any]         # Additional metadata
+    backup_location: Optional[Path]  # Path to backup (if created)
+```
+
+#### Rollback Process
+
+```
+Workflow Execution
+        │
+        ▼
+   ┌─────────┐
+   │ Success │────► Continue
+   └────┬────┘
+        │
+   ┌────▼────┐
+   │ Failure │────► Create Backup
+   └────┬────┘              │
+        │                  ▼
+        │         ┌───────────────┐
+        └────────►│ Rollback      │
+                  │ (if needed)   │
+                  └───────────────┘
+```
+
+---
+
+### Security Wrapper
+
+The security wrapper provides input validation, path sanitization, and resource limits.
+
+#### Components
+
+##### 1. Parameter Validation
+
+```python
+def validate_parameters(
+    project_root: Optional[Path] = None,
+    files_to_update: Optional[List[Path]] = None,
+    confidence_threshold: float = 0.7
+) -> ValidationResult:
+    """Validate all input parameters before workflow execution."""
+    # Validates project_root exists and is accessible
+    # Validates files_to_update are within allowed paths
+    # Validates confidence_threshold is in valid range [0.0, 1.0]
+```
+
+##### 2. Path Sanitization
+
+```python
+def sanitize_path(user_path: Path, base_path: Path) -> Path:
+    """Sanitize user-provided paths to prevent path traversal."""
+    # Rejects paths with ".." components
+    # Resolves symlinks
+    # Ensures result is within base_path
+```
+
+**Security Features:**
+- Prevents path traversal attacks (e.g., `../../../etc/passwd`)
+- Validates all file paths before access
+- Logs suspicious access attempts
+
+##### 3. Resource Limiter
+
+```python
+@dataclass
+class ResourceLimiter:
+    max_memory_mb: int = 512
+    max_cpu_time_sec: int = 300
+    max_file_size_mb: int = 100
+    
+    def __enter__(self):
+        """Start monitoring resource usage."""
+        
+    def __exit__(self, *args):
+        """Stop monitoring and cleanup."""
+```
+
+**Resource Limits:**
+- Memory usage limit (default: 512 MB)
+- CPU time limit (default: 300 seconds)
+- Maximum file size for processing (default: 100 MB)
+
+---
+
+### Telemetry Collection
+
+The telemetry collector tracks workflow execution for monitoring and optimization.
+
+#### TelemetryCollector Class
+
+```python
+class TelemetryCollector:
+    def __init__(self, telemetry_dir: Path):
+        """Initialize telemetry collector."""
+        self.telemetry_dir = telemetry_dir
+        self.telemetry_dir.mkdir(parents=True, exist_ok=True)
+        
+    def record_workflow_start(
+        self,
+        workflow_name: str,
+        interface_type: InterfaceType,
+        parameters: Dict[str, Any]
+    ):
+        """Record workflow start event."""
+        
+    def record_workflow_complete(
+        self,
+        workflow_name: str,
+        success: bool,
+        duration_ms: float,
+        files_created: int,
+        files_modified: int
+    ):
+        """Record workflow completion event."""
+        
+    def record_error(
+        self,
+        error_type: str,
+        error_message: str,
+        workflow_name: str
+    ):
+        """Record error event."""
+```
+
+#### Interface Types
+
+```python
+enum InterfaceType:
+    CLI      # Command-line interface
+    MCP      # Model Context Protocol (Power)
+    API      # Direct API access
+    TEST     # Test execution
+```
+
+#### Telemetry Data
+
+**Workflow Events:**
+- `workflow_start`: When a workflow begins execution
+- `workflow_complete`: When a workflow finishes (success or failure)
+- `workflow_error`: When an error occurs during execution
+
+**Performance Metrics:**
+- Duration (milliseconds)
+- Files created/modified
+- Memory usage
+- CPU time
+
+**Error Tracking:**
+- Error type and message
+- Error frequency
+- Recovery success rate
+
+#### Telemetry Files
+
+Telemetry data is stored as JSON files in `.kiro/.telemetry/`:
+
+```
+.kiro/.telemetry/
+├── workflow_start_2026-02-17T10-30-00.json
+├── workflow_complete_2026-02-17T10-30-05.json
+├── workflow_error_2026-02-17T10-31-00.json
+└── ...
+```
+
+---
+
+### Shared Backend Module Structure
+
+```
+src/hiveforge/steering/shared/
+├── __init__.py              # Package exports
+├── base.py                  # SharedWorkflow base class
+├── adapters.py              # CLI and Power adapters
+├── error_handling.py        # Error handling and rollback
+├── security.py              # Input validation and sanitization
+└── telemetry.py             # Telemetry collection
+```
+
+---
+
+### Design Decisions (v2.1.0)
+
+#### 9. Shared Backend Architecture
+
+**Decision:** Create shared backend module used by both CLI and Power.
+
+**Rationale:**
+- Eliminates code duplication
+- Ensures consistent behavior
+- Simplifies maintenance
+- Easier testing
+
+**Trade-off:** More complex initial implementation, but long-term benefits.
+
+#### 10. Automatic Rollback
+
+**Decision:** Automatically create backups and rollback on workflow failure.
+
+**Rationale:**
+- Prevents data loss
+- Allows easy recovery
+- Improves user confidence
+- Enables safe experimentation
+
+**Trade-off:** Additional storage overhead for backups.
+
+#### 11. Security First
+
+**Decision:** Validate all inputs and sanitize all paths.
+
+**Rationale:**
+- Prevents security vulnerabilities
+- Blocks path traversal attacks
+- Limits resource consumption
+- Protects user systems
+
+**Trade-off:** Slight performance overhead for validation.
+
+#### 12. Telemetry for Insights
+
+**Decision:** Collect telemetry data for monitoring and optimization.
+
+**Rationale:**
+- Understand usage patterns
+- Identify performance issues
+- Track error rates
+- Guide future improvements
+
+**Trade-off:** Privacy concerns, storage overhead.
+
+---
+
+### Future Architecture (v2.1.0 Updated)
+
+#### Planned Enhancements
+
+1. **Advanced Telemetry**: Real-time monitoring dashboards
+2. **Security Auditing**: Automated security vulnerability scanning
+3. **Performance Profiling**: Detailed performance analysis
+4. **Custom Rollback Strategies**: User-defined rollback procedures
+5. **Distributed Telemetry**: Aggregate telemetry across projects
+
+### Architectural Considerations (v2.1.0)
+
+- **Backward Compatibility:** v2.1.0 features are additive, no breaking changes
+- **Extensibility:** New security checks and telemetry events can be added easily
+- **Performance:** Validation and telemetry have minimal overhead (<5%)
+- **Privacy:** Telemetry data is local-only, never sent externally
+- **Security:** All inputs are validated, all paths are sanitized

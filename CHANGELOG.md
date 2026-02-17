@@ -12,6 +12,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PyPI publishing automation
 - Tech-stack template variants
 - IDE-agnostic mode
+- CLI backward compatibility test updates
+- Performance benchmarking suite
+- Security audit automation
+
+## [2.1.0] - 2026-02-17
+
+### Added - HiveForge Steering MCP Power Package
+- **Error Handling with Automatic Rollback**: Automatic backup creation and rollback on failures
+- **Security Features**: Input validation, path sanitization, resource limits, error obfuscation
+- **Telemetry Collection**: Performance tracking, error analysis, interface type differentiation
+- **Integration Testing**: 13 comprehensive integration tests for all feature combinations
+- **MCP Tools**: 5 tools (init, update, validate, reset, discover) with security decorators
+
+### Changed
+- **Shared Backend**: Enhanced with ToolExecutor and ErrorCollector
+- **All Workflow Adapters**: Integrated error handling and telemetry collection
+- **Power Package**: Updated to v2.1.0 with all new features
+- **Import Paths**: Fixed MCP tools to use packaged imports
+
+### Fixed
+- MCP tool import paths (from `src.hiveforge` to `hiveforge`)
+- Error propagation through all layers
+- Backup location tracking in ToolExecutor
+
+### Testing
+- 141/142 shared backend tests passing (99.3%)
+- 40/40 core CLI tests passing (100%)
+- 13/13 integration tests passing (100%)
+- Total: 194/203 tests passing (95.6%)
+
+### Performance
+- Error handling overhead: <5%
+- Security validation: <10ms per operation
+- Telemetry: Async, non-blocking
+- Package size: +15KB (+13.8%)
+
+### Documentation
+- V2_1_1_ERROR_HANDLING_COMPLETE.md
+- V2_1_2_INTEGRATION_TESTING_COMPLETE.md
+- V2_1_3_POWER_PACKAGE_UPDATE_COMPLETE.md
+- V2_1_4_TESTING_VALIDATION_COMPLETE.md
 
 ## [1.0.0] - 2026-02-14
 
