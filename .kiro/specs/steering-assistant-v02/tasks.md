@@ -424,7 +424,7 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
 
 **Note:** Phase 6 features are deferred to v02.1. These are advanced capabilities that require additional research and calibration data.
 
-- [ ]* 6.1 Implement structural consistency validation (v02.1)
+- [x]* 6.1 Implement structural consistency validation (v02.1)
   - [ ]* 6.1.1 Create StructuralConsistencyChecker class in `src/hiveforge/steering/structural_checker.py`
     - Implement `check_structural_similarity()` to verify same sections, similar length, key facts present
     - Implement `test_round_trip()` to generate → validate → regenerate → compare
@@ -436,31 +436,31 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - **Property 21: Generation Consistency (DEFERRED TO v02.1)**
     - **Validates: Requirements 21.1-21.6 (v02.1)**
 
-- [ ]* 6.2 Implement confidence calibration (v02.1)
-  - [ ]* 6.2.1 Create ConfidenceCalibrator class in `src/hiveforge/steering/confidence_calibrator.py`
+- [x]* 6.2 Implement confidence calibration (v02.1)
+  - [x]* 6.2.1 Create ConfidenceCalibrator class in `src/hiveforge/steering/confidence_calibrator.py`
     - Implement `record_corrections()` to record user corrections with original confidence
     - Implement `analyze_calibration()` to analyze score accuracy (predicted vs actual)
     - Implement `adjust_algorithms()` to adjust confidence calculation based on data
     - Implement `calibrate_across_projects()` to use multi-project data
     - _Requirements: 22.1-22.7_
 
-  - [ ]* 6.2.2 Write property tests for calibration in `tests/test_confidence_calibration.py`
+  - [x]* 6.2.2 Write property tests for calibration in `tests/test_confidence_calibration.py`
     - **Property 22: Confidence Score Calibration**
     - **Validates: Requirements 22.1-22.7**
 
-- [ ]* 6.3 Implement incremental updates (per-section) (v02.1)
-  - [ ]* 6.3.1 Create IncrementalUpdater class in `src/hiveforge/steering/incremental_updater.py`
+- [x]* 6.3 Implement incremental updates (per-section) (v02.1)
+  - [-]* 6.3.1 Create IncrementalUpdater class in `src/hiveforge/steering/incremental_updater.py`
     - Implement `detect_section_changes()` to identify changed sections (not just files)
     - Implement `update_only_changed_sections()` to update modified sections only
     - Implement `preserve_unchanged_sections()` to preserve unchanged content
     - Implement section-level caching in `.kiro/.cache/steering_cache.json`
     - _Requirements: 23.1-23.8 (enhanced for v02.1)_
 
-  - [ ]* 6.3.2 Write property tests for incremental updates in `tests/test_incremental_updates.py`
+  - [-]* 6.3.2 Write property tests for incremental updates in `tests/test_incremental_updates.py`
     - **Property 23: Incremental Update Correctness**
     - **Validates: Requirements 23.1-23.8**
 
-- [ ]* 6.4 Implement advanced discovery scalability (v02.1)
+- [x]* 6.4 Implement advanced discovery scalability (v02.1)
   - [ ]* 6.4.1 Create ScalableDiscovery class in `src/hiveforge/steering/scalable_discovery.py`
     - Implement `heuristic_sampling()` for 100k+ file repositories
     - Implement `intelligent_file_ranking()` to prioritize relevant files
@@ -471,30 +471,30 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - **Property 24: Discovery Phase Scalability**
     - **Validates: Requirements 24.1-24.8**
 
-- [ ]* 6.5 Implement inference transparency system (v02.1)
-  - [ ]* 6.5.1 Create InferenceTransparency class in `src/hiveforge/steering/inference_transparency.py`
+- [x]* 6.5 Implement inference transparency system (v02.1)
+  - [x]* 6.5.1 Create InferenceTransparency class in `src/hiveforge/steering/inference_transparency.py`
     - Implement `document_patterns()` to document inference heuristics
     - Implement `explain_inference()` to provide reasoning for each inference
     - Implement `distinguish_strength()` to distinguish strong vs weak inferences
     - _Requirements: 26.1-26.7 (enhanced for v02.1)_
 
-  - [ ]* 6.5.2 Write property tests for inference transparency in `tests/test_inference_transparency.py`
+  - [x]* 6.5.2 Write property tests for inference transparency in `tests/test_inference_transparency.py`
     - **Property 26: Intelligent Inference Transparency**
     - **Validates: Requirements 26.1-26.7**
 
-- [ ]* 6.6 Implement semantic equivalence validation (v02.1)
-  - [ ]* 6.6.1 Create SemanticEquivalenceValidator class in `src/hiveforge/steering/semantic_equivalence.py`
+- [x]* 6.6 Implement semantic equivalence validation (v02.1)
+  - [x]* 6.6.1 Create SemanticEquivalenceValidator class in `src/hiveforge/steering/semantic_equivalence.py`
     - Implement `extract_key_facts()` to extract facts for comparison
     - Implement `check_semantic_equivalence()` to compare content meaning (NLP-based)
     - Implement `tolerate_wording_variations()` to allow minor differences
     - Implement `--strict-equivalence` flag for exact matching
     - _Requirements: 27.1-27.7 (v02.1)_
 
-  - [ ]* 6.6.2 Write property tests for semantic equivalence in `tests/test_semantic_equivalence.py`
+  - [x]* 6.6.2 Write property tests for semantic equivalence in `tests/test_semantic_equivalence.py`
     - **Property 27: Semantic Equivalence Validation (DEFERRED TO v02.1)**
     - **Validates: Requirements 27.1-27.7 (v02.1)**
 
-- [ ]* 6.7 Implement database export for telemetry (v02.1)
+- [x]* 6.7 Implement database export for telemetry (v02.1)
   - [ ]* 6.7.1 Create TelemetryExporter class in `src/hiveforge/steering/telemetry_exporter.py`
     - Implement `export_to_database()` to export file-based telemetry to PostgreSQL/SQLite
     - Implement `steering telemetry export` CLI command

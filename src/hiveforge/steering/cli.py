@@ -485,3 +485,117 @@ def steering_calibrate(
         logger.error(f"Calibrate command failed: {e}", exc_info=True)
         typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED, err=True)
         sys.exit(1)
+
+
+@app.command("telemetry")
+def steering_telemetry(
+    export: bool = typer.Option(
+        False,
+        "--export",
+        help="Export telemetry data to database format"
+    ),
+    clear: bool = typer.Option(
+        False,
+        "--clear",
+        help="Clear existing data before exporting"
+    ),
+    stats: bool = typer.Option(
+        False,
+        "--stats",
+        help="Show telemetry statistics"
+    ),
+    postgres: bool = typer.Option(
+        False,
+        "--postgres",
+        help="Show PostgreSQL schema for export"
+    ),
+) -> None:
+    """
+    Export or analyze telemetry data.
+    
+    Examples:
+        # Export telemetry to SQLite database
+        hiveforge steering telemetry --export
+        
+        # Export and clear existing data
+        hiveforge steering telemetry --export --clear
+        
+        # Show telemetry statistics
+        hiveforge steering telemetry --stats
+        
+        # Show PostgreSQL schema
+        hiveforge steering telemetry --postgres
+    
+    Requirements: 14.9 (v02.1)
+    """
+    try:
+        from .telemetry_exporter import TelemetryExporter
+        from pathlib import Path
+
+        telemetry_dir = Path(".kiro/.telemetry")
+
+        if export:
+            if not telemetry_dir.exists():
+                typer.secho("\n❌ No telemetry data found", fg=typer.colors.RED)
+                typer.echo("Run a steering command first to generate telemetry data.")
+                sys.exit(1)
+
+            typer.secho("\n📊 Exporting telemetry to database...", fg=typer.colors.CYAN)
+
+            with TelemetryExporter(telemetry_dir=telemetry_dir) as exporter:
+                stats_result = exporter.export_to_database(clear_existing=clear)
+
+                typer.secho("\n✅ Export complete!", fg=typer.colors.GREEN)
+                typer.echo(f"  Sessions exported: {stats_result['sessions_exported']}")
+                typer.echo(f"  Confidence scores: {stats_result['confidence_scores_exported']}")
+                typer.echo(f"  Validation results: {stats_result['validation_results_exported']}")
+                typer.echo(f"  Token usage records: {stats_result['token_usage_exported']}")
+                typer.echo(f"  Errors: {stats_result['errors_exported']}")
+                typer.echo(f"  User interactions: {stats_result['user_interactions_exported']}")
+                typer.echo(f"  Durations: {stats_result['durations_exported']}")
+                typer.echo(f"\nDatabase: {exporter.db_path}")
+
+        elif stats:
+            with TelemetryExporter(telemetry_dir=telemetry_dir) as exporter:
+                if not exporter.db_path.exists():
+                    typer.secho("\n❌ No exported telemetry database found", fg=typer.colors.RED)
+                    typer.echo("Run 'hiveforge steering telemetry --export' first.")
+                    sys.exit(1)
+
+                stats_result = exporter.get_session_stats()
+
+                typer.secho("\n📊 Telemetry Statistics", fg=typer.colors.CYAN)
+                typer.echo(f"  Total sessions: {stats_result.get('total_sessions', 0)}")
+                typer.echo(f"  Autonomous sessions: {stats_result.get('autonomous_sessions', 0)}")
+                typer.echo(f"  Fallback sessions: {stats_result.get('fallback_sessions', 0)}")
+                typer.echo(f"  Total files processed: {stats_result.get('total_files_processed', 0)}")
+                typer.echo(f"  Total token usage: {stats_result.get('total_token_usage', 0):,}")
+                typer.echo(f"  Avg token usage: {stats_result.get('avg_token_usage', 0):,.0f}")
+
+        elif postgres:
+            with TelemetryExporter(telemetry_dir=telemetry_dir) as exporter:
+                sql_statements = exporter.export_to_postgres_format()
+
+                typer.secho("\n📄 PostgreSQL Schema", fg=typer.colors.CYAN)
+                for table_name, statement in sql_statements.items():
+                    typer.echo(f"\n-- {table_name}")
+                    typer.echo(statement.strip())
+
+        else:
+            typer.echo("Usage: hiveforge steering telemetry [OPTIONS]")
+            typer.echo("\nOptions:")
+            typer.echo("  --export     Export telemetry to SQLite database")
+            typer.echo("  --stats      Show telemetry statistics")
+            typer.echo("  --postgres   Show PostgreSQL schema for export")
+            typer.echo("  --clear      Clear existing data before exporting")
+
+        sys.exit(0)
+    
+    except KeyboardInterrupt:
+        typer.secho("\n\n⚠️  Operation cancelled by user", fg=typer.colors.YELLOW)
+        sys.exit(130)
+    
+    except Exception as e:
+        logger.error(f"Telemetry command failed: {e}", exc_info=True)
+        typer.secho(f"\n❌ Error: {e}", fg=typer.colors.RED, err=True)
+        sys.exit(1)
