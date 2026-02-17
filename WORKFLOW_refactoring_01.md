@@ -155,9 +155,20 @@ veriq/
 
 This phase transforms your original project documentation into HiveForge steering documents.
 
+**⚠️ Important: Two Approaches Available**
+
+| Approach | Uses LLM | User Input Required | Recommended For |
+|----------|----------|---------------------|-----------------|
+| **KIRO IDE + Steering Assistant** | ✅ YES | Minimal | Most users (easier, faster) |
+| CLI (`hiveforge steering init`) | ❌ NO | Lots of Q&A | Users without KIRO IDE |
+
+**We recommend KIRO IDE + Steering Assistant** - the LLM does all the work!
+
+---
+
 ### Step 2.1: Add Original Documents to Staging
 
-Place your original documents in the `.kiro/onboarding/` folder created during initialization:
+Place your original documents in the `.kiro/onboarding/` folder:
 
 ```bash
 # Create onboarding folder if it doesn't exist
@@ -173,84 +184,85 @@ ls -la .kiro/onboarding/
 
 **Supported formats:** Markdown (.md), PDF (.pdf), Images (.png, .jpg with OCR)
 
-**Note:** The Steering Assistant can parse PDFs and images, but for best results, use Markdown when possible.
+---
 
-### Step 2.2: Generate Steering Files
+### Step 2.2: Use KIRO IDE + Steering Assistant Agent (RECOMMENDED)
 
-Run the Steering Assistant to analyze your codebase and transform documents:
+**This approach uses LLM to automatically transform documents - no tedious Q&A!**
 
+1. **Open VeriQ in KIRO IDE**
+
+2. **Act as Steering Assistant agent**
+
+3. **Use this exact prompt:**
+
+```
+I have original project documents in .kiro/onboarding/ that describe the intended system design.
+
+Please:
+1. Read all documents in .kiro/onboarding/
+2. Transform them into HiveForge steering documents
+3. Create all 8 steering files in .kiro/steering/:
+   - project-vision.md - Problem, solution, users, value proposition
+   - tech-stack.md - Technologies, frameworks, libraries
+   - conventions.md - Naming, formatting, commit messages
+   - architecture.md - System design, components, data flow
+   - db-standards.md - Schema design, migrations, queries
+   - api-standards.md - Endpoint design, error handling, auth
+   - ui-standards.md - Component structure, styling, accessibility
+   - qa-standards.md - Testing strategy, coverage requirements
+
+Extract all relevant information from the documents and format according to steering file templates.
+```
+
+**What happens:**
+- LLM reads your original documents
+- LLM transforms them into properly formatted steering files
+- Files are saved to `.kiro/steering/`
+- No manual Q&A required!
+
+4. **Review generated files:**
 ```bash
-# Analyze codebase AND parse artifacts, then generate steering files
-hiveforge steering init --analyze-code
-```
-
-**What this command does (verified in `src/hiveforge/steering/workflows/init_workflow.py`):**
-
-1. Creates staging directory (if not exists)
-2. Checks for existing steering files
-3. Analyzes existing codebase (languages, tech stack, architecture, conventions)
-4. Parses artifacts from `.kiro/onboarding/`
-5. Builds knowledge base combining code analysis + artifacts
-6. Runs gap analysis to identify missing information
-7. Conducts interactive conversation to fill gaps
-8. Populates all 8 steering file templates
-9. Writes files to `.kiro/steering/`
-10. Validates generated files
-
-**Alternative options:**
-
-```bash
-# Non-interactive mode (use only artifacts, no conversation)
-hiveforge steering init --no-interactive --analyze-code
-
-# Enable web research for missing information
-hiveforge steering init --analyze-code --research
-
-# Skip validation for faster iteration
-hiveforge steering init --analyze-code --skip-validation
-```
-
-### Step 2.3: Answer Clarifying Questions
-
-During the interactive conversation, you'll be asked questions to fill gaps. Answer them specifically for your project:
-
-**Example questions you might see:**
-```
-1. What is the one-sentence description of your project and who is it for?
-   > Your answer here
-
-2. What backend language and framework are you using?
-   > Your answer here
-
-3. What are your test coverage requirements?
-   > Your answer here
-```
-
-Questions are batched (max 8 per batch) to manage token usage efficiently.
-
-### Step 2.4: Review Generated Steering Files
-
-```bash
-# List all generated steering files
 ls -la .kiro/steering/
-
-# Expected output:
-# project-vision.md
-# tech-stack.md
-# conventions.md
-# architecture.md
-# db-standards.md
-# api-standards.md
-# ui-standards.md
-# qa-standards.md
-
-# Review each file
 cat .kiro/steering/project-vision.md
-cat .kiro/steering/tech-stack.md
 # ... review all files
 ```
 
-### Step 2.5: Validate Steering Files
+---
+
+### Step 2.3: Alternative - CLI Approach (NOT RECOMMENDED)
+
+Only use this if you cannot access KIRO IDE. This approach requires answering many questions manually.
+
+```bash
+# Generate steering files
+hiveforge steering init --analyze-code
+```
+
+**What this does:**
+- Analyzes codebase (local Python, no LLM)
+- Parses documents from `.kiro/onboarding/`
+- **Asks you MANY questions** via terminal Q&A
+- Populates steering templates
+
+**Downsides:**
+- No LLM - you must answer every question
+- Tedious and time-consuming
+- Error-prone
+
+**Example questions you'll need to answer:**
+```
+1. What is the one-sentence description of your project?
+2. What backend language and framework are you using?
+3. What are your test coverage requirements?
+... (many more)
+```
+
+**We strongly recommend Step 2.2 instead!**
+
+---
+
+### Step 2.4: Validate Steering Files
 
 ```bash
 # Run strict validation to ensure completeness
@@ -500,7 +512,8 @@ To prevent future drift:
 |------|------|----------------|-------------|
 | Install HiveForge | Terminal | `pip install -e .` | README.md |
 | Initialize project | HiveForge CLI | `hiveforge -n veriq` | src/hiveforge/cli.py |
-| Transform documents | HiveForge CLI | `hiveforge steering init --analyze-code` | src/hiveforge/steering/cli.py |
+| **Transform documents** | **KIRO IDE** | **Act as Steering Assistant** | **.kiro/agents/steering_assistant.md** |
+| Transform documents (alt) | HiveForge CLI | `hiveforge steering init --analyze-code` | src/hiveforge/steering/cli.py |
 | Update steering docs | HiveForge CLI | `hiveforge steering update` | src/hiveforge/steering/cli.py |
 | Validate steering docs | HiveForge CLI | `hiveforge steering validate --strict` | src/hiveforge/steering/cli.py |
 | Analyze discrepancies | KIRO IDE | Act as Orchestrator (see Phase 3) | N/A - Manual workflow |
@@ -508,14 +521,41 @@ To prevent future drift:
 
 **Legend:**
 - ✅ HiveForge CLI - Automated feature
-- ⚠️ KIRO IDE - Manual workflow (no built-in feature)
+- ⚠️ KIRO IDE - LLM-powered agent (recommended for document transformation)
 - 📝 Manual - User must do manually
+
+**Recommendation:** Use KIRO IDE + Steering Assistant for document transformation (uses LLM, minimal user input)
 
 ---
 
 ## Example Prompts
 
-### External Assistant Document Transformation
+### KIRO IDE Steering Assistant (RECOMMENDED - Uses LLM!)
+
+Use this prompt to transform original documents into steering files:
+
+```
+I have original project documents in .kiro/onboarding/ that describe the intended system design.
+
+Please:
+1. Read all documents in .kiro/onboarding/
+2. Transform them into HiveForge steering documents
+3. Create all 8 steering files in .kiro/steering/:
+   - project-vision.md - Problem, solution, users, value proposition
+   - tech-stack.md - Technologies, frameworks, libraries
+   - conventions.md - Naming, formatting, commit messages
+   - architecture.md - System design, components, data flow
+   - db-standards.md - Schema design, migrations, queries
+   - api-standards.md - Endpoint design, error handling, auth
+   - ui-standards.md - Component structure, styling, accessibility
+   - qa-standards.md - Testing strategy, coverage requirements
+
+Extract all relevant information from the documents and format according to steering file templates.
+```
+
+**Why this is better:** LLM does all the work - no manual Q&A required!
+
+### External Assistant Document Transformation (Alternative)
 
 Use this prompt with an external AI assistant (not KIRO) to transform documents:
 
@@ -726,6 +766,19 @@ HiveForge only:
 - Updates steering documents with new information
 
 For comparison: Use the KIRO IDE workflow in Phase 3.
+
+### Why should I use KIRO IDE + Steering Assistant instead of CLI?
+
+**Answer:** The CLI approach (`hiveforge steering init`) does NOT use LLM - it requires you to manually answer many questions via terminal. The KIRO IDE approach uses LLM to automatically transform your documents with minimal user input.
+
+| Aspect | CLI Approach | KIRO IDE Approach |
+|--------|--------------|-------------------|
+| LLM Used | ❌ No | ✅ Yes |
+| User Input | Many questions | Minimal |
+| Time | Slow (Q&A) | Fast (automated) |
+| Quality | Depends on your answers | LLM extracts from docs |
+
+**Recommendation:** Always use KIRO IDE + Steering Assistant for document transformation!
 
 ### What if validation fails with false positives?
 
