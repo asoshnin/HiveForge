@@ -425,14 +425,14 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
 **Note:** Phase 6 features are deferred to v02.1. These are advanced capabilities that require additional research and calibration data.
 
 - [x]* 6.1 Implement structural consistency validation (v02.1)
-  - [ ]* 6.1.1 Create StructuralConsistencyChecker class in `src/hiveforge/steering/structural_checker.py`
+  - [x]* 6.1.1 Create StructuralConsistencyChecker class in `src/hiveforge/steering/structural_checker.py`
     - Implement `check_structural_similarity()` to verify same sections, similar length, key facts present
     - Implement `test_round_trip()` to generate → validate → regenerate → compare
     - Implement `track_consistency_rate()` to track consistency as quality metric
     - Implement temperature=0 and fixed seed for generation
     - _Requirements: 21.1-21.6 (v02.1)_
 
-  - [ ]* 6.1.2 Write property tests for structural consistency in `tests/test_structural_consistency.py`
+  - [x]* 6.1.2 Write property tests for structural consistency in `tests/test_structural_consistency.py`
     - **Property 21: Generation Consistency (DEFERRED TO v02.1)**
     - **Validates: Requirements 21.1-21.6 (v02.1)**
 
@@ -449,25 +449,25 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - **Validates: Requirements 22.1-22.7**
 
 - [x]* 6.3 Implement incremental updates (per-section) (v02.1)
-  - [-]* 6.3.1 Create IncrementalUpdater class in `src/hiveforge/steering/incremental_updater.py`
+  - [x]* 6.3.1 Create IncrementalUpdater class in `src/hiveforge/steering/incremental_updater.py`
     - Implement `detect_section_changes()` to identify changed sections (not just files)
     - Implement `update_only_changed_sections()` to update modified sections only
     - Implement `preserve_unchanged_sections()` to preserve unchanged content
     - Implement section-level caching in `.kiro/.cache/steering_cache.json`
     - _Requirements: 23.1-23.8 (enhanced for v02.1)_
 
-  - [-]* 6.3.2 Write property tests for incremental updates in `tests/test_incremental_updates.py`
+  - [x]* 6.3.2 Write property tests for incremental updates in `tests/test_incremental_updates.py`
     - **Property 23: Incremental Update Correctness**
     - **Validates: Requirements 23.1-23.8**
 
 - [x]* 6.4 Implement advanced discovery scalability (v02.1)
-  - [ ]* 6.4.1 Create ScalableDiscovery class in `src/hiveforge/steering/scalable_discovery.py`
+  - [x]* 6.4.1 Create ScalableDiscovery class in `src/hiveforge/steering/scalable_discovery.py`
     - Implement `heuristic_sampling()` for 100k+ file repositories
     - Implement `intelligent_file_ranking()` to prioritize relevant files
     - Implement `parallel_scanning()` for faster discovery
     - _Requirements: 24.1-24.8 (enhanced for v02.1)_
 
-  - [ ]* 6.4.2 Write property tests for scalability in `tests/test_discovery_scalability.py`
+  - [x]* 6.4.2 Write property tests for scalability in `tests/test_discovery_scalability.py`
     - **Property 24: Discovery Phase Scalability**
     - **Validates: Requirements 24.1-24.8**
 
@@ -495,7 +495,7 @@ This implementation plan breaks down the Steering Assistant v02 feature into dis
     - **Validates: Requirements 27.1-27.7 (v02.1)**
 
 - [x]* 6.7 Implement database export for telemetry (v02.1)
-  - [ ]* 6.7.1 Create TelemetryExporter class in `src/hiveforge/steering/telemetry_exporter.py`
+  - [x]* 6.7.1 Create TelemetryExporter class in `src/hiveforge/steering/telemetry_exporter.py`
     - Implement `export_to_database()` to export file-based telemetry to PostgreSQL/SQLite
     - Implement `steering telemetry export` CLI command
     - Implement schema migration for database
