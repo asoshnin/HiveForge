@@ -10,7 +10,21 @@ from typing import Any, Optional
 
 from fastmcp import Context
 
+# Import security decorator
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+from src.hiveforge.steering.shared.security import secure_execution
 
+
+@secure_execution(
+    max_memory_mb=512,
+    max_cpu_time_sec=300,
+    max_file_size_mb=10,
+    enable_input_validation=True,
+    enable_path_sanitization=True,
+    enable_resource_limits=True,
+    enable_error_obfuscation=True,
+)
 async def reset_steering(
     ctx: Context,
     project_root: str = ".",

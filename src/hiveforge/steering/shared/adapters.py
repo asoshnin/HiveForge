@@ -5,10 +5,12 @@ This module provides adapters that wrap existing v02 workflows,
 allowing them to be used by both CLI and Power interfaces.
 """
 
+import time
 from pathlib import Path
 from typing import Any, Optional
 
 from .base import SharedWorkflowBase, WorkflowResult
+from .telemetry import TelemetryCollector, InterfaceType, TelemetryLevel
 
 
 class SharedInitWorkflow(SharedWorkflowBase):
@@ -24,7 +26,9 @@ class SharedInitWorkflow(SharedWorkflowBase):
         auto_discover: bool = True,
         autonomous: bool = True,
         confidence_threshold: float = 0.7,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
+        telemetry_collector: Optional[TelemetryCollector] = None,
+        interface_type: InterfaceType = InterfaceType.CLI
     ):
         """Initialize init workflow adapter.
         
@@ -34,11 +38,15 @@ class SharedInitWorkflow(SharedWorkflowBase):
             autonomous: Enable autonomous generation mode
             confidence_threshold: Minimum confidence for autonomous decisions
             config: Optional configuration dictionary
+            telemetry_collector: Optional telemetry collector
+            interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
         self.auto_discover = auto_discover
         self.autonomous = autonomous
         self.confidence_threshold = confidence_threshold
+        self.telemetry_collector = telemetry_collector
+        self.interface_type = interface_type
     
     def execute(self) -> WorkflowResult:
         """Execute init workflow.
@@ -46,6 +54,8 @@ class SharedInitWorkflow(SharedWorkflowBase):
         Returns:
             WorkflowResult with execution results
         """
+        start_time = time.time()
+        
         try:
             # Import v02 workflow components
             from ..models import SteeringConfig, FeatureFlagConfig
@@ -94,7 +104,7 @@ class SharedInitWorkflow(SharedWorkflowBase):
             if v02_workflow.state.validation_report:
                 warnings = [issue.message for issue in v02_workflow.state.validation_report.warnings]
             
-            return WorkflowResult(
+            result = WorkflowResult(
                 success=success,
                 message=message,
                 files_created=files_created,
@@ -106,8 +116,45 @@ class SharedInitWorkflow(SharedWorkflowBase):
                     "files_count": len(files_created)
                 }
             )
+            
+            # Collect telemetry
+            if self.telemetry_collector:
+                execution_time = time.time() - start_time
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="init",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "auto_discover": self.auto_discover,
+                        "autonomous": self.autonomous,
+                        "confidence_threshold": self.confidence_threshold
+                    },
+                    result_status="success" if success else "failed",
+                    execution_time=execution_time,
+                    files_created=files_created
+                )
+            
+            return result
         
         except Exception as e:
+            execution_time = time.time() - start_time
+            
+            # Collect telemetry for error
+            if self.telemetry_collector:
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="init",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "auto_discover": self.auto_discover,
+                        "autonomous": self.autonomous,
+                        "confidence_threshold": self.confidence_threshold
+                    },
+                    result_status="failed",
+                    execution_time=execution_time,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    error_recoverable=True
+                )
+            
             return self.handle_error(e)
 
 
@@ -124,7 +171,9 @@ class SharedUpdateWorkflow(SharedWorkflowBase):
         files_to_update: Optional[list[str]] = None,
         preserve_customizations: bool = True,
         incremental: bool = True,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
+        telemetry_collector: Optional[TelemetryCollector] = None,
+        interface_type: InterfaceType = InterfaceType.CLI
     ):
         """Initialize update workflow adapter.
         
@@ -134,11 +183,15 @@ class SharedUpdateWorkflow(SharedWorkflowBase):
             preserve_customizations: Preserve user customizations
             incremental: Use incremental update mode
             config: Optional configuration dictionary
+            telemetry_collector: Optional telemetry collector
+            interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
         self.files_to_update = files_to_update
         self.preserve_customizations = preserve_customizations
         self.incremental = incremental
+        self.telemetry_collector = telemetry_collector
+        self.interface_type = interface_type
     
     def execute(self) -> WorkflowResult:
         """Execute update workflow.
@@ -146,6 +199,8 @@ class SharedUpdateWorkflow(SharedWorkflowBase):
         Returns:
             WorkflowResult with execution results
         """
+        start_time = time.time()
+        
         try:
             # Import v02 workflow components
             from ..models import SteeringConfig
@@ -198,7 +253,7 @@ class SharedUpdateWorkflow(SharedWorkflowBase):
             # Collect customizations detected
             customizations_count = sum(len(customs) for customs in v02_workflow.customizations.values())
             
-            return WorkflowResult(
+            result = WorkflowResult(
                 success=success,
                 message=message,
                 files_modified=files_modified,
@@ -210,8 +265,45 @@ class SharedUpdateWorkflow(SharedWorkflowBase):
                     "customizations_detected": customizations_count
                 }
             )
+            
+            # Collect telemetry
+            if self.telemetry_collector:
+                execution_time = time.time() - start_time
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="update",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "files_to_update": self.files_to_update,
+                        "preserve_customizations": self.preserve_customizations,
+                        "incremental": self.incremental
+                    },
+                    result_status="success" if success else "failed",
+                    execution_time=execution_time,
+                    files_modified=files_modified
+                )
+            
+            return result
         
         except Exception as e:
+            execution_time = time.time() - start_time
+            
+            # Collect telemetry for error
+            if self.telemetry_collector:
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="update",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "files_to_update": self.files_to_update,
+                        "preserve_customizations": self.preserve_customizations,
+                        "incremental": self.incremental
+                    },
+                    result_status="failed",
+                    execution_time=execution_time,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    error_recoverable=True
+                )
+            
             return self.handle_error(e)
 
 
@@ -227,7 +319,9 @@ class SharedValidateWorkflow(SharedWorkflowBase):
         project_root: str | Path = ".",
         strict: bool = False,
         use_llm: bool = True,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
+        telemetry_collector: Optional[TelemetryCollector] = None,
+        interface_type: InterfaceType = InterfaceType.CLI
     ):
         """Initialize validate workflow adapter.
         
@@ -236,10 +330,14 @@ class SharedValidateWorkflow(SharedWorkflowBase):
             strict: Treat warnings as errors
             use_llm: Enable semantic validation with LLM
             config: Optional configuration dictionary
+            telemetry_collector: Optional telemetry collector
+            interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
         self.strict = strict
         self.use_llm = use_llm
+        self.telemetry_collector = telemetry_collector
+        self.interface_type = interface_type
     
     def execute(self) -> WorkflowResult:
         """Execute validate workflow.
@@ -247,6 +345,8 @@ class SharedValidateWorkflow(SharedWorkflowBase):
         Returns:
             WorkflowResult with execution results
         """
+        start_time = time.time()
+        
         try:
             # Import v02 workflow components
             from ..models import SteeringConfig
@@ -284,7 +384,7 @@ class SharedValidateWorkflow(SharedWorkflowBase):
             warnings = [issue.message for issue in report.warnings]
             errors = [issue.message for issue in report.critical_issues]
             
-            return WorkflowResult(
+            result = WorkflowResult(
                 success=success,
                 message=message,
                 warnings=warnings,
@@ -299,8 +399,43 @@ class SharedValidateWorkflow(SharedWorkflowBase):
                     "use_llm": self.use_llm
                 }
             )
+            
+            # Collect telemetry
+            if self.telemetry_collector:
+                execution_time = time.time() - start_time
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="validate",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "strict": self.strict,
+                        "use_llm": self.use_llm
+                    },
+                    result_status="success" if success else "failed",
+                    execution_time=execution_time,
+                    files_validated=[str(f) for f in report.files_checked] if hasattr(report, 'files_checked') else []
+                )
+            
+            return result
         
         except Exception as e:
+            execution_time = time.time() - start_time
+            
+            # Collect telemetry for error
+            if self.telemetry_collector:
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="validate",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "strict": self.strict,
+                        "use_llm": self.use_llm
+                    },
+                    result_status="failed",
+                    execution_time=execution_time,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    error_recoverable=True
+                )
+            
             return self.handle_error(e)
 
 
@@ -315,7 +450,9 @@ class SharedResetWorkflow(SharedWorkflowBase):
         project_root: str | Path = ".",
         file: Optional[str] = None,
         confirm: bool = False,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
+        telemetry_collector: Optional[TelemetryCollector] = None,
+        interface_type: InterfaceType = InterfaceType.CLI
     ):
         """Initialize reset workflow adapter.
         
@@ -324,10 +461,14 @@ class SharedResetWorkflow(SharedWorkflowBase):
             file: Specific file to reset (None = all files)
             confirm: Skip confirmation prompt
             config: Optional configuration dictionary
+            telemetry_collector: Optional telemetry collector
+            interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
         self.file = file
         self.confirm = confirm
+        self.telemetry_collector = telemetry_collector
+        self.interface_type = interface_type
     
     def execute(self) -> WorkflowResult:
         """Execute reset workflow.
@@ -335,6 +476,8 @@ class SharedResetWorkflow(SharedWorkflowBase):
         Returns:
             WorkflowResult with execution results
         """
+        start_time = time.time()
+        
         try:
             from ..templates import get_all_templates
             import shutil
@@ -396,7 +539,7 @@ class SharedResetWorkflow(SharedWorkflowBase):
             else:
                 message = "No files were reset"
             
-            return WorkflowResult(
+            result = WorkflowResult(
                 success=True,
                 message=message,
                 files_modified=files_reset,
@@ -405,8 +548,43 @@ class SharedResetWorkflow(SharedWorkflowBase):
                     "files_count": len(files_reset)
                 }
             )
+            
+            # Collect telemetry
+            if self.telemetry_collector:
+                execution_time = time.time() - start_time
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="reset",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "file": self.file,
+                        "confirm": self.confirm
+                    },
+                    result_status="success",
+                    execution_time=execution_time,
+                    files_modified=files_reset
+                )
+            
+            return result
         
         except Exception as e:
+            execution_time = time.time() - start_time
+            
+            # Collect telemetry for error
+            if self.telemetry_collector:
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="reset",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "file": self.file,
+                        "confirm": self.confirm
+                    },
+                    result_status="failed",
+                    execution_time=execution_time,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    error_recoverable=True
+                )
+            
             return self.handle_error(e)
     
     def _generate_template_content(self, template) -> str:
@@ -451,7 +629,9 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
         include_git_history: bool = False,
         max_discovery_files: int = 1000,
         max_file_size_mb: int = 10,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
+        telemetry_collector: Optional[TelemetryCollector] = None,
+        interface_type: InterfaceType = InterfaceType.CLI
     ):
         """Initialize discovery workflow adapter.
         
@@ -461,11 +641,15 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
             max_discovery_files: Maximum files to analyze during discovery
             max_file_size_mb: Maximum file size in MB to analyze
             config: Optional configuration dictionary
+            telemetry_collector: Optional telemetry collector
+            interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
         self.include_git_history = include_git_history
         self.max_discovery_files = max_discovery_files
         self.max_file_size_mb = max_file_size_mb
+        self.telemetry_collector = telemetry_collector
+        self.interface_type = interface_type
     
     def execute(self) -> WorkflowResult:
         """Execute discovery workflow.
@@ -473,6 +657,8 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
         Returns:
             WorkflowResult with execution results
         """
+        start_time = time.time()
+        
         try:
             # Import discovery components
             from ..scalable_discovery import ScalableDiscovery
@@ -508,7 +694,7 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
                     for reason, count in skip_reasons.items():
                         warnings.append(f"{count} files skipped: {reason}")
             
-            return WorkflowResult(
+            result = WorkflowResult(
                 success=True,
                 message=message,
                 warnings=warnings,
@@ -523,6 +709,42 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
                     "discovery_metadata": metadata
                 }
             )
+            
+            # Collect telemetry
+            if self.telemetry_collector:
+                execution_time = time.time() - start_time
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="discovery",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "include_git_history": self.include_git_history,
+                        "max_discovery_files": self.max_discovery_files,
+                        "max_file_size_mb": self.max_file_size_mb
+                    },
+                    result_status="success",
+                    execution_time=execution_time
+                )
+            
+            return result
         
         except Exception as e:
+            execution_time = time.time() - start_time
+            
+            # Collect telemetry for error
+            if self.telemetry_collector:
+                self.telemetry_collector.collect_workflow_execution(
+                    workflow_type="discovery",
+                    interface_type=self.interface_type,
+                    parameters={
+                        "include_git_history": self.include_git_history,
+                        "max_discovery_files": self.max_discovery_files,
+                        "max_file_size_mb": self.max_file_size_mb
+                    },
+                    result_status="failed",
+                    execution_time=execution_time,
+                    error_type=type(e).__name__,
+                    error_message=str(e),
+                    error_recoverable=True
+                )
+            
             return self.handle_error(e)
