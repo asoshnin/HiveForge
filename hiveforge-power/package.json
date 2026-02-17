@@ -1,0 +1,49 @@
+{
+  "name": "hiveforge-steering-mcp",
+  "version": "2.0.0",
+  "description": "AI-powered steering file generation and maintenance for KIRO",
+  "keywords": [
+    "steering",
+    "documentation",
+    "onboarding",
+    "project-setup",
+    "steering-files",
+    "project-documentation"
+  ],
+  "author": "HiveForge Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/hiveforge-steering-mcp.git"
+  },
+  "mcpServers": {
+    "hiveforge-steering": {
+      "command": "uvx",
+      "args": ["hiveforge-steering-mcp@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "INFO"
+      }
+    }
+  },
+  "kiro": {
+    "powerVersion": "1.0",
+    "displayName": "HiveForge Steering Assistant",
+    "category": "documentation",
+    "activationKeywords": [
+      "steering",
+      "steering files",
+      "documentation",
+      "onboarding",
+      "project setup",
+      "project documentation"
+    ],
+    "description": "Automatically generate and maintain project steering files with AI assistance",
+    "features": [
+      "Automatic project discovery",
+      "AI-powered file generation",
+      "Smart content updates",
+      "Validation and quality checks",
+      "Template reset capability"
+    ]
+  }
+}
