@@ -28,6 +28,7 @@ import pytest
 import asyncio
 import json
 import shutil
+import subprocess
 import statistics
 from pathlib import Path
 from typing import Dict, List, Any, Optional
