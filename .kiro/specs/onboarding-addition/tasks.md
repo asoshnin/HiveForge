@@ -321,11 +321,11 @@ This implementation plan breaks down the Steering Assistant feature into discret
 
 - [ ] 17. Create agent definition files
   - [x] 17.1 Create Steering_Assistant agent definition
-    - Write `.kiro/agents/steering-assistant.md` with agent description, capabilities, and usage instructions
+    - Write `.kiro/agents/steering_assistant.md` with agent description, capabilities, and usage instructions
     - _Requirements: 4.1-4.8, 5.1-5.11_
 
   - [x] 17.2 Create Steering_Validator agent definition
-    - Write `.kiro/agents/steering-validator.md` with agent description, capabilities, and usage instructions
+    - Write `.kiro/agents/steering_validator.md` with agent description, capabilities, and usage instructions
     - _Requirements: 10.1-10.10, 11.1-11.7_
 
 - [x] 18. Write documentation

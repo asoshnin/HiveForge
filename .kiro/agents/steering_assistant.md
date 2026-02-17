@@ -242,6 +242,6 @@ Implements requirements:
 
 ## See Also
 
-- [Steering Validator Agent](./steering-validator.md)
+- [Steering Validator Agent](./steering_validator.md)
 - [Init Workflow Documentation](../docs/init-workflow.md)
 - [Update Workflow Documentation](../docs/update-workflow.md)

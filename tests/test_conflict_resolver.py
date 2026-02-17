@@ -274,7 +274,7 @@ class TestConflictResolverUnit:
 class TestConflictResolverProperties:
     """Property-based tests for ConflictResolver."""
     
-    # Feature: steering-assistant, Property 15: Conflict Detection
+    # Feature: steering_assistant, Property 15: Conflict Detection
     @given(
         st.dictionaries(
             st.text(min_size=1, max_size=50),
@@ -288,7 +288,7 @@ class TestConflictResolverProperties:
         conflicts = ConflictResolver.detect_conflicts(content, content)
         assert len(conflicts) == 0
     
-    # Feature: steering-assistant, Property 15: Conflict Detection
+    # Feature: steering_assistant, Property 15: Conflict Detection
     @given(
         st.dictionaries(
             st.text(min_size=1, max_size=50),
@@ -316,7 +316,7 @@ class TestConflictResolverProperties:
             assert c1.old_value == c2.old_value
             assert c1.new_value == c2.new_value
     
-    # Feature: steering-assistant, Property 16: Conflict Presentation
+    # Feature: steering_assistant, Property 16: Conflict Presentation
     @given(
         st.text(min_size=1, max_size=50),
         st.text(min_size=1, max_size=100),
@@ -337,7 +337,7 @@ class TestConflictResolverProperties:
             assert len(conflict.explanation) > 0
             assert conflict.section in conflict.explanation
     
-    # Feature: steering-assistant, Property 16: Conflict Presentation
+    # Feature: steering_assistant, Property 16: Conflict Presentation
     @given(
         st.text(min_size=1, max_size=50),
         st.text(min_size=1, max_size=100),

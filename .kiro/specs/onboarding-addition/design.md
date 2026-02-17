@@ -1026,7 +1026,7 @@ Avoid writing too many unit tests for cases that property tests cover through ra
 
 Tag format:
 ```python
-# Feature: steering-assistant, Property 2: Multi-Format Parsing
+# Feature: steering_assistant, Property 2: Multi-Format Parsing
 @given(file_type=st.sampled_from(['markdown', 'pdf', 'image']), content=st.text())
 def test_multi_format_parsing(file_type, content):
     # Test implementation

@@ -596,8 +596,8 @@ The Steering Assistant handles errors gracefully:
 
 ## Related Documentation
 
-- [Steering Assistant Agent Definition](../.kiro/agents/steering-assistant.md)
-- [Steering Validator Agent Definition](../.kiro/agents/steering-validator.md)
+- [Steering Assistant Agent Definition](../.kiro/agents/steering_assistant.md)
+- [Steering Validator Agent Definition](../.kiro/agents/steering_validator.md)
 - [HiveForge README](../README.md)
 - [Architecture Documentation](./architecture.md)
 - [Troubleshooting Guide](./troubleshooting.md)

@@ -350,6 +350,6 @@ Implements requirements:
 
 ## See Also
 
-- [Steering Assistant Agent](./steering-assistant.md)
+- [Steering Assistant Agent](./steering_assistant.md)
 - [Validate Workflow Documentation](../docs/validate-workflow.md)
 - [Validation Rules Reference](../docs/validation-rules.md)

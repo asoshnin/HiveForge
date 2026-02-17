@@ -124,8 +124,8 @@ hiveforge/
 │   ├── troubleshooting.md   # Troubleshooting guide
 │   └── steering-assistant-guide.md  # Steering Assistant user guide
 ├── .kiro/agents/            # Agent definitions
-│   ├── steering-assistant.md
-│   └── steering-validator.md
+│   ├── steering_assistant.md
+│   └── steering_validator.md
 ├── pyproject.toml           # Poetry configuration
 ├── README.md                # Main documentation
 └── CHANGELOG.md             # Version history
