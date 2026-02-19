@@ -25,6 +25,8 @@ from hiveforge.steering.shared.security import secure_execution
 async def discover_docs(
     ctx: Context,
     project_root: str = ".",
+    source_docs_path: str | None = None,
+    file_types: list[str] | None = None,
     include_git_history: bool = False,
     max_discovery_files: int = 1000,
     max_file_size_mb: int = 10
@@ -38,6 +40,12 @@ async def discover_docs(
     
     Args:
         project_root: Path to project root directory (default: current directory)
+        source_docs_path: Optional path to prioritize for discovery (relative to project_root).
+                         When provided, discovery focuses on this path first.
+                         Example: "_DEVELOPMENT" or "docs"
+        file_types: Optional list of file extensions to include (e.g., [".md", ".pdf"]).
+                   When provided, only files matching these extensions are discovered.
+                   This helps filter out source code when you only want documentation.
         include_git_history: Analyze git commits and PRs (default: False)
         max_discovery_files: Maximum files to analyze (default: 1000)
         max_file_size_mb: Maximum file size in MB (default: 10)
@@ -55,7 +63,10 @@ async def discover_docs(
             "warnings": ["5 files skipped: too large"],
             "errors": [],
             "files_discovered": 42,
+            "files_by_type": {".md": 15, ".pdf": 3, ".py": 24},
+            "files_by_path": {"_DEVELOPMENT": 18, "docs": 10, "src": 14},
             "files_included": 37,
+            "files_excluded": 5,
             "commit_count": 0,
             "include_git_history": false,
             "max_discovery_files": 1000,
@@ -71,6 +82,8 @@ async def discover_docs(
         # Create and execute workflow
         workflow = SharedDiscoveryWorkflow(
             project_root=project_root,
+            source_docs_path=source_docs_path,
+            file_types=file_types,
             include_git_history=include_git_history,
             max_discovery_files=max_discovery_files,
             max_file_size_mb=max_file_size_mb

@@ -7,7 +7,7 @@ allowing them to be used by both CLI and Power interfaces.
 
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 from .base import SharedWorkflowBase, WorkflowResult
 from .telemetry import TelemetryCollector, InterfaceType, TelemetryLevel
@@ -23,9 +23,12 @@ class SharedInitWorkflow(SharedWorkflowBase):
     def __init__(
         self,
         project_root: str | Path = ".",
+        source_docs_path: Optional[str] = None,
         auto_discover: bool = True,
         autonomous: bool = True,
         confidence_threshold: float = 0.7,
+        dry_run: bool = False,
+        copy_files: bool = False,
         config: Optional[dict[str, Any]] = None,
         telemetry_collector: Optional[TelemetryCollector] = None,
         interface_type: InterfaceType = InterfaceType.CLI
@@ -34,17 +37,23 @@ class SharedInitWorkflow(SharedWorkflowBase):
         
         Args:
             project_root: Path to project root directory
+            source_docs_path: Optional path to source documents folder (relative to project_root)
             auto_discover: Enable automatic discovery of existing docs
             autonomous: Enable autonomous generation mode
             confidence_threshold: Minimum confidence for autonomous decisions
+            dry_run: Preview what would be created without writing files
+            copy_files: If True, copy source files to staging. If False, use symlinks (default)
             config: Optional configuration dictionary
             telemetry_collector: Optional telemetry collector
             interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
+        self.source_docs_path = source_docs_path
         self.auto_discover = auto_discover
         self.autonomous = autonomous
         self.confidence_threshold = confidence_threshold
+        self.dry_run = dry_run
+        self.copy_files = copy_files
         self.telemetry_collector = telemetry_collector
         self.interface_type = interface_type
     
@@ -83,7 +92,8 @@ class SharedInitWorkflow(SharedWorkflowBase):
                 # Create and execute v02 workflow
                 v02_workflow = InitWorkflow(
                     config=v02_config,
-                    project_root=self.project_root
+                    project_root=self.project_root,
+                    source_docs_path=self.source_docs_path
                 )
                 
                 success = v02_workflow.execute()
@@ -102,14 +112,23 @@ class SharedInitWorkflow(SharedWorkflowBase):
             # Build result message
             message = f"Successfully initialized steering files ({len(files_created)} files created)"
             
-            # Collect warnings from validation report if available
+            # Collect warnings from workflow state (R2.1, R2.2)
             warnings = []
+            if hasattr(v02_workflow.state, 'warnings'):
+                warnings.extend(v02_workflow.state.warnings)
+            
+            # Also collect warnings from validation report if available
             if v02_workflow.state.validation_report:
-                warnings = [issue.message for issue in v02_workflow.state.validation_report.warnings]
+                warnings.extend([issue.message for issue in v02_workflow.state.validation_report.warnings])
             
             # Add collected warnings to error collector
             for warning in warnings:
                 self._add_warning(warning)
+            
+            # Collect metadata from workflow state (R2.1)
+            workflow_metadata = {}
+            if hasattr(v02_workflow.state, 'metadata'):
+                workflow_metadata.update(v02_workflow.state.metadata)
             
             result = WorkflowResult(
                 success=True,
@@ -118,28 +137,50 @@ class SharedInitWorkflow(SharedWorkflowBase):
                 warnings=self._get_collected_warnings(),
                 errors=self._get_collected_errors(),
                 metadata={
+                    "source_docs_path": self.source_docs_path,
                     "autonomous": self.autonomous,
                     "auto_discover": self.auto_discover,
                     "confidence_threshold": self.confidence_threshold,
+                    "dry_run": self.dry_run,
+                    "copy_files": self.copy_files,
                     "files_count": len(files_created),
-                    "rollback_enabled": self.enable_rollback
+                    "rollback_enabled": self.enable_rollback,
+                    **workflow_metadata  # Include workflow metadata (source_documents_found, confidence_level)
                 }
             )
             
-            # Collect telemetry
+            # Collect telemetry with enhanced metrics (Task 2.6)
             if self.telemetry_collector:
                 execution_time = time.time() - start_time
+                
+                # Build telemetry metadata with new metrics
+                telemetry_metadata = {
+                    # Confidence metrics
+                    "confidence_level": workflow_metadata.get("confidence_level", "unknown"),
+                    "overall_confidence_score": workflow_metadata.get("overall_confidence_score", 0.0),
+                    "source_documents_found": workflow_metadata.get("source_documents_found", 0),
+                    
+                    # Performance metrics (if available from workflow state)
+                    "discovery_time_ms": workflow_metadata.get("discovery_time_ms", 0),
+                    "confidence_calc_time_ms": workflow_metadata.get("confidence_calc_time_ms", 0),
+                    "content_tagging_time_ms": workflow_metadata.get("content_tagging_time_ms", 0),
+                }
+                
                 self.telemetry_collector.collect_workflow_execution(
                     workflow_type="init",
                     interface_type=self.interface_type,
                     parameters={
+                        "source_docs_path": self.source_docs_path,
                         "auto_discover": self.auto_discover,
                         "autonomous": self.autonomous,
-                        "confidence_threshold": self.confidence_threshold
+                        "confidence_threshold": self.confidence_threshold,
+                        "dry_run": self.dry_run,
+                        "copy_files": self.copy_files
                     },
                     result_status="success",
                     execution_time=execution_time,
-                    files_created=files_created
+                    files_created=files_created,
+                    additional_data=telemetry_metadata
                 )
             
             return result
@@ -153,9 +194,12 @@ class SharedInitWorkflow(SharedWorkflowBase):
                     workflow_type="init",
                     interface_type=self.interface_type,
                     parameters={
+                        "source_docs_path": self.source_docs_path,
                         "auto_discover": self.auto_discover,
                         "autonomous": self.autonomous,
-                        "confidence_threshold": self.confidence_threshold
+                        "confidence_threshold": self.confidence_threshold,
+                        "dry_run": self.dry_run,
+                        "copy_files": self.copy_files
                     },
                     result_status="failed",
                     execution_time=execution_time,
@@ -663,6 +707,8 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
     def __init__(
         self,
         project_root: str | Path = ".",
+        source_docs_path: Optional[str] = None,
+        file_types: Optional[List[str]] = None,
         include_git_history: bool = False,
         max_discovery_files: int = 1000,
         max_file_size_mb: int = 10,
@@ -674,6 +720,8 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
         
         Args:
             project_root: Path to project root directory
+            source_docs_path: Optional path to prioritize for discovery
+            file_types: Optional list of file extensions to include (e.g., [".md", ".pdf"])
             include_git_history: Analyze git commits and PRs
             max_discovery_files: Maximum files to analyze during discovery
             max_file_size_mb: Maximum file size in MB to analyze
@@ -682,6 +730,8 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
             interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
+        self.source_docs_path = source_docs_path
+        self.file_types = file_types
         self.include_git_history = include_git_history
         self.max_discovery_files = max_discovery_files
         self.max_file_size_mb = max_file_size_mb
@@ -706,7 +756,9 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
                 # Create discovery orchestrator
                 orchestrator = DiscoveryOrchestrator(
                     max_discovery_files=self.max_discovery_files,
-                    max_file_size_mb=self.max_file_size_mb
+                    max_file_size_mb=self.max_file_size_mb,
+                    source_docs_path=self.source_docs_path,
+                    file_types=self.file_types
                 )
                 
                 # Run discovery
@@ -741,8 +793,13 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
                 warnings=self._get_collected_warnings(),
                 errors=self._get_collected_errors(),
                 metadata={
+                    "source_docs_path": self.source_docs_path,
+                    "file_types": self.file_types,
                     "files_discovered": file_count,
                     "files_included": len(discovered_files),
+                    "files_by_type": metadata.get("files_by_type", {}),
+                    "files_by_path": metadata.get("files_by_path", {}),
+                    "files_excluded": metadata.get("files_excluded", 0),
                     "commit_count": commit_count,
                     "include_git_history": self.include_git_history,
                     "max_discovery_files": self.max_discovery_files,
@@ -760,6 +817,8 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
                     workflow_type="discovery",
                     interface_type=self.interface_type,
                     parameters={
+                        "source_docs_path": self.source_docs_path,
+                        "file_types": self.file_types,
                         "include_git_history": self.include_git_history,
                         "max_discovery_files": self.max_discovery_files,
                         "max_file_size_mb": self.max_file_size_mb
@@ -779,6 +838,8 @@ class SharedDiscoveryWorkflow(SharedWorkflowBase):
                     workflow_type="discovery",
                     interface_type=self.interface_type,
                     parameters={
+                        "source_docs_path": self.source_docs_path,
+                        "file_types": self.file_types,
                         "include_git_history": self.include_git_history,
                         "max_discovery_files": self.max_discovery_files,
                         "max_file_size_mb": self.max_file_size_mb

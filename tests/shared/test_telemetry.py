@@ -425,3 +425,241 @@ class TestTelemetryIntegration:
         assert len(collector._events) == 2
         assert collector._events[0].interface_type == InterfaceType.CLI
         assert collector._events[1].interface_type == InterfaceType.POWER
+
+
+class TestTelemetryNewMetrics:
+    """Tests for new telemetry metrics added in Task 2.6."""
+    
+    @pytest.fixture
+    def temp_telemetry_dir(self):
+        """Create a temporary telemetry directory."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+    
+    @pytest.fixture
+    def collector(self, temp_telemetry_dir):
+        """Create a telemetry collector with temp directory."""
+        return TelemetryCollector(
+            telemetry_dir=temp_telemetry_dir,
+            level=TelemetryLevel.DETAILED,
+            user_id="test_user",
+        )
+    
+    def test_collect_source_docs_path_usage(self, collector):
+        """Test collecting source_docs_path parameter usage."""
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={
+                "source_docs_path": "_DEVELOPMENT",
+                "auto_discover": True,
+                "autonomous": True,
+            },
+            result_status="success",
+            execution_time=1.5,
+        )
+        
+        assert event_id
+        assert len(collector._events) == 1
+        
+        event = collector._events[0]
+        assert event.parameters["source_docs_path"] == "_DEVELOPMENT"
+    
+    def test_collect_dry_run_usage(self, collector):
+        """Test collecting dry_run parameter usage."""
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={
+                "dry_run": True,
+                "autonomous": True,
+            },
+            result_status="success",
+            execution_time=1.0,
+        )
+        
+        assert event_id
+        event = collector._events[0]
+        assert event.parameters["dry_run"] is True
+    
+    def test_collect_copy_files_usage(self, collector):
+        """Test collecting copy_files parameter usage."""
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={
+                "copy_files": True,
+                "source_docs_path": "_DEVELOPMENT",
+            },
+            result_status="success",
+            execution_time=2.5,
+        )
+        
+        assert event_id
+        event = collector._events[0]
+        assert event.parameters["copy_files"] is True
+    
+    def test_collect_confidence_metrics(self, collector):
+        """Test collecting confidence level distribution."""
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={"autonomous": True},
+            result_status="success",
+            execution_time=1.5,
+            additional_data={
+                "confidence_level": "medium",
+                "overall_confidence_score": 0.65,
+                "source_documents_found": 3,
+            },
+        )
+        
+        assert event_id
+        event = collector._events[0]
+        assert event.additional_data["confidence_level"] == "medium"
+        assert event.additional_data["overall_confidence_score"] == 0.65
+        assert event.additional_data["source_documents_found"] == 3
+    
+    def test_collect_performance_metrics(self, collector):
+        """Test collecting performance metrics."""
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={"autonomous": True},
+            result_status="success",
+            execution_time=2.5,
+            additional_data={
+                "discovery_time_ms": 500,
+                "confidence_calc_time_ms": 150,
+                "content_tagging_time_ms": 50,
+            },
+        )
+        
+        assert event_id
+        event = collector._events[0]
+        assert event.additional_data["discovery_time_ms"] == 500
+        assert event.additional_data["confidence_calc_time_ms"] == 150
+        assert event.additional_data["content_tagging_time_ms"] == 50
+    
+    def test_collect_error_metrics(self, collector):
+        """Test collecting error metrics."""
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={"source_docs_path": "../../../etc/passwd"},
+            result_status="failed",
+            execution_time=0.1,
+            error_type="PathValidationError",
+            error_message="Path escapes project root",
+            error_recoverable=True,
+        )
+        
+        assert event_id
+        event = collector._events[0]
+        assert event.result_status == "failed"
+        assert event.error_type == "PathValidationError"
+        assert "Path escapes project root" in event.error_message
+        assert event.error_recoverable is True
+    
+    def test_additional_data_parameter(self, collector):
+        """Test that additional_data parameter is properly stored."""
+        custom_data = {
+            "confidence_level": "high",
+            "source_documents_found": 5,
+            "discovery_time_ms": 300,
+            "custom_metric": "test_value",
+        }
+        
+        event_id = collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={},
+            result_status="success",
+            execution_time=1.0,
+            additional_data=custom_data,
+        )
+        
+        assert event_id
+        event = collector._events[0]
+        assert event.additional_data == custom_data
+    
+    def test_additional_data_persisted(self, collector, temp_telemetry_dir):
+        """Test that additional_data is persisted to disk."""
+        collector.collect_workflow_execution(
+            workflow_type="init",
+            interface_type=InterfaceType.CLI,
+            parameters={},
+            result_status="success",
+            execution_time=1.0,
+            additional_data={
+                "confidence_level": "medium",
+                "source_documents_found": 2,
+            },
+        )
+        
+        # Read persisted data
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        telemetry_file = temp_telemetry_dir / f"telemetry_{date_str}.jsonl"
+        assert telemetry_file.exists()
+        
+        with open(telemetry_file) as f:
+            line = f.readline()
+            data = json.loads(line)
+            assert data["additional_data"]["confidence_level"] == "medium"
+            assert data["additional_data"]["source_documents_found"] == 2
+    
+    def test_metric_accuracy_confidence_distribution(self, collector):
+        """Test accuracy of confidence level distribution tracking."""
+        # Collect multiple events with different confidence levels
+        confidence_levels = ["high", "medium", "low", "high", "medium", "high"]
+        
+        for level in confidence_levels:
+            collector.collect_workflow_execution(
+                workflow_type="init",
+                interface_type=InterfaceType.CLI,
+                parameters={},
+                result_status="success",
+                execution_time=1.0,
+                additional_data={"confidence_level": level},
+            )
+        
+        # Verify all events collected
+        assert len(collector._events) == 6
+        
+        # Count confidence levels
+        high_count = sum(1 for e in collector._events 
+                        if e.additional_data.get("confidence_level") == "high")
+        medium_count = sum(1 for e in collector._events 
+                          if e.additional_data.get("confidence_level") == "medium")
+        low_count = sum(1 for e in collector._events 
+                       if e.additional_data.get("confidence_level") == "low")
+        
+        assert high_count == 3
+        assert medium_count == 2
+        assert low_count == 1
+    
+    def test_metric_accuracy_parameter_usage_rates(self, collector):
+        """Test accuracy of parameter usage rate tracking."""
+        # Collect events with and without source_docs_path
+        for i in range(10):
+            params = {}
+            if i < 7:  # 70% usage rate
+                params["source_docs_path"] = "_DEVELOPMENT"
+            
+            collector.collect_workflow_execution(
+                workflow_type="init",
+                interface_type=InterfaceType.CLI,
+                parameters=params,
+                result_status="success",
+                execution_time=1.0,
+            )
+        
+        # Calculate usage rate
+        with_source_path = sum(1 for e in collector._events 
+                              if "source_docs_path" in e.parameters 
+                              and e.parameters["source_docs_path"] is not None)
+        
+        usage_rate = with_source_path / len(collector._events)
+        assert usage_rate == 0.7  # 70% usage rate
+
+

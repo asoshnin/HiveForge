@@ -222,28 +222,40 @@ class DiscoveryOrchestrator:
     """Orchestrates the discovery phase for the Steering Assistant v02."""
     
     def __init__(
-        self,
-        max_discovery_files: int = 1000,
-        max_file_size_mb: int = 10,
-        discovery_paths: Optional[List[str]] = None,
-        timeout_seconds: int = 30,
-    ):
-        """
-        Initialize the DiscoveryOrchestrator.
-        
-        Args:
-            max_discovery_files: Maximum files to analyze during discovery
-            max_file_size_mb: Maximum file size in MB to analyze
-            discovery_paths: Custom paths to search in addition to defaults
-            timeout_seconds: Timeout for discovery operations
-        """
-        self.max_discovery_files = max_discovery_files
-        self.max_file_size_mb = max_file_size_mb
-        self.discovery_paths = discovery_paths or []
-        self.timeout_seconds = timeout_seconds
-        self._searcher: Optional[DocumentationSearcher] = None
-        self._git_analyzer: Optional[GitHistoryAnalyzer] = None
-        self._discovery_cache: Dict = {}
+            self,
+            max_discovery_files: int = 1000,
+            max_file_size_mb: int = 10,
+            discovery_paths: Optional[List[str]] = None,
+            timeout_seconds: int = 30,
+            source_docs_path: Optional[str] = None,
+            file_types: Optional[List[str]] = None,
+        ):
+            """
+            Initialize the DiscoveryOrchestrator.
+
+            Args:
+                max_discovery_files: Maximum files to analyze during discovery
+                max_file_size_mb: Maximum file size in MB to analyze
+                discovery_paths: Custom paths to search in addition to defaults
+                timeout_seconds: Timeout for discovery operations
+                source_docs_path: Optional path to prioritize for discovery (relative to project root)
+                file_types: Optional list of file extensions to include (e.g., [".md", ".pdf"])
+            """
+            self.max_discovery_files = max_discovery_files
+            self.max_file_size_mb = max_file_size_mb
+            self.discovery_paths = discovery_paths or []
+            self.timeout_seconds = timeout_seconds
+            self.source_docs_path = source_docs_path
+            self.file_types = file_types
+            self._searcher: Optional[DocumentationSearcher] = None
+            self._git_analyzer: Optional[GitHistoryAnalyzer] = None
+            self._discovery_cache: Dict = {}
+            self._discovery_stats: Dict[str, any] = {
+                "files_by_type": {},
+                "files_by_path": {},
+                "files_included": 0,
+                "files_excluded": 0
+            }
     
     def _get_searcher(self) -> DocumentationSearcher:
         """Get or create the DocumentationSearcher instance."""
@@ -261,6 +273,108 @@ class DiscoveryOrchestrator:
             self._git_analyzer = GitHistoryAnalyzer()
         return self._git_analyzer
     
+    def _discover_with_priority(
+        self, project_path: Path, priority_path: Path
+    ) -> Tuple[List[Path], int]:
+        """
+        Discover files with priority given to source_docs_path.
+        
+        Args:
+            project_path: Root path of the project
+            priority_path: Priority path to search first
+            
+        Returns:
+            Tuple of (discovered files, file count)
+        """
+        searcher = self._get_searcher()
+        
+        # First, discover files in priority path
+        priority_files, priority_count = searcher.discover_all(priority_path)
+        
+        # If we haven't reached the max files limit, discover from project root
+        remaining_budget = self.max_discovery_files - len(priority_files)
+        
+        if remaining_budget > 0:
+            # Temporarily adjust max files for remaining discovery
+            original_max = searcher.max_files
+            searcher.max_files = remaining_budget
+            
+            # Discover from project root, excluding priority path
+            other_files, other_count = searcher.discover_all(project_path)
+            
+            # Filter out files already in priority_files
+            priority_file_set = set(priority_files)
+            other_files = [f for f in other_files if f not in priority_file_set]
+            
+            # Restore original max
+            searcher.max_files = original_max
+            
+            # Combine results
+            all_files = priority_files + other_files
+            total_count = priority_count + other_count
+        else:
+            all_files = priority_files
+            total_count = priority_count
+        
+        return all_files, total_count
+    
+    def _filter_by_file_types(self, files: List[Path]) -> List[Path]:
+        """
+        Filter files by specified file types.
+        
+        Args:
+            files: List of file paths to filter
+            
+        Returns:
+            Filtered list of files
+        """
+        if not self.file_types:
+            return files
+        
+        filtered = []
+        for file_path in files:
+            if any(str(file_path).endswith(ext) for ext in self.file_types):
+                filtered.append(file_path)
+                self._discovery_stats["files_included"] += 1
+            else:
+                self._discovery_stats["files_excluded"] += 1
+        
+        return filtered
+    
+    def _update_discovery_stats(self, files: List[Path], project_path: Path) -> None:
+        """
+        Update discovery statistics for discovered files.
+        
+        Args:
+            files: List of discovered files
+            project_path: Root path of the project
+        """
+        for file_path in files:
+            # Count by file type
+            suffix = file_path.suffix.lower()
+            if suffix:
+                self._discovery_stats["files_by_type"][suffix] = \
+                    self._discovery_stats["files_by_type"].get(suffix, 0) + 1
+            else:
+                self._discovery_stats["files_by_type"]["no_extension"] = \
+                    self._discovery_stats["files_by_type"].get("no_extension", 0) + 1
+            
+            # Count by path (relative to project root)
+            try:
+                relative_path = file_path.relative_to(project_path)
+                # Get the top-level directory
+                if len(relative_path.parts) > 1:
+                    top_dir = relative_path.parts[0]
+                else:
+                    top_dir = "root"
+                
+                self._discovery_stats["files_by_path"][top_dir] = \
+                    self._discovery_stats["files_by_path"].get(top_dir, 0) + 1
+            except ValueError:
+                # File is outside project root
+                self._discovery_stats["files_by_path"]["external"] = \
+                    self._discovery_stats["files_by_path"].get("external", 0) + 1
+    
     def discover_all(self, project_path: Path) -> Tuple[List[Path], Dict[str, any]]:
         """
         Run all discovery methods and return combined results.
@@ -273,22 +387,56 @@ class DiscoveryOrchestrator:
         """
         searcher = self._get_searcher()
         
-        # Run discovery
-        discovered_files, file_count = searcher.discover_all(project_path)
+        # Reset statistics
+        self._discovery_stats = {
+            "files_by_type": {},
+            "files_by_path": {},
+            "files_included": 0,
+            "files_excluded": 0
+        }
+        
+        # Prioritize source_docs_path if provided
+        if self.source_docs_path:
+            source_path = project_path / self.source_docs_path
+            if source_path.exists() and source_path.is_dir():
+                # Discover files in priority path first
+                discovered_files, file_count = self._discover_with_priority(
+                    project_path, source_path
+                )
+            else:
+                logger.warning(f"Source docs path does not exist: {source_path}")
+                # Fall back to default discovery
+                discovered_files, file_count = searcher.discover_all(project_path)
+        else:
+            # Default discovery
+            discovered_files, file_count = searcher.discover_all(project_path)
+        
+        # Apply file type filtering if specified
+        if self.file_types:
+            discovered_files = self._filter_by_file_types(discovered_files)
+        
+        # Update statistics
+        self._update_discovery_stats(discovered_files, project_path)
         
         # Get git history summary
         git_analyzer = self._get_git_analyzer()
         git_summary = git_analyzer.get_summary(project_path)
         commit_count = git_analyzer.get_commit_count(project_path)
         
-        # Build metadata
+        # Build enhanced metadata
         metadata = {
-            "file_count": file_count,
+            "file_count": len(discovered_files),
             "commit_count": commit_count,
             "git_summary_available": len(git_summary) > 0,
             "custom_paths": self.discovery_paths,
             "max_files": self.max_discovery_files,
             "max_file_size_mb": self.max_file_size_mb,
+            "source_docs_path": self.source_docs_path,
+            "file_types": self.file_types,
+            "files_by_type": self._discovery_stats["files_by_type"],
+            "files_by_path": self._discovery_stats["files_by_path"],
+            "files_included": self._discovery_stats["files_included"],
+            "files_excluded": self._discovery_stats["files_excluded"],
         }
         
         return discovered_files, metadata

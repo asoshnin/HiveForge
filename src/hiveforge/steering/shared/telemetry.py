@@ -131,6 +131,7 @@ class TelemetryCollector:
         error_message: Optional[str] = None,
         error_recoverable: bool = True,
         memory_usage: Optional[float] = None,
+        additional_data: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Collect telemetry for a workflow execution.
@@ -148,6 +149,7 @@ class TelemetryCollector:
             error_message: Error message if failed
             error_recoverable: Whether error is recoverable
             memory_usage: Memory usage in MB
+            additional_data: Additional metadata (e.g., confidence scores, performance metrics)
             
         Returns:
             Event ID of the collected telemetry
@@ -172,6 +174,7 @@ class TelemetryCollector:
             error_type=error_type,
             error_message=error_message if self.level >= TelemetryLevel.DETAILED else None,
             error_recoverable=error_recoverable,
+            additional_data=additional_data or {},
         )
         
         # Store event

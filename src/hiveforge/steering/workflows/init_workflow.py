@@ -44,6 +44,9 @@ from ..gap_analysis import GapAnalysisEngine
 from ..agents.steering_assistant import SteeringAssistant
 from ..template_populator import TemplatePopulator
 from ..validators.steering_validator import SteeringValidator
+from ..source_resolver import SourceDocumentResolver
+from ..confidence import ConfidenceCalculator
+from ..content_tagger import ContentTagger
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +77,8 @@ class InitWorkflow:
     def __init__(
         self,
         config: SteeringConfig,
-        project_root: Optional[Path] = None
+        project_root: Optional[Path] = None,
+        source_docs_path: Optional[str] = None
     ):
         """
         Initialize the init workflow.
@@ -82,9 +86,11 @@ class InitWorkflow:
         Args:
             config: SteeringConfig with workflow settings
             project_root: Root directory of the project (defaults to current directory)
+            source_docs_path: Optional path to source documents folder (relative to project_root)
         """
         self.config = config
         self.project_root = project_root or Path.cwd()
+        self.source_docs_path = source_docs_path
         
         # Initialize workflow state
         self.state = WorkflowState(
@@ -93,7 +99,15 @@ class InitWorkflow:
             steering_dir=self.project_root / ".kiro" / "steering",
         )
         
+        # Initialize source document resolver
+        self.source_resolver = SourceDocumentResolver(self.project_root)
+        
+        # Track discovered documents for statistics
+        self.discovered_documents = []
+        
         logger.info(f"Initialized InitWorkflow for project: {self.project_root}")
+        if source_docs_path:
+            logger.info(f"Custom source documents path: {source_docs_path}")
     
     def execute(self) -> bool:
         """
@@ -157,16 +171,34 @@ class InitWorkflow:
     
     def _step_create_staging_directory(self) -> None:
         """
-        Step 1: Create staging directory if it doesn't exist.
+        Step 1: Create staging directory and resolve source documents.
         
-        Requirements: 2.1, 4.1
+        If source_docs_path is provided, discovers documents from that path
+        and links/copies them to the staging directory. Otherwise, uses the
+        default .kiro/onboarding/ directory.
+        
+        Requirements: 2.1, 4.1, R1.3, R1.4
         """
-        logger.info("Step 1: Creating staging directory")
+        logger.info("Step 1: Creating staging directory and resolving source documents")
         print("\n🔧 Setting up staging directory...")
         
         try:
-            create_staging_directory(self.state.staging_dir)
+            # Use SourceDocumentResolver to resolve path and discover documents
+            resolved_staging_dir, discovered_docs = self.source_resolver.resolve(
+                source_docs_path=self.source_docs_path,
+                copy_files=False  # Use symlinks by default for performance
+            )
+            
+            # Update state with resolved staging directory
+            self.state.staging_dir = resolved_staging_dir
+            self.discovered_documents = discovered_docs
+            
             print(f"   ✓ Staging directory ready: {self.state.staging_dir}")
+            
+            # Display source path if custom path was used
+            if self.source_docs_path:
+                print(f"   ℹ Using custom source path: {self.source_docs_path}")
+                print(f"   ℹ Discovered {len(discovered_docs)} document(s)")
             
             # Display summary of staging folder contents
             summary = get_staging_directory_summary(self.state.staging_dir)
@@ -180,6 +212,9 @@ class InitWorkflow:
                     print(f"     • {summary['pdf_count']} PDF file(s)")
                 if summary["image_count"] > 0:
                     print(f"     • {summary['image_count']} image file(s)")
+            
+            # Add document discovery statistics to state
+            self._add_discovery_statistics()
         
         except Exception as e:
             logger.error(f"Failed to create staging directory: {e}")
@@ -342,15 +377,18 @@ class InitWorkflow:
         """
         Step 4: Parse all artifacts from staging folder.
         
-        Requirements: 4.3, 3.1-3.5, 14.1
+        Requirements: 4.3, 3.1-3.5, 14.1, R2.1, R2.2
         """
         logger.info("Step 4: Parsing artifacts")
         
-        # Check if staging folder is empty (Req 2.3)
+        # Check if staging folder is empty (Req 2.3, R2.1)
         if is_staging_folder_empty(self.state.staging_dir):
             logger.info("Staging folder is empty, skipping artifact parsing")
             print("\n   ℹ No artifacts to parse (staging folder is empty)")
             self.state.parsed_documents = []
+            
+            # Add empty source folder warnings (R2.1, R2.2)
+            self._add_empty_source_folder_warnings()
             return
         
         print("\n📄 Parsing artifacts...")
@@ -379,6 +417,33 @@ class InitWorkflow:
             logger.error(f"Artifact parsing failed: {e}", exc_info=True)
             print(f"   ✗ Artifact parsing failed: {e}")
             self.state.parsed_documents = []
+    
+    def _add_empty_source_folder_warnings(self) -> None:
+        """
+        Add warnings when staging folder is empty.
+        
+        Requirements: R2.1, R2.2
+        """
+        # Add primary warning (R2.1)
+        warning = (
+            "No source documents found. Steering files will be generated from "
+            "code analysis only. Consider adding design documents to improve accuracy."
+        )
+        self.state.warnings.append(warning)
+        logger.warning(warning)
+        
+        # Set metadata (R2.1)
+        self.state.metadata["source_documents_found"] = 0
+        self.state.metadata["confidence_level"] = "low"
+        
+        # Add autonomous mode warning (R2.2)
+        if self.config.feature_flags and self.config.feature_flags.use_autonomous_generation:
+            autonomous_warning = (
+                "Autonomous mode with no source documents may produce inferred content. "
+                "Review generated files carefully."
+            )
+            self.state.warnings.append(autonomous_warning)
+            logger.warning(autonomous_warning)
     
     def _step_build_knowledge_base(self) -> None:
         """
@@ -469,7 +534,12 @@ class InitWorkflow:
         """
         Step 8: Populate all steering file templates with gathered information.
         
-        Requirements: 4.6, 14.3
+        This step now includes:
+        1. Template population with gathered information
+        2. Confidence calculation for each file
+        3. Content tagging with [INFERRED] markers and metadata
+        
+        Requirements: 4.6, 14.3, R3.1, R3.2, R3.3, R3.4
         """
         logger.info("Step 8: Populating templates")
         print("\n📝 Generating steering files...")
@@ -486,10 +556,19 @@ class InitWorkflow:
                 show_progress=True
             )
             
-            # Store in state for writing
-            self.state.populated_files = populated_files
-            
             print(f"\n   ✓ Generated {len(populated_files)} steering file(s)")
+            
+            # Step 8a: Calculate confidence and tag content (R3.1-R3.4)
+            print("\n🏷️  Tagging content with confidence metadata...")
+            tagged_files = self._calculate_confidence_and_tag_content(
+                populated_files,
+                combined_knowledge
+            )
+            
+            # Store tagged files in state for writing
+            self.state.populated_files = tagged_files
+            
+            print(f"   ✓ Tagged {len(tagged_files)} file(s) with confidence metadata")
         
         except Exception as e:
             logger.error(f"Template population failed: {e}", exc_info=True)
@@ -548,11 +627,163 @@ class InitWorkflow:
         
         return combined
     
+    def _calculate_confidence_and_tag_content(
+        self,
+        populated_files: dict,
+        combined_knowledge: dict
+    ) -> dict:
+        """
+        Calculate confidence scores and tag content with metadata.
+        
+        This method:
+        1. Extracts source tracking from gathered_info
+        2. Calculates confidence for each file
+        3. Tags inferred sections with [INFERRED] markers
+        4. Adds metadata headers with confidence info
+        5. Adds low confidence warnings where needed
+        
+        Args:
+            populated_files: Dictionary of filename -> content
+            combined_knowledge: Combined knowledge used for population
+        
+        Returns:
+            Dictionary of filename -> tagged content
+            
+        Requirements: R3.1, R3.2, R3.3, R3.4
+        """
+        calculator = ConfidenceCalculator()
+        tagger = ContentTagger()
+        tagged_files = {}
+        file_scores = {}
+        
+        # Extract source tracking from gathered_info
+        sources_by_file = self._extract_source_tracking()
+        
+        # Calculate metadata for tagging
+        metadata = {
+            "source_documents": len(self.state.parsed_documents),
+            "code_analysis": self.state.code_analysis is not None,
+        }
+        
+        if self.source_docs_path:
+            metadata["source_docs_path"] = self.source_docs_path
+        
+        # Process each file
+        for filename, content in populated_files.items():
+            # Get source tracking for this file
+            file_sources = sources_by_file.get(filename, {
+                "documents": [],
+                "code_analysis": [],
+                "inferred": []
+            })
+            
+            # Calculate confidence for this file
+            confidence = calculator.calculate_file_confidence(
+                filename,
+                file_sources,
+                content
+            )
+            
+            # Store for overall calculation
+            file_scores[filename] = confidence
+            
+            # Tag the content
+            tagged_content = tagger.tag_content(
+                content,
+                confidence,
+                metadata
+            )
+            
+            tagged_files[filename] = tagged_content
+            
+            logger.info(
+                f"Tagged {filename}: confidence={confidence.level} "
+                f"({confidence.overall:.2f}), "
+                f"inferred_sections={len(confidence.inferred_sections)}"
+            )
+        
+        # Calculate and store overall confidence
+        overall_confidence = calculator.calculate_overall_confidence(file_scores)
+        self.state.metadata["overall_confidence"] = overall_confidence.level
+        self.state.metadata["overall_confidence_score"] = overall_confidence.overall
+        
+        logger.info(
+            f"Overall workflow confidence: {overall_confidence.level} "
+            f"({overall_confidence.overall:.2f})"
+        )
+        
+        return tagged_files
+    
+    def _extract_source_tracking(self) -> dict:
+        """
+        Extract source tracking information from gathered_info.
+        
+        The gathered_info from SteeringAssistant includes a "_sources" key
+        for each template that tracks which sections came from which sources.
+        
+        Returns:
+            Dictionary mapping filename to source tracking:
+            {
+                "tech-stack.md": {
+                    "documents": ["Backend", "Frontend"],
+                    "code_analysis": ["Database"],
+                    "inferred": ["Cache"]
+                }
+            }
+            
+        Requirements: R3.2
+        """
+        sources_by_file = {}
+        
+        # gathered_info has structure:
+        # {
+        #     "tech-stack": {
+        #         "Backend": "FastAPI",
+        #         "_sources": {
+        #             "documents": ["Backend"],
+        #             "code_analysis": ["Database"],
+        #             "inferred": ["Cache"]
+        #         }
+        #     }
+        # }
+        
+        for template_name, template_data in self.state.gathered_info.items():
+            # Convert template name to filename
+            filename = f"{template_name}.md"
+            
+            # Extract _sources if present
+            if isinstance(template_data, dict) and "_sources" in template_data:
+                sources_by_file[filename] = template_data["_sources"]
+            else:
+                # No source tracking available, assume all inferred
+                # This happens when using non-interactive mode or old code
+                sources_by_file[filename] = {
+                    "documents": [],
+                    "code_analysis": [],
+                    "inferred": []
+                }
+        
+        # Handle case where we have code analysis but no gathered info
+        # (e.g., all info came from code analysis)
+        if self.state.code_analysis and not sources_by_file:
+            # Mark tech-stack, architecture, conventions as from code analysis
+            for filename in ["tech-stack.md", "architecture.md", "conventions.md"]:
+                sources_by_file[filename] = {
+                    "documents": [],
+                    "code_analysis": ["all"],  # Simplified tracking
+                    "inferred": []
+                }
+        
+        return sources_by_file
+    
     def _step_write_files(self) -> None:
         """
         Step 9: Write populated steering files to .kiro/steering/.
         
-        Requirements: 4.7
+        Files are already tagged with confidence metadata and [INFERRED] markers
+        from the previous step.
+        
+        Requirements: 4.7, R3.3, R3.4
         """
         logger.info("Step 9: Writing steering files")
         print("\n💾 Writing steering files...")
@@ -561,7 +792,7 @@ class InitWorkflow:
             # Ensure steering directory exists
             self.state.steering_dir.mkdir(parents=True, exist_ok=True)
             
-            # Write each file
+            # Write each file (content is already tagged)
             written_files = []
             for filename, content in getattr(self.state, 'populated_files', {}).items():
                 file_path = self.state.steering_dir / filename
@@ -651,3 +882,45 @@ class InitWorkflow:
         print("   • Try running with --skip-validation flag")
         print("\n💬 Need help? Check the documentation or open an issue")
         print()
+    
+    def _add_discovery_statistics(self) -> None:
+        """
+        Add document discovery statistics to workflow state.
+        
+        This method tracks statistics about discovered documents including:
+        - Total document count
+        - Documents by type (markdown, pdf, image)
+        - Documents by source (custom_path, staging, project_root)
+        - Symlink vs. copied files
+        
+        Requirements: R1.3 (Add document discovery statistics to state)
+        """
+        if not hasattr(self.state, 'discovery_statistics'):
+            self.state.discovery_statistics = {}
+        
+        # Count documents by type
+        by_type = {}
+        by_source = {}
+        symlink_count = 0
+        
+        for doc in self.discovered_documents:
+            # Count by type
+            by_type[doc.file_type] = by_type.get(doc.file_type, 0) + 1
+            
+            # Count by source
+            by_source[doc.discovered_from] = by_source.get(doc.discovered_from, 0) + 1
+            
+            # Count symlinks
+            if doc.is_symlink:
+                symlink_count += 1
+        
+        self.state.discovery_statistics = {
+            "total_documents": len(self.discovered_documents),
+            "by_type": by_type,
+            "by_source": by_source,
+            "symlink_count": symlink_count,
+            "copied_count": len(self.discovered_documents) - symlink_count,
+            "source_docs_path": self.source_docs_path
+        }
+        
+        logger.info(f"Discovery statistics: {self.state.discovery_statistics}")

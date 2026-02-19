@@ -135,6 +135,9 @@ class SteeringAssistant:
         # Track gathered information
         self.gathered_info: Dict[str, Any] = {}
         
+        # Track content sources for confidence calculation
+        self._sources: Dict[str, Dict[str, List[str]]] = {}
+        
         # Track research results
         self.research_results: List[ResearchResult] = []
     
@@ -151,14 +154,27 @@ class SteeringAssistant:
         3. Ask batched questions with context
         4. Optionally perform web research for critical gaps
         5. Validate responses and gather information
+        6. Track content sources for confidence calculation
         
         Args:
             max_questions_per_batch: Maximum questions per batch (default: 8)
             
         Returns:
-            Dictionary of gathered information keyed by template and section
+            Dictionary with two keys:
+            - "gathered_info": Dictionary of gathered information keyed by template and section
+            - "_sources": Dictionary tracking content sources for confidence calculation
+                Format: {
+                    "template_name": {
+                        "section_name": "content",
+                        "_sources": {
+                            "documents": ["section1", "section2"],
+                            "code_analysis": ["section3"],
+                            "inferred": ["section4"]
+                        }
+                    }
+                }
             
-        Requirements: 7.1, 7.2, 7.3, 7.5, 7.6
+        Requirements: 7.1, 7.2, 7.3, 7.5, 7.6, R3.2
         """
         logger.info("Starting conversation to gather missing information")
         
@@ -188,7 +204,9 @@ class SteeringAssistant:
             self._perform_research()
         
         logger.info("Conversation complete")
-        return self.gathered_info
+        
+        # Step 6: Return gathered info with source tracking (Req R3.2)
+        return self._build_result_with_sources()
     
     def _present_extracted_info(self) -> None:
         """
@@ -234,16 +252,17 @@ class SteeringAssistant:
         possible from parsed artifacts and code analysis.
         
         Returns:
-            Dictionary of gathered information
+            Dictionary with gathered information and source tracking
             
-        Requirements: 7.6
+        Requirements: 7.6, R3.2
         """
-        gathered = {}
-        
         # Extract information from complete sections
         for template_name, sections in self.gap_analysis.complete_sections.items():
-            if template_name not in gathered:
-                gathered[template_name] = {}
+            if template_name not in self.gathered_info:
+                self.gathered_info[template_name] = {}
+            
+            # Initialize source tracking for this template
+            self._init_template_sources(template_name)
             
             for section in sections:
                 # Get relevant content for this section
@@ -255,11 +274,15 @@ class SteeringAssistant:
                 # Extract section-specific content
                 section_content = self.knowledge_base.extract_section(section)
                 if section_content:
-                    gathered[template_name][section] = section_content
+                    self.gathered_info[template_name][section] = section_content
+                    # Mark as coming from documents (knowledge base)
+                    self._track_source(template_name, section, "documents")
                 else:
-                    gathered[template_name][section] = content[:500]  # Use first 500 chars
+                    self.gathered_info[template_name][section] = content[:500]  # Use first 500 chars
+                    # Mark as inferred since we couldn't find specific section
+                    self._track_source(template_name, section, "inferred")
         
-        return gathered
+        return self._build_result_with_sources()
     
     def batch_questions(
         self,
@@ -421,6 +444,8 @@ class SteeringAssistant:
         Args:
             question: Question that was answered
             answer: User's answer
+            
+        Requirements: R3.2
         """
         template_name = question.template_name
         section_name = question.section_name
@@ -429,6 +454,13 @@ class SteeringAssistant:
             self.gathered_info[template_name] = {}
         
         self.gathered_info[template_name][section_name] = answer
+        
+        # Initialize source tracking for this template if needed
+        self._init_template_sources(template_name)
+        
+        # Determine source type based on question context and answer
+        source_type = self._determine_source_type(question, answer)
+        self._track_source(template_name, section_name, source_type)
     
     def _perform_research(self) -> None:
         """
@@ -569,3 +601,104 @@ class SteeringAssistant:
             sources=sources,
             approved=approved
         )
+    
+    def _init_template_sources(self, template_name: str) -> None:
+        """
+        Initialize source tracking structure for a template.
+        
+        Args:
+            template_name: Name of the template to initialize
+            
+        Requirements: R3.2
+        """
+        if template_name not in self._sources:
+            self._sources[template_name] = {
+                "documents": [],
+                "code_analysis": [],
+                "inferred": []
+            }
+    
+    def _track_source(self, template_name: str, section_name: str, source_type: str) -> None:
+        """
+        Track the source of a section's content.
+        
+        Args:
+            template_name: Name of the template
+            section_name: Name of the section
+            source_type: Type of source ("documents", "code_analysis", or "inferred")
+            
+        Requirements: R3.2
+        """
+        if template_name not in self._sources:
+            self._init_template_sources(template_name)
+        
+        if source_type in self._sources[template_name]:
+            if section_name not in self._sources[template_name][source_type]:
+                self._sources[template_name][source_type].append(section_name)
+    
+    def _determine_source_type(self, question: Question, answer: str) -> str:
+        """
+        Determine the source type for an answer.
+        
+        Analyzes the question context and answer to determine if the content
+        came from source documents, code analysis, or was inferred.
+        
+        Args:
+            question: The question that was asked
+            answer: The user's answer
+            
+        Returns:
+            Source type: "documents", "code_analysis", or "inferred"
+            
+        Requirements: R3.2
+        """
+        # Check if this section was in complete_sections (from documents)
+        if question.template_name in self.gap_analysis.complete_sections:
+            if question.section_name in self.gap_analysis.complete_sections[question.template_name]:
+                return "documents"
+        
+        # Check if this section was in ambiguous_sections (partial document match)
+        if question.template_name in self.gap_analysis.ambiguous_sections:
+            if question.section_name in self.gap_analysis.ambiguous_sections[question.template_name]:
+                return "documents"
+        
+        # Check if the answer references code or technical details
+        # (heuristic: tech-stack, architecture, conventions likely from code)
+        code_related_templates = ["tech-stack", "architecture", "conventions"]
+        if question.template_name in code_related_templates:
+            # Check if knowledge base has code analysis for this
+            if self.knowledge_base.has_code_analysis():
+                return "code_analysis"
+        
+        # Default to inferred if we asked the user and it wasn't in documents/code
+        return "inferred"
+    
+    def _build_result_with_sources(self) -> Dict[str, Any]:
+        """
+        Build the final result with gathered info and source tracking.
+        
+        Returns:
+            Dictionary with structure:
+            {
+                "template_name": {
+                    "section_name": "content",
+                    "_sources": {
+                        "documents": ["section1", "section2"],
+                        "code_analysis": ["section3"],
+                        "inferred": ["section4"]
+                    }
+                }
+            }
+            
+        Requirements: R3.2
+        """
+        result = {}
+        
+        for template_name, sections in self.gathered_info.items():
+            result[template_name] = dict(sections)  # Copy section content
+            
+            # Add source tracking if available
+            if template_name in self._sources:
+                result[template_name]["_sources"] = self._sources[template_name]
+        
+        return result

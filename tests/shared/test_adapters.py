@@ -251,6 +251,7 @@ class TestSharedInitWorkflow:
         workflow = SharedInitWorkflow(project_root=tmp_path)
         
         assert workflow.project_root == tmp_path
+        assert workflow.source_docs_path is None
         assert workflow.auto_discover is True
         assert workflow.autonomous is True
         assert workflow.confidence_threshold == 0.7
@@ -268,6 +269,17 @@ class TestSharedInitWorkflow:
         assert workflow.autonomous is False
         assert workflow.confidence_threshold == 0.9
     
+    def test_init_with_source_docs_path(self, tmp_path):
+        """Test initialization with source_docs_path parameter."""
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            source_docs_path="_DEVELOPMENT"
+        )
+        
+        assert workflow.source_docs_path == "_DEVELOPMENT"
+        assert workflow.auto_discover is True
+        assert workflow.autonomous is True
+    
     @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_success(self, mock_init_class, tmp_path):
         """Test successful init workflow execution."""
@@ -281,6 +293,8 @@ class TestSharedInitWorkflow:
         mock_workflow = Mock()
         mock_workflow.execute.return_value = True
         mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []  # Add warnings field
+        mock_workflow.state.metadata = {}  # Add metadata field
         mock_init_class.return_value = mock_workflow
         
         # Execute
@@ -292,6 +306,34 @@ class TestSharedInitWorkflow:
         assert "Successfully initialized" in result.message
         assert len(result.files_created) == 2
         assert result.metadata["files_count"] == 2
+        assert result.metadata["source_docs_path"] is None
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_execute_with_source_docs_path_in_metadata(self, mock_init_class, tmp_path):
+        """Test that source_docs_path is included in result metadata."""
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []  # Add warnings field
+        mock_workflow.state.metadata = {}  # Add metadata field
+        mock_init_class.return_value = mock_workflow
+        
+        # Execute with source_docs_path
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            source_docs_path="_DEVELOPMENT"
+        )
+        result = workflow.execute()
+        
+        # Verify metadata includes source_docs_path
+        assert result.success is True
+        assert result.metadata["source_docs_path"] == "_DEVELOPMENT"
     
     @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_failure(self, mock_init_class, tmp_path):
@@ -300,6 +342,8 @@ class TestSharedInitWorkflow:
         mock_workflow = Mock()
         mock_workflow.execute.return_value = False
         mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
         mock_init_class.return_value = mock_workflow
         
         # Execute
@@ -317,6 +361,8 @@ class TestSharedInitWorkflow:
         mock_workflow = Mock()
         mock_workflow.execute.return_value = True
         mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
         mock_init_class.return_value = mock_workflow
         
         # Execute with autonomous mode
@@ -345,6 +391,8 @@ class TestSharedInitWorkflow:
         mock_workflow = Mock()
         mock_workflow.execute.return_value = True
         mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
         mock_init_class.return_value = mock_workflow
         
         # Execute with non-autonomous mode
@@ -376,6 +424,8 @@ class TestSharedInitWorkflow:
         mock_workflow = Mock()
         mock_workflow.execute.return_value = True
         mock_workflow.state.validation_report = mock_report
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
         mock_init_class.return_value = mock_workflow
         
         # Execute
@@ -402,6 +452,67 @@ class TestSharedInitWorkflow:
         assert result.success is False
         assert "Test error" in result.message
         assert len(result.errors) > 0
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_backward_compatibility_without_source_docs_path(self, mock_init_class, tmp_path):
+        """Test backward compatibility when source_docs_path is not provided."""
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
+        mock_init_class.return_value = mock_workflow
+        
+        # Execute without source_docs_path (old behavior)
+        workflow = SharedInitWorkflow(project_root=tmp_path)
+        result = workflow.execute()
+        
+        # Verify it works as before
+        assert result.success is True
+        assert result.metadata["source_docs_path"] is None
+        assert "Successfully initialized" in result.message
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_empty_source_folder_warnings_collected(self, mock_init_class, tmp_path):
+        """Test that empty source folder warnings are collected in result (R2.1, R2.2)."""
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow with empty source folder warnings
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = [
+            "No source documents found. Steering files will be generated from code analysis only. Consider adding design documents to improve accuracy.",
+            "Autonomous mode with no source documents may produce inferred content. Review generated files carefully."
+        ]
+        mock_workflow.state.metadata = {
+            "source_documents_found": 0,
+            "confidence_level": "low"
+        }
+        mock_init_class.return_value = mock_workflow
+        
+        # Execute
+        workflow = SharedInitWorkflow(project_root=tmp_path, autonomous=True)
+        result = workflow.execute()
+        
+        # Verify warnings are collected
+        assert result.success is True
+        assert len(result.warnings) == 2
+        assert any("No source documents found" in w for w in result.warnings)
+        assert any("Autonomous mode with no source documents" in w for w in result.warnings)
+        
+        # Verify metadata is included
+        assert result.metadata["source_documents_found"] == 0
+        assert result.metadata["confidence_level"] == "low"
 
 
 class TestSharedUpdateWorkflow:
@@ -751,6 +862,7 @@ class TestSharedDiscoveryWorkflow:
         workflow = SharedDiscoveryWorkflow(project_root=tmp_path)
         
         assert workflow.project_root == tmp_path
+        assert workflow.source_docs_path is None
         assert workflow.include_git_history is False
         assert workflow.max_discovery_files == 1000
         assert workflow.max_file_size_mb == 10
@@ -767,6 +879,15 @@ class TestSharedDiscoveryWorkflow:
         assert workflow.include_git_history is True
         assert workflow.max_discovery_files == 500
         assert workflow.max_file_size_mb == 5
+    
+    def test_init_with_source_docs_path(self, tmp_path):
+        """Test initialization with source_docs_path parameter."""
+        workflow = SharedDiscoveryWorkflow(
+            project_root=tmp_path,
+            source_docs_path="docs"
+        )
+        
+        assert workflow.source_docs_path == "docs"
     
     @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_success_with_files(self, mock_orchestrator_class, tmp_path):
@@ -803,6 +924,34 @@ class TestSharedDiscoveryWorkflow:
         assert result.metadata["files_discovered"] == 3
         assert result.metadata["files_included"] == 3
         assert result.metadata["discovery_method"] == "full_scan"
+        assert result.metadata["source_docs_path"] is None
+    
+    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    def test_execute_with_source_docs_path_in_metadata(self, mock_orchestrator_class, tmp_path):
+        """Test that source_docs_path is included in result metadata."""
+        # Setup mock discovered files
+        discovered_files = [Path("README.md")]
+        metadata = {
+            "file_count": 1,
+            "commit_count": 0,
+            "method": "full_scan"
+        }
+        
+        # Setup mock orchestrator
+        mock_orchestrator = Mock()
+        mock_orchestrator.discover_all.return_value = (discovered_files, metadata)
+        mock_orchestrator_class.return_value = mock_orchestrator
+        
+        # Execute with source_docs_path
+        workflow = SharedDiscoveryWorkflow(
+            project_root=tmp_path,
+            source_docs_path="_DEVELOPMENT"
+        )
+        result = workflow.execute()
+        
+        # Verify metadata includes source_docs_path
+        assert result.success is True
+        assert result.metadata["source_docs_path"] == "_DEVELOPMENT"
     
     @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_success_with_git_history(self, mock_orchestrator_class, tmp_path):
@@ -912,10 +1061,12 @@ class TestSharedDiscoveryWorkflow:
         )
         result = workflow.execute()
         
-        # Verify orchestrator was created with correct config
+        # Verify orchestrator was created with correct config (including new parameters)
         mock_orchestrator_class.assert_called_once_with(
             max_discovery_files=500,
-            max_file_size_mb=5
+            max_file_size_mb=5,
+            source_docs_path=None,
+            file_types=None
         )
     
     @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
@@ -932,3 +1083,225 @@ class TestSharedDiscoveryWorkflow:
         assert result.success is False
         assert "Test error" in result.message
         assert len(result.errors) > 0
+    
+    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    def test_backward_compatibility_without_source_docs_path(self, mock_orchestrator_class, tmp_path):
+        """Test backward compatibility when source_docs_path is not provided."""
+        # Setup mock discovered files
+        discovered_files = [Path("README.md")]
+        metadata = {
+            "file_count": 1,
+            "commit_count": 0,
+            "method": "full_scan"
+        }
+        
+        # Setup mock orchestrator
+        mock_orchestrator = Mock()
+        mock_orchestrator.discover_all.return_value = (discovered_files, metadata)
+        mock_orchestrator_class.return_value = mock_orchestrator
+        
+        # Execute without source_docs_path (old behavior)
+        workflow = SharedDiscoveryWorkflow(project_root=tmp_path)
+        result = workflow.execute()
+        
+        # Verify it works as before
+        assert result.success is True
+        assert result.metadata["source_docs_path"] is None
+        assert "Discovery complete" in result.message
+
+
+class TestSharedInitWorkflowTelemetry:
+    """Tests for telemetry collection in SharedInitWorkflow (Task 2.6)."""
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_telemetry_collects_new_parameters(self, mock_init_class, tmp_path):
+        """Test that telemetry collects dry_run and copy_files parameters."""
+        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
+        mock_init_class.return_value = mock_workflow
+        
+        # Create telemetry collector
+        telemetry_collector = TelemetryCollector(
+            telemetry_dir=tmp_path / ".telemetry",
+            level=TelemetryLevel.DETAILED
+        )
+        
+        # Execute with new parameters
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            source_docs_path="_DEVELOPMENT",
+            dry_run=True,
+            copy_files=True,
+            telemetry_collector=telemetry_collector,
+            interface_type=InterfaceType.CLI
+        )
+        result = workflow.execute()
+        
+        # Verify telemetry was collected
+        assert len(telemetry_collector._events) == 1
+        event = telemetry_collector._events[0]
+        
+        # Verify new parameters are in telemetry
+        assert event.parameters["source_docs_path"] == "_DEVELOPMENT"
+        assert event.parameters["dry_run"] is True
+        assert event.parameters["copy_files"] is True
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_telemetry_collects_confidence_metrics(self, mock_init_class, tmp_path):
+        """Test that telemetry collects confidence level distribution."""
+        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow with confidence metadata
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {
+            "confidence_level": "medium",
+            "overall_confidence_score": 0.65,
+            "source_documents_found": 3
+        }
+        mock_init_class.return_value = mock_workflow
+        
+        # Create telemetry collector
+        telemetry_collector = TelemetryCollector(
+            telemetry_dir=tmp_path / ".telemetry",
+            level=TelemetryLevel.DETAILED
+        )
+        
+        # Execute
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            telemetry_collector=telemetry_collector,
+            interface_type=InterfaceType.CLI
+        )
+        result = workflow.execute()
+        
+        # Verify confidence metrics in telemetry
+        assert len(telemetry_collector._events) == 1
+        event = telemetry_collector._events[0]
+        
+        assert event.additional_data["confidence_level"] == "medium"
+        assert event.additional_data["overall_confidence_score"] == 0.65
+        assert event.additional_data["source_documents_found"] == 3
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_telemetry_collects_performance_metrics(self, mock_init_class, tmp_path):
+        """Test that telemetry collects performance metrics."""
+        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow with performance metadata
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {
+            "discovery_time_ms": 500,
+            "confidence_calc_time_ms": 150,
+            "content_tagging_time_ms": 50
+        }
+        mock_init_class.return_value = mock_workflow
+        
+        # Create telemetry collector
+        telemetry_collector = TelemetryCollector(
+            telemetry_dir=tmp_path / ".telemetry",
+            level=TelemetryLevel.DETAILED
+        )
+        
+        # Execute
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            telemetry_collector=telemetry_collector,
+            interface_type=InterfaceType.CLI
+        )
+        result = workflow.execute()
+        
+        # Verify performance metrics in telemetry
+        assert len(telemetry_collector._events) == 1
+        event = telemetry_collector._events[0]
+        
+        assert event.additional_data["discovery_time_ms"] == 500
+        assert event.additional_data["confidence_calc_time_ms"] == 150
+        assert event.additional_data["content_tagging_time_ms"] == 50
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_telemetry_collects_error_metrics(self, mock_init_class, tmp_path):
+        """Test that telemetry collects error metrics."""
+        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        
+        # Setup mock to raise exception
+        mock_init_class.side_effect = ValueError("Path validation failed")
+        
+        # Create telemetry collector
+        telemetry_collector = TelemetryCollector(
+            telemetry_dir=tmp_path / ".telemetry",
+            level=TelemetryLevel.DETAILED
+        )
+        
+        # Execute
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            source_docs_path="../../../etc/passwd",
+            telemetry_collector=telemetry_collector,
+            interface_type=InterfaceType.CLI
+        )
+        result = workflow.execute()
+        
+        # Verify error metrics in telemetry
+        assert len(telemetry_collector._events) == 1
+        event = telemetry_collector._events[0]
+        
+        assert event.result_status == "failed"
+        assert event.error_type == "ValueError"
+        assert "Path validation failed" in event.error_message
+        assert event.error_recoverable is True
+    
+    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    def test_result_metadata_includes_new_parameters(self, mock_init_class, tmp_path):
+        """Test that result metadata includes dry_run and copy_files."""
+        # Create mock steering directory with files
+        steering_dir = tmp_path / ".kiro" / "steering"
+        steering_dir.mkdir(parents=True)
+        (steering_dir / "tech-stack.md").touch()
+        
+        # Setup mock workflow
+        mock_workflow = Mock()
+        mock_workflow.execute.return_value = True
+        mock_workflow.state.validation_report = None
+        mock_workflow.state.warnings = []
+        mock_workflow.state.metadata = {}
+        mock_init_class.return_value = mock_workflow
+        
+        # Execute with new parameters
+        workflow = SharedInitWorkflow(
+            project_root=tmp_path,
+            dry_run=True,
+            copy_files=True
+        )
+        result = workflow.execute()
+        
+        # Verify metadata includes new parameters
+        assert result.metadata["dry_run"] is True
+        assert result.metadata["copy_files"] is True
+

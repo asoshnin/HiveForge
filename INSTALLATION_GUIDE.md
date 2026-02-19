@@ -2,11 +2,29 @@
 
 ## Overview
 
-HiveForge is a CLI tool for scaffolding KIRO Methodology v05 projects. This guide covers installation on a fresh computer where you don't have HiveForge installed yet.
+HiveForge provides two ways to work with steering files:
 
-## Current Status
+1. **CLI Tool** - Standalone command-line interface
+2. **KIRO Power** - Integrated AI assistant within KIRO IDE
 
-HiveForge is **not yet published to PyPI**. This means you cannot install it with `pip install hiveforge` yet. You must install from source.
+This guide covers installation of both components from source code (not PyPI).
+
+---
+
+## Understanding the Packages
+
+HiveForge consists of **two separate packages**:
+
+| Package | Purpose | Command | When to Use |
+|---------|---------|---------|-------------|
+| **hiveforge** | CLI tool for scaffolding and steering files | `hiveforge` | Standalone use, CI/CD, scripts |
+| **hiveforge-steering-mcp** | MCP server for KIRO Power integration | `hiveforge-steering-mcp` | KIRO IDE integration |
+
+**Key Points**:
+- Both packages use the **same shared backend** - identical outputs
+- You can install one or both depending on your needs
+- CLI works independently; Power requires KIRO IDE
+- Installing the Power also gives you CLI access to MCP tools
 
 ---
 
@@ -17,6 +35,7 @@ Before installing HiveForge, ensure you have:
 - **Python 3.11 or higher** - [Download from python.org](https://www.python.org/downloads/)
 - **Git** - [Download from git-scm.com](https://git-scm.com/downloads)
 - **pip** - Usually comes with Python
+- **KIRO IDE** (optional) - Only needed for Power integration
 - **Internet connection** - To clone the repository
 
 ### Verify Prerequisites
@@ -45,13 +64,36 @@ git version 2.x.x
 
 ---
 
-## Installation Methods
+## Quick Start (Experienced Users)
 
-### Method 1: Editable Install (Recommended)
+```bash
+# Clone repository
+git clone https://github.com/asoshnin/HiveForge.git
+cd HiveForge
 
-This is the best method for most users. Changes to HiveForge code are immediately reflected without reinstalling.
+# Install CLI
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate.bat
+pip install -e .
 
-#### Step 1: Clone HiveForge Repository
+# Install MCP Server (for KIRO Power)
+cd hiveforge-power
+pip install -e .
+cd ..
+
+# Configure KIRO (create or edit ~/.kiro/settings/mcp.json)
+# See "Configuring KIRO MCP Settings" section below
+
+# Verify
+hiveforge --help
+hiveforge-steering-mcp --help
+```
+
+---
+
+## Detailed Installation Steps
+
+### Step 1: Clone HiveForge Repository
 
 ```bash
 # Navigate to where you want to store HiveForge
@@ -62,7 +104,16 @@ git clone https://github.com/asoshnin/HiveForge.git
 cd HiveForge
 ```
 
-#### Step 2: Create Virtual Environment
+**What you should see:**
+```
+Cloning into 'HiveForge'...
+remote: Enumerating objects: 1234, done.
+remote: Counting objects: 100% (1234/1234), done.
+```
+
+---
+
+### Step 2: Create Virtual Environment
 
 **macOS/Linux:**
 ```bash
@@ -97,34 +148,274 @@ venv\Scripts\Activate.ps1
 # Your prompt should now show (venv)
 ```
 
-#### Step 3: Install HiveForge
+**⚠️ Important**: Keep this virtual environment activated for all subsequent steps.
+
+---
+
+### Step 3: Install HiveForge CLI
 
 ```bash
+# Make sure you're in the HiveForge root directory
+# and virtual environment is activated (you should see (venv) in prompt)
+
 # Install in editable mode
 pip install -e .
-
-# This installs HiveForge and all dependencies
 ```
 
-#### Step 4: Verify Installation
+**What you should see:**
+```
+Successfully installed hiveforge-1.0.0
+```
+
+**Verify CLI installation:**
+```bash
+hiveforge --help
+```
+
+**Expected output:**
+```
+Usage: hiveforge [OPTIONS]
+
+  Scaffold KIRO Methodology v05 projects
+
+Options:
+  -n, --project-name TEXT  Project name (kebab-case)
+  -f, --force             Overwrite existing project
+  --help                  Show this message and exit.
+```
+
+✅ **CLI Installation Complete!**
+
+---
+
+### Step 4: Install MCP Server Package (For KIRO Power)
+
+**Skip this step if you only want the CLI tool.**
 
 ```bash
-# Check that hiveforge command is available
+# Navigate to the Power package directory
+cd hiveforge-power
+
+# Install the MCP server package (venv should still be activated)
+pip install -e .
+```
+
+**What you should see:**
+```
+Successfully installed hiveforge-steering-mcp-2.1.0 fastmcp-0.1.0 pydantic-2.0.0
+```
+
+**Verify MCP server installation:**
+```bash
+hiveforge-steering-mcp --help
+```
+
+**Expected output:**
+```
+Usage: hiveforge-steering-mcp [OPTIONS]
+
+  HiveForge Steering MCP Server
+
+Options:
+  --help  Show this message and exit.
+```
+
+**Return to root directory:**
+```bash
+cd ..
+```
+
+✅ **MCP Server Installation Complete!**
+
+---
+
+### Step 5: Configure KIRO MCP Settings
+
+**Skip this step if you only want the CLI tool.**
+
+KIRO needs to know about the MCP server. You'll configure this in KIRO's MCP settings file.
+
+#### Option A: Using uvx (Recommended for Production)
+
+**Note**: This option requires the package to be published to PyPI. Since HiveForge is not yet published, use Option B for local development.
+
+Create or edit `~/.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "hiveforge-steering": {
+      "command": "uvx",
+      "args": ["hiveforge-steering-mcp@latest"],
+      "disabled": false,
+      "autoApprove": ["init_steering", "update_steering", "validate_steering"]
+    }
+  }
+}
+```
+
+#### Option B: Using Local Installation (For Development)
+
+Create or edit `~/.kiro/settings/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "hiveforge-steering": {
+      "command": "/absolute/path/to/HiveForge/venv/bin/python",
+      "args": ["-m", "mcp_server.server"],
+      "disabled": false,
+      "autoApprove": ["init_steering", "update_steering", "validate_steering"]
+    }
+  }
+}
+```
+(!!! Could be different, see below)
+```
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "env": {},
+      "disabled": true,
+      "autoApprove": []
+    },
+    "hiveforge-steering": {
+      "command": "/Users/alexeysoshnin/Documents/_playground/VeriQ_MVP/venv/bin/python",
+      "args": ["-m", "mcp_server.server"],
+      "disabled": false,
+      "autoApprove": ["init_steering", "update_steering", "validate_steering"]
+    }
+  }
+}
+```
+
+**⚠️ Important**: Replace `/absolute/path/to/HiveForge/` with your actual path.
+
+**To find your path:**
+
+**macOS/Linux:**
+```bash
+cd ~/projects/HiveForge
+pwd
+# Copy the output and use it in the config
+```
+
+**Windows:**
+```cmd
+cd C:\Users\YourName\projects\HiveForge
+cd
+# Copy the output and use it in the config
+# Replace backslashes with forward slashes in JSON
+```
+
+**Example for macOS:**
+```json
+{
+  "mcpServers": {
+    "hiveforge-steering": {
+      "command": "/Users/john/projects/HiveForge/venv/bin/python",
+      "args": ["-m", "mcp_server.server"],
+      "disabled": false,
+      "autoApprove": ["init_steering", "update_steering", "validate_steering"]
+    }
+  }
+}
+```
+
+**Example for Windows:**
+```json
+{
+  "mcpServers": {
+    "hiveforge-steering": {
+      "command": "C:/Users/john/projects/HiveForge/venv/Scripts/python.exe",
+      "args": ["-m", "mcp_server.server"],
+      "disabled": false,
+      "autoApprove": ["init_steering", "update_steering", "validate_steering"]
+    }
+  }
+}
+```
+
+#### Configuration Options Explained
+
+- **`command`**: Path to Python interpreter in your virtual environment
+- **`args`**: Arguments to run the MCP server module
+- **`disabled`**: Set to `false` to enable the server
+- **`autoApprove`**: Tools that don't require user confirmation
+
+#### Create the Config File
+
+**macOS/Linux:**
+```bash
+# Create directory if it doesn't exist
+mkdir -p ~/.kiro/settings
+
+# Create or edit the file
+nano ~/.kiro/settings/mcp.json
+# or use your preferred editor: vim, code, etc.
+```
+
+**Windows:**
+```cmd
+# Create directory if it doesn't exist
+mkdir %USERPROFILE%\.kiro\settings
+
+# Create or edit the file
+notepad %USERPROFILE%\.kiro\settings\mcp.json
+```
+
+Paste the configuration from Option B above (with your correct path), save, and close.
+
+✅ **KIRO Configuration Complete!**
+
+---
+
+### Step 6: Register the Power in KIRO
+
+The Power must be manually registered in KIRO's Powers panel.
+
+**In KIRO IDE:**
+
+1. Open the **Powers** panel (sidebar)
+2. Go to **Installed** tab
+3. Click **"Add Custom Power"** button
+4. Select **"Local folder"**
+5. Navigate to: `/path/to/HiveForge/hiveforge-power`
+6. Select the folder and confirm
+
+**Expected result**: Power appears in Installed Powers list as "HiveForge Steering Assistant"
+
+**Activation Keywords:**
+
+The Power activates automatically when you mention these keywords in KIRO chat:
+- "steering"
+- "steering files"
+- "documentation"
+- "onboarding"
+- "project setup"
+- "project documentation"
+
+✅ **Power Registration Complete!**
+
+---
+
+## Verification Steps
+
+### Verify CLI Installation
+
+```bash
+# Activate virtual environment if not already active
+cd ~/projects/HiveForge
+source venv/bin/activate  # Windows: venv\Scripts\activate.bat
+
+# Test CLI
 hiveforge --help
 
-# Should show:
-# Usage: hiveforge [OPTIONS]
-# ...
-```
-
-#### Step 5: Test with Sample Project
-
-```bash
-# Create a test directory
+# Create a test project
 mkdir ~/test-hiveforge
 cd ~/test-hiveforge
-
-# Initialize a project
 hiveforge -n my-test-project
 
 # Verify structure was created
@@ -132,231 +423,95 @@ ls -la
 # Should show: .kiro/, .swarm/, swarm_state.md
 ```
 
-**Success!** You can now use HiveForge.
+**Expected result**: Project structure created successfully.
 
 ---
 
-### Method 2: Poetry Install (For Contributors)
-
-If you plan to contribute to HiveForge development, use Poetry for dependency management.
-
-#### Step 1: Install Poetry
-
-**macOS/Linux:**
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-**Windows (PowerShell):**
-```powershell
-(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
-```
-
-**Verify Poetry installation:**
-```bash
-poetry --version
-```
-
-#### Step 2: Clone and Install
+### Verify MCP Server Installation
 
 ```bash
-# Clone repository
-cd ~/projects
-git clone https://github.com/asoshnin/HiveForge.git
-cd HiveForge
-
-# Install dependencies (Poetry creates venv automatically)
-poetry install
-
-# Activate Poetry's virtual environment
-poetry shell
-
-# Your prompt should now show the venv name
-```
-
-#### Step 3: Verify Installation
-
-```bash
-hiveforge --help
-```
-
-#### Step 4: Run Tests (Optional)
-
-```bash
-# Run test suite
-pytest tests/ -v
-
-# Should show: 863 tests passing
-```
-
----
-
-### Method 3: Build and Install Wheel
-
-This method creates a distributable package file.
-
-#### Step 1: Clone and Build
-
-```bash
-cd ~/projects
-git clone https://github.com/asoshnin/HiveForge.git
-cd HiveForge
-
-# Install Poetry if not already installed
-pip install poetry
-
-# Build the package
-poetry build
-```
-
-**Output:**
-```
-Building hiveforge (1.0.0)
-  - Building sdist
-  - Built hiveforge-1.0.0.tar.gz
-  - Building wheel
-  - Built hiveforge-1.0.0-py3-none-any.whl
-```
-
-#### Step 2: Install the Wheel
-
-```bash
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # macOS/Linux
-# OR
-venv\Scripts\activate.bat  # Windows
-
-# Install the wheel
-pip install dist/hiveforge-1.0.0-py3-none-any.whl
-```
-
-#### Step 3: Verify Installation
-
-```bash
-hiveforge --help
-```
-
----
-
-## Post-Installation Setup
-
-### Configure for Your Workflow
-
-#### Option A: Keep HiveForge Venv Separate
-
-Activate HiveForge's venv whenever you need to use it:
-
-```bash
-# Activate HiveForge venv
-cd ~/projects/HiveForge
-source venv/bin/activate  # macOS/Linux
-
-# Use hiveforge
-hiveforge -n my-project
-
-# Deactivate when done
-deactivate
-```
-
-#### Option B: Install Globally (Not Recommended)
-
-```bash
-# Install without venv (not recommended)
-cd ~/projects/HiveForge
-pip install -e .
-
-# Now hiveforge is available system-wide
-```
-
-**Warning:** This can cause dependency conflicts with other Python projects.
-
-#### Option C: Create Alias (Recommended)
-
-Add to your shell config (`~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
-
-```bash
-# Alias to activate HiveForge venv and run command
-alias hiveforge='source ~/projects/HiveForge/venv/bin/activate && hiveforge'
-```
-
-Then reload your shell:
-```bash
-source ~/.bashrc  # or ~/.zshrc
-```
-
-Now you can run `hiveforge` from anywhere without manually activating the venv.
-
----
-
-## Using HiveForge with Existing Projects
-
-### Scenario: Clone Existing Project and Continue Work
-
-You're on a new computer and want to continue working on an existing GitHub repository.
-
-#### Step 1: Install HiveForge
-
-Follow Method 1 above (Editable Install).
-
-#### Step 2: Clone Your Project
-
-```bash
-cd ~/projects
-git clone https://github.com/youruser/your-project.git
-cd your-project
-```
-
-#### Step 3: Check for KIRO Structure
-
-```bash
-# Check if project has KIRO structure
-ls -la .kiro/
-
-# If .kiro/ exists, you're good to go
-# If not, initialize KIRO (see next section)
-```
-
-#### Step 4: Set Up Project Environment
-
-```bash
-# Create project's virtual environment (separate from HiveForge)
-python3 -m venv venv
-source venv/bin/activate
-
-# Install project dependencies
-pip install -r requirements.txt  # or poetry install
-
-# Run tests to verify setup
-pytest tests/ -v
-```
-
-#### Step 5: Use HiveForge Commands
-
-```bash
-# If project doesn't have KIRO structure, initialize it
-# (Make sure HiveForge venv is activated)
+# Activate virtual environment if not already active
 cd ~/projects/HiveForge
 source venv/bin/activate
-cd ~/projects/your-project
 
-hiveforge -n your-project
-
-# Generate steering files from existing code
-hiveforge steering init --analyze-code
+# Test MCP server command
+hiveforge-steering-mcp --help
 ```
 
-See [WORKFLOW.md](./WORKFLOW.md) for detailed workflows.
+**Expected result**: Help message displays without errors.
+
+---
+
+### Verify KIRO Power Integration
+
+1. **Open KIRO IDE**
+
+2. **Check MCP Server Status**:
+   - Look for MCP server indicator in KIRO UI
+   - Should show "hiveforge-steering" as connected
+
+3. **Test Power Activation**:
+   - In KIRO chat, type: "Can you help me create steering files?"
+   - The Power should activate automatically
+   - You should see a response about steering file generation
+
+4. **Test Power Tools**:
+   - In KIRO chat, type: "Initialize steering files for my project"
+   - The Power should use the `init_steering` tool
+   - Files should be created in `.kiro/steering/`
+
+   **NB:** The Power uses the current working directory (the folder KIRO is open to). Open KIRO in your project folder, then run the command. The Power will analyze files in that directory and create .kiro/steering/ there.
+
+**Expected result**: Power responds and creates steering files.
+
+---
+
+### Verify Shared Backend
+
+Both CLI and Power should produce identical outputs:
+
+```bash
+# Test with CLI
+cd ~/test-project
+hiveforge steering init
+
+# Note the files created in .kiro/steering/
+
+# Test with Power (in KIRO chat)
+"Initialize steering files"
+
+# Compare outputs - they should be identical
+```
+
+**Expected result**: Identical steering files from both methods.
 
 ---
 
 ## Troubleshooting
 
-### "No module named 'hiveforge'"
+### CLI Issues
 
-**Problem:** HiveForge not installed or wrong venv activated.
+#### "hiveforge: command not found"
 
-**Solution:**
+**Problem**: Command not in PATH or venv not activated.
+
+**Solution**:
+```bash
+# Activate HiveForge venv
+cd ~/projects/HiveForge
+source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate.bat  # Windows
+
+# Verify hiveforge is available
+which hiveforge  # macOS/Linux
+where hiveforge  # Windows
+```
+
+#### "No module named 'hiveforge'"
+
+**Problem**: HiveForge not installed or wrong venv activated.
+
+**Solution**:
 ```bash
 # Make sure you're in HiveForge's venv
 cd ~/projects/HiveForge
@@ -369,27 +524,178 @@ pip list | grep hiveforge
 pip install -e .
 ```
 
-### "hiveforge: command not found"
+---
 
-**Problem:** Command not in PATH or venv not activated.
+### MCP Server Issues
 
-**Solution:**
+#### "hiveforge-steering-mcp: command not found"
+
+**Problem**: MCP server package not installed.
+
+**Solution**:
 ```bash
-# Activate HiveForge venv
+# Activate venv
 cd ~/projects/HiveForge
-source venv/bin/activate  # macOS/Linux
-venv\Scripts\activate.bat  # Windows
+source venv/bin/activate
 
-# Verify hiveforge is available
-which hiveforge  # macOS/Linux
-where hiveforge  # Windows
+# Install MCP server package
+cd hiveforge-power
+pip install -e .
+cd ..
+
+# Verify
+hiveforge-steering-mcp --help
 ```
 
-### "Permission denied" when installing
+#### "Module 'mcp_server.server' not found"
 
-**Problem:** Trying to install system-wide without permissions.
+**Problem**: Incorrect module path in KIRO config.
 
-**Solution:** Always use a virtual environment:
+**Solution**:
+1. Verify the module exists:
+   ```bash
+   cd ~/projects/HiveForge/hiveforge-power
+   ls mcp_server/server.py
+   # Should exist
+   ```
+
+2. Check your `~/.kiro/settings/mcp.json`:
+   - `args` should be: `["-m", "mcp_server.server"]`
+   - NOT: `["-m", "hiveforge_power.server"]`
+
+3. Restart KIRO after fixing
+
+---
+
+### KIRO Power Issues
+
+#### Power Not Appearing in KIRO
+
+**Problem**: KIRO not detecting the MCP server.
+
+**Solution**:
+
+1. **Check config file exists**:
+   ```bash
+   cat ~/.kiro/settings/mcp.json
+   # Should show your configuration
+   ```
+
+2. **Verify JSON syntax**:
+   - Use a JSON validator: https://jsonlint.com/
+   - Common errors: missing commas, trailing commas, wrong quotes
+
+3. **Check Python path is correct**:
+   ```bash
+   # Test the exact command from your config
+   /path/to/HiveForge/venv/bin/python -m mcp_server.server --help
+   # Should work without errors
+   ```
+
+4. **Check file permissions**:
+   ```bash
+   ls -la ~/.kiro/settings/mcp.json
+   # Should be readable
+   ```
+
+5. **Restart KIRO completely**:
+   - Close all KIRO windows
+   - Reopen KIRO
+   - Wait 10-15 seconds for MCP servers to connect
+
+#### Power Not Activating on Keywords
+
+**Problem**: Power installed but doesn't respond to keywords.
+
+**Solution**:
+
+1. **Check MCP server is connected**:
+   - Look for server status in KIRO UI
+   - Should show "hiveforge-steering" as active
+
+2. **Try explicit activation**:
+   - Instead of: "help with documentation"
+   - Try: "use the steering power to initialize files"
+
+3. **Check KIRO logs**:
+   - Look for MCP connection errors
+   - Check for Power activation messages
+
+#### Power Tools Fail
+
+**Problem**: Power activates but tools return errors.
+
+**Solution**:
+
+1. **Check working directory**:
+   - Power tools need to run in a project directory
+   - Make sure you're in a directory with write permissions
+
+2. **Check Python dependencies**:
+   ```bash
+   cd ~/projects/HiveForge
+   source venv/bin/activate
+   cd hiveforge-power
+   pip install -e .
+   ```
+
+3. **Test tools directly**:
+   ```bash
+   cd ~/test-project
+   python -m mcp_server.server
+   # Should start without errors
+   ```
+
+4. **Check logs**:
+   - Set `FASTMCP_LOG_LEVEL=DEBUG` in mcp.json
+   - Restart KIRO
+   - Check logs for detailed error messages
+
+---
+
+### Path Issues (Local Development)
+
+#### "Cannot find Python interpreter"
+
+**Problem**: Path in mcp.json is incorrect.
+
+**Solution**:
+
+1. **Find correct path**:
+   ```bash
+   cd ~/projects/HiveForge
+   source venv/bin/activate
+   which python  # macOS/Linux
+   where python  # Windows
+   ```
+
+2. **Update mcp.json** with the exact path shown
+
+3. **Restart KIRO**
+
+#### "Working directory not found"
+
+**Problem**: MCP server can't find project files.
+
+**Solution**:
+
+1. **Check current directory**:
+   - Power tools use the current working directory
+   - Make sure you're in a valid project directory
+
+2. **Use absolute paths**:
+   - When calling tools, provide full paths
+   - Example: `project_root="/full/path/to/project"`
+
+---
+
+### Permission Issues
+
+#### "Permission denied" when installing
+
+**Problem**: Trying to install system-wide without permissions.
+
+**Solution**: Always use a virtual environment:
 ```bash
 # Don't use sudo!
 # Instead, create venv
@@ -398,11 +704,28 @@ source venv/bin/activate
 pip install -e .
 ```
 
-### "Python version too old"
+#### "Permission denied" when creating files
 
-**Problem:** Python 3.11+ required.
+**Problem**: No write permissions in target directory.
 
-**Solution:**
+**Solution**:
+```bash
+# Check permissions
+ls -la .kiro/
+
+# Fix permissions if needed
+chmod -R u+w .kiro/
+```
+
+---
+
+### Version Issues
+
+#### "Python version too old"
+
+**Problem**: Python 3.11+ required.
+
+**Solution**:
 ```bash
 # Check version
 python --version
@@ -414,44 +737,75 @@ pyenv install 3.11.5
 pyenv global 3.11.5
 ```
 
-### "git: command not found"
+#### "Dependency conflict"
 
-**Problem:** Git not installed.
+**Problem**: Conflicting package versions.
 
-**Solution:**
-- **macOS:** Install Xcode Command Line Tools: `xcode-select --install`
-- **Linux:** `sudo apt-get install git` (Ubuntu/Debian) or `sudo yum install git` (CentOS/RHEL)
-- **Windows:** Download from [git-scm.com](https://git-scm.com/downloads)
-
-### "poetry: command not found"
-
-**Problem:** Poetry not installed (only needed for Method 2).
-
-**Solution:**
+**Solution**:
 ```bash
-# Install Poetry
-curl -sSL https://install.python-poetry.org | python3 -
+# Create fresh virtual environment
+cd ~/projects/HiveForge
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
 
-# Add to PATH (follow instructions from installer)
+# Reinstall
+pip install -e .
+cd hiveforge-power
+pip install -e .
 ```
 
-### Tests fail after installation
+---
 
-**Problem:** Dependencies not installed correctly.
+## Using HiveForge
 
-**Solution:**
+### CLI Usage
+
 ```bash
-# Reinstall dependencies
+# Activate virtual environment
 cd ~/projects/HiveForge
 source venv/bin/activate
-pip install -e .
 
-# Or with Poetry
-poetry install
+# Initialize a new project
+cd ~/my-project
+hiveforge -n my-project
 
-# Run tests
-pytest tests/ -v
+# Generate steering files
+hiveforge steering init --analyze-code
+
+# Update steering files
+hiveforge steering update
+
+# Validate steering files
+hiveforge steering validate
 ```
+
+See [WORKFLOW.md](./WORKFLOW.md) for detailed workflows.
+
+---
+
+### Power Usage
+
+In KIRO chat:
+
+```
+"Initialize steering files for my project"
+→ Power uses init_steering tool
+
+"Update my steering files"
+→ Power uses update_steering tool
+
+"Validate my steering files"
+→ Power uses validate_steering tool
+
+"Reset steering files to templates"
+→ Power uses reset_steering tool
+
+"Discover existing documentation"
+→ Power uses discover_docs tool
+```
+
+The Power provides the same functionality as the CLI but integrated into KIRO's conversational interface.
 
 ---
 
@@ -465,29 +819,23 @@ cd ~/projects/HiveForge
 # Pull latest changes
 git pull origin main
 
-# Reinstall (if dependencies changed)
+# Reinstall CLI
 source venv/bin/activate
 pip install -e .
 
-# Or with Poetry
-poetry install
-```
+# Reinstall MCP server
+cd hiveforge-power
+pip install -e .
+cd ..
 
-### Check Version
-
-```bash
-# Check installed version
-pip show hiveforge
-
-# Or
-python -c "import hiveforge; print(hiveforge.__version__)"
+# Restart KIRO to reload Power
 ```
 
 ---
 
 ## Uninstalling HiveForge
 
-### Remove Installation
+### Remove CLI
 
 ```bash
 # Deactivate venv if active
@@ -495,102 +843,68 @@ deactivate
 
 # Remove HiveForge directory
 rm -rf ~/projects/HiveForge
-
-# Remove any aliases from shell config
-# Edit ~/.bashrc or ~/.zshrc and remove hiveforge alias
 ```
 
-### Remove from Project
+### Remove Power from KIRO
 
-```bash
-# If you want to remove KIRO structure from a project
-cd your-project
-rm -rf .kiro/ .swarm/ swarm_state.md
-```
+1. **Edit `~/.kiro/settings/mcp.json`**:
+   - Remove the `"hiveforge-steering"` entry
+   - Or set `"disabled": true`
+
+2. **Restart KIRO**
 
 ---
 
-## Publishing to PyPI (Future)
+## Next Steps
 
-When HiveForge is published to PyPI, installation will be simpler:
+After successful installation:
 
-```bash
-# Future installation (not available yet)
-pip install hiveforge
+1. **Read the Documentation**:
+   - [WORKFLOW.md](./WORKFLOW.md) - End-to-end workflows
+   - [QUICKSTART.md](./QUICKSTART.md) - 5-minute walkthrough
+   - [POWER.md](./hiveforge-power/POWER.md) - Power documentation
 
-# Verify
-hiveforge --help
-```
+2. **Try the Examples**:
+   - Initialize a test project
+   - Generate steering files
+   - Experiment with both CLI and Power
 
-### For Maintainers: Publishing Steps
-
-#### 1. Create PyPI Account
-- Go to https://pypi.org and create an account
-- Verify your email
-
-#### 2. Create API Token
-- Go to Account Settings → API tokens
-- Create a new token with scope "Entire account"
-- Save the token securely
-
-#### 3. Configure Poetry
-
-```bash
-# Add PyPI token to Poetry
-poetry config pypi-token.pypi pypi-YOUR_TOKEN_HERE
-```
-
-#### 4. Build and Publish
-
-```bash
-# Ensure version is correct in pyproject.toml
-# Build and publish
-poetry publish --build
-```
-
-#### 5. Verify Publication
-
-```bash
-# Wait a few minutes, then try:
-pip install hiveforge
-
-# Check on PyPI
-# Visit: https://pypi.org/project/hiveforge/
-```
-
-#### 6. Update Documentation
-
-Once published, update README.md, QUICKSTART.md, and this guide to reflect PyPI availability.
-
----
-
-## Summary
-
-**Current Installation (from source):**
-1. Clone HiveForge repository
-2. Create virtual environment
-3. Install with `pip install -e .`
-4. Verify with `hiveforge --help`
-
-**Future Installation (after PyPI publish):**
-1. `pip install hiveforge`
-2. Verify with `hiveforge --help`
-
-**For Development:**
-1. Install Poetry
-2. Clone repository
-3. `poetry install`
-4. `poetry shell`
+3. **Join the Community**:
+   - [GitHub Issues](https://github.com/asoshnin/HiveForge/issues)
+   - [GitHub Discussions](https://github.com/asoshnin/HiveForge/discussions)
 
 ---
 
 ## Getting Help
 
-- **Installation Issues:** [GitHub Issues](https://github.com/asoshnin/HiveForge/issues)
-- **Documentation:** [README.md](./README.md), [WORKFLOW.md](./WORKFLOW.md)
-- **Troubleshooting:** [docs/troubleshooting.md](./docs/troubleshooting.md)
+- **Installation Issues**: [GitHub Issues](https://github.com/asoshnin/HiveForge/issues)
+- **Documentation**: [README.md](./README.md), [WORKFLOW.md](./WORKFLOW.md)
+- **Power Documentation**: [hiveforge-power/POWER.md](./hiveforge-power/POWER.md)
+- **Email**: 89580632+asoshnin@users.noreply.github.com
 
 ---
 
-**Last Updated:** February 2026  
-**HiveForge Version:** 1.0.0
+## Summary
+
+**For CLI Only**:
+1. Clone repository
+2. Create virtual environment
+3. `pip install -e .`
+4. Verify with `hiveforge --help`
+
+**For KIRO Power**:
+1. Clone repository
+2. Create virtual environment
+3. `pip install -e .` (CLI)
+4. `cd hiveforge-power && pip install -e .` (MCP server)
+5. Configure `~/.kiro/settings/mcp.json`
+6. Restart KIRO
+7. Test with "initialize steering files"
+
+**Both CLI and Power use the same shared backend - identical outputs!**
+
+---
+
+**Last Updated**: February 18, 2026  
+**HiveForge Version**: 1.0.0  
+**Power Version**: 2.1.0

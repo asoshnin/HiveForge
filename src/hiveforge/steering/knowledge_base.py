@@ -310,3 +310,14 @@ class KnowledgeBase:
             context = context[:max_chars] + "\n... (truncated for token limit)"
 
         return context
+
+    def has_code_analysis(self) -> bool:
+        """
+        Check if the knowledge base has code analysis results.
+        
+        Returns:
+            True if code analysis is available, False otherwise
+            
+        Requirements: R3.2
+        """
+        return self.code_analysis is not None

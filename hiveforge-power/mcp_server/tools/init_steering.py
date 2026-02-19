@@ -25,9 +25,12 @@ from hiveforge.steering.shared.security import secure_execution
 async def init_steering(
     ctx: Context,
     project_root: str = ".",
+    source_docs_path: str | None = None,
     auto_discover: bool = True,
     autonomous: bool = True,
-    confidence_threshold: float = 0.7
+    confidence_threshold: float = 0.7,
+    dry_run: bool = False,
+    copy_files: bool = False
 ) -> dict[str, Any]:
     """
     Initialize steering files for a project.
@@ -38,9 +41,20 @@ async def init_steering(
     
     Args:
         project_root: Path to project root directory (default: current directory)
+        source_docs_path: Optional path to source documents folder (relative to project_root).
+                         When provided, restricts document discovery to that path.
+                         When NOT provided, uses default behavior (scan .kiro/onboarding/ first).
+                         Example: "_DEVELOPMENT" or "docs/design"
         auto_discover: Enable automatic discovery of existing docs (default: True)
-        autonomous: Enable autonomous generation mode (default: True)
-        confidence_threshold: Minimum confidence for autonomous decisions (default: 0.7)
+        autonomous: Enable autonomous generation mode (LLM fills gaps without asking) (default: True)
+        confidence_threshold: Minimum confidence for autonomous decisions (0.0-1.0, default: 0.7).
+                             Controls when to ask vs. infer in autonomous mode.
+                             Higher values = more questions, less inference.
+                             Lower values = fewer questions, more inference.
+                             Note: This parameter only affects autonomous mode decisions,
+                             not warning generation (warnings trigger at < 0.5 overall confidence).
+        dry_run: Preview what would be created without writing files (default: False)
+        copy_files: If True, copy source files to staging. If False, use symlinks for performance (default: False)
     
     Returns:
         Structured result with status, message, files created, and metadata
@@ -60,7 +74,13 @@ async def init_steering(
             "autonomous": true,
             "auto_discover": true,
             "confidence_threshold": 0.7,
-            "files_count": 5
+            "files_count": 5,
+            "source_documents_found": 3,
+            "confidence_level": "medium",
+            "metadata": {
+                "source_docs_path": "_DEVELOPMENT",
+                "discovery_stats": {...}
+            }
         }
     """
     try:
@@ -70,9 +90,12 @@ async def init_steering(
         # Create and execute workflow
         workflow = SharedInitWorkflow(
             project_root=project_root,
+            source_docs_path=source_docs_path,
             auto_discover=auto_discover,
             autonomous=autonomous,
-            confidence_threshold=confidence_threshold
+            confidence_threshold=confidence_threshold,
+            dry_run=dry_run,
+            copy_files=copy_files
         )
         
         result = workflow.execute()

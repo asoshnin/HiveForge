@@ -421,3 +421,42 @@ class TestEdgeCases:
         
         content = kb.get_relevant_content("tech-stack")
         assert content is not None  # Should return something, even if empty
+
+
+
+class TestCodeAnalysisCheck:
+    """Test has_code_analysis method (Requirement R3.2)."""
+    
+    def test_has_code_analysis_with_analysis(self):
+        """Test has_code_analysis returns True when code analysis is present."""
+        docs = [
+            ParsedDocument(
+                file_path=Path("test.md"),
+                content="# Test Document"
+            )
+        ]
+        code_analysis = CodeAnalysisResult(
+            languages=[LanguageInfo(name="Python", version="3.11", percentage=100.0)],
+            tech_stack=TechStackInfo(backend_framework="FastAPI"),
+        )
+        kb = KnowledgeBase(
+            documents=docs,
+            code_analysis=code_analysis
+        )
+        
+        assert kb.has_code_analysis() is True
+    
+    def test_has_code_analysis_without_analysis(self):
+        """Test has_code_analysis returns False when code analysis is absent."""
+        docs = [
+            ParsedDocument(
+                file_path=Path("test.md"),
+                content="# Test Document"
+            )
+        ]
+        kb = KnowledgeBase(
+            documents=docs,
+            code_analysis=None
+        )
+        
+        assert kb.has_code_analysis() is False

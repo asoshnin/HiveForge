@@ -661,3 +661,188 @@ class TestResearchResultClass:
         )
         
         assert result.approved is False
+
+
+
+class TestSourceTracking:
+    """Test source tracking functionality (Requirement R3.2)."""
+    
+    def test_tracks_sources_in_result(
+        self,
+        sample_knowledge_base,
+        sample_gap_analysis,
+        mock_response_cache
+    ):
+        """Test that sources are tracked and returned in result."""
+        assistant = SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            interactive=True,
+            response_cache=mock_response_cache
+        )
+        
+        # Mock user inputs for all questions
+        answers = ["A task management app", "People forget tasks", "PostgreSQL"]
+        
+        with patch('builtins.input', side_effect=answers):
+            with patch('builtins.print'):
+                result = assistant.conduct_conversation()
+        
+        # Result should have template sections
+        assert "project-vision" in result
+        assert "tech-stack" in result
+        
+        # Each template should have _sources key
+        assert "_sources" in result["project-vision"]
+        assert "_sources" in result["tech-stack"]
+        
+        # Sources should have the three categories
+        sources = result["project-vision"]["_sources"]
+        assert "documents" in sources
+        assert "code_analysis" in sources
+        assert "inferred" in sources
+        assert isinstance(sources["documents"], list)
+        assert isinstance(sources["code_analysis"], list)
+        assert isinstance(sources["inferred"], list)
+    
+    def test_marks_inferred_sections(
+        self,
+        sample_knowledge_base,
+        sample_gap_analysis,
+        mock_response_cache
+    ):
+        """Test that user-provided answers are marked as inferred."""
+        assistant = SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            interactive=True,
+            response_cache=mock_response_cache
+        )
+        
+        # Mock user inputs
+        answers = ["A task management app", "People forget tasks", "PostgreSQL"]
+        
+        with patch('builtins.input', side_effect=answers):
+            with patch('builtins.print'):
+                result = assistant.conduct_conversation()
+        
+        # Questions that were asked should be marked as inferred
+        # (since they're in missing_sections, not complete_sections)
+        sources = result["project-vision"]["_sources"]
+        assert "Elevator Pitch" in sources["inferred"]
+        assert "Problem Statement" in sources["inferred"]
+    
+    def test_marks_document_sections(
+        self,
+        sample_knowledge_base,
+        sample_gap_analysis
+    ):
+        """Test that sections from documents are marked correctly."""
+        assistant = SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            interactive=False
+        )
+        
+        result = assistant.conduct_conversation()
+        
+        # Complete sections should be marked as from documents or inferred
+        # (depending on whether extract_section finds content)
+        if "tech-stack" in result and "_sources" in result["tech-stack"]:
+            sources = result["tech-stack"]["_sources"]
+            # Backend is in complete_sections, so should be tracked
+            # It may be in documents or inferred depending on extraction success
+            assert "Backend" in sources["documents"] or "Backend" in sources["inferred"]
+    
+    def test_non_interactive_tracks_sources(
+        self,
+        sample_knowledge_base,
+        sample_gap_analysis
+    ):
+        """Test that non-interactive mode tracks sources."""
+        assistant = SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            interactive=False
+        )
+        
+        result = assistant.conduct_conversation()
+        
+        # Should have source tracking even in non-interactive mode
+        if "tech-stack" in result:
+            assert "_sources" in result["tech-stack"]
+            sources = result["tech-stack"]["_sources"]
+            assert "documents" in sources
+            assert "code_analysis" in sources
+            assert "inferred" in sources
+
+
+class TestConfidenceIntegration:
+    """Test confidence calculation integration (Requirement R3.2)."""
+    
+    def test_result_format_compatible_with_confidence_calculator(
+        self,
+        sample_knowledge_base,
+        sample_gap_analysis,
+        mock_response_cache
+    ):
+        """Test that result format is compatible with ConfidenceCalculator."""
+        from src.hiveforge.steering.confidence import ConfidenceCalculator
+        
+        assistant = SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            interactive=True,
+            response_cache=mock_response_cache
+        )
+        
+        # Mock user inputs
+        answers = ["A task management app", "People forget tasks", "PostgreSQL"]
+        
+        with patch('builtins.input', side_effect=answers):
+            with patch('builtins.print'):
+                result = assistant.conduct_conversation()
+        
+        # Test that ConfidenceCalculator can process the result
+        calculator = ConfidenceCalculator()
+        
+        for template_name, template_data in result.items():
+            if "_sources" in template_data:
+                sources = template_data["_sources"]
+                
+                # Should be able to calculate confidence
+                score = calculator.calculate_file_confidence(
+                    file_name=f"{template_name}.md",
+                    sources=sources,
+                    content="test content"
+                )
+                
+                assert score is not None
+                assert 0.0 <= score.overall <= 1.0
+                assert score.level in ["high", "medium", "low"]
+    
+    def test_autonomous_mode_with_tracking(
+        self,
+        sample_knowledge_base,
+        sample_gap_analysis
+    ):
+        """Test that autonomous mode tracks sources correctly."""
+        assistant = SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            interactive=False  # Autonomous/non-interactive
+        )
+        
+        result = assistant.conduct_conversation()
+        
+        # Should have gathered info with source tracking
+        assert isinstance(result, dict)
+        
+        # Check that at least one template has source tracking
+        has_sources = False
+        for template_data in result.values():
+            if isinstance(template_data, dict) and "_sources" in template_data:
+                has_sources = True
+                break
+        
+        assert has_sources, "Result should include source tracking"

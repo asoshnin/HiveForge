@@ -316,6 +316,8 @@ class WorkflowState:
     gathered_info: Dict[str, Any] = field(default_factory=dict)
     conflicts: List[Conflict] = field(default_factory=list)
     validation_report: Optional[ValidationReport] = None
+    warnings: List[str] = field(default_factory=list)  # Workflow warnings
+    metadata: Dict[str, Any] = field(default_factory=dict)  # Additional metadata
 
 
 @dataclass

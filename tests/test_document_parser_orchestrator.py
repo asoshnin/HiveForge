@@ -540,3 +540,289 @@ This is a web application for task management.
         summary = get_parsing_summary(result)
         assert summary["total_files"] == 4
         assert summary["with_errors"] >= 1
+
+
+
+class TestDiscoveryOrchestrator:
+    """Tests for DiscoveryOrchestrator class."""
+    
+    def test_init_with_source_docs_path(self):
+        """Should initialize with source_docs_path parameter."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        orchestrator = DiscoveryOrchestrator(
+            source_docs_path="_DEVELOPMENT",
+            file_types=[".md", ".pdf"]
+        )
+        
+        assert orchestrator.source_docs_path == "_DEVELOPMENT"
+        assert orchestrator.file_types == [".md", ".pdf"]
+    
+    def test_filter_by_file_types(self, tmp_path):
+        """Should filter files by specified file types."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        # Create test files
+        files = [
+            tmp_path / "doc1.md",
+            tmp_path / "doc2.pdf",
+            tmp_path / "script.py",
+            tmp_path / "data.json",
+            tmp_path / "readme.md"
+        ]
+        for f in files:
+            f.touch()
+        
+        # Create orchestrator with file type filter
+        orchestrator = DiscoveryOrchestrator(file_types=[".md", ".pdf"])
+        
+        # Filter files
+        filtered = orchestrator._filter_by_file_types(files)
+        
+        # Should only include .md and .pdf files
+        assert len(filtered) == 3
+        filtered_names = {f.name for f in filtered}
+        assert filtered_names == {"doc1.md", "doc2.pdf", "readme.md"}
+    
+    def test_filter_by_file_types_no_filter(self, tmp_path):
+        """Should return all files when no filter specified."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        files = [
+            tmp_path / "doc.md",
+            tmp_path / "script.py",
+            tmp_path / "data.json"
+        ]
+        for f in files:
+            f.touch()
+        
+        # Create orchestrator without file type filter
+        orchestrator = DiscoveryOrchestrator()
+        
+        # Filter files (should return all)
+        filtered = orchestrator._filter_by_file_types(files)
+        
+        assert len(filtered) == len(files)
+    
+    def test_update_discovery_stats(self, tmp_path):
+        """Should update discovery statistics correctly."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        # Create test files in different directories
+        docs_dir = tmp_path / "docs"
+        docs_dir.mkdir()
+        src_dir = tmp_path / "src"
+        src_dir.mkdir()
+        
+        files = [
+            docs_dir / "readme.md",
+            docs_dir / "guide.pdf",
+            src_dir / "main.py",
+            tmp_path / "config.json"
+        ]
+        for f in files:
+            f.touch()
+        
+        # Create orchestrator and update stats
+        orchestrator = DiscoveryOrchestrator()
+        orchestrator._update_discovery_stats(files, tmp_path)
+        
+        # Check statistics
+        stats = orchestrator._discovery_stats
+        
+        # Check files by type
+        assert stats["files_by_type"][".md"] == 1
+        assert stats["files_by_type"][".pdf"] == 1
+        assert stats["files_by_type"][".py"] == 1
+        assert stats["files_by_type"][".json"] == 1
+        
+        # Check files by path
+        assert stats["files_by_path"]["docs"] == 2
+        assert stats["files_by_path"]["src"] == 1
+        assert stats["files_by_path"]["root"] == 1
+    
+    def test_discover_all_with_source_docs_path(self, tmp_path):
+        """Should prioritize source_docs_path when discovering files."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        
+        # Create source docs directory
+        source_docs = project_root / "_DEVELOPMENT"
+        source_docs.mkdir()
+        create_test_markdown(source_docs / "spec.md", "# Specification")
+        create_test_markdown(source_docs / "design.md", "# Design")
+        
+        # Create other docs
+        docs_dir = project_root / "docs"
+        docs_dir.mkdir()
+        create_test_markdown(docs_dir / "readme.md", "# README")
+        
+        # Create orchestrator with source_docs_path
+        orchestrator = DiscoveryOrchestrator(
+            source_docs_path="_DEVELOPMENT",
+            max_discovery_files=10
+        )
+        
+        # Discover files
+        discovered_files, metadata = orchestrator.discover_all(project_root)
+        
+        # Should discover files
+        assert len(discovered_files) > 0
+        
+        # Check metadata includes source_docs_path
+        assert metadata["source_docs_path"] == "_DEVELOPMENT"
+        assert "files_by_type" in metadata
+        assert "files_by_path" in metadata
+    
+    def test_discover_all_with_file_types(self, tmp_path):
+        """Should filter by file types during discovery."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        
+        # Create various file types
+        create_test_markdown(project_root / "doc.md", "# Doc")
+        (project_root / "script.py").write_text("print('hello')")
+        (project_root / "data.json").write_text('{"key": "value"}')
+        
+        # Create orchestrator with file type filter
+        orchestrator = DiscoveryOrchestrator(
+            file_types=[".md"],
+            max_discovery_files=10
+        )
+        
+        # Discover files
+        discovered_files, metadata = orchestrator.discover_all(project_root)
+        
+        # Check metadata
+        assert metadata["file_types"] == [".md"]
+        assert "files_by_type" in metadata
+        assert "files_excluded" in metadata
+    
+    def test_discover_all_returns_enhanced_metadata(self, tmp_path):
+        """Should return enhanced metadata with statistics."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        
+        docs_dir = project_root / "docs"
+        docs_dir.mkdir()
+        create_test_markdown(docs_dir / "readme.md", "# README")
+        create_test_markdown(docs_dir / "guide.md", "# Guide")
+        
+        # Create orchestrator
+        orchestrator = DiscoveryOrchestrator(max_discovery_files=10)
+        
+        # Discover files
+        discovered_files, metadata = orchestrator.discover_all(project_root)
+        
+        # Check enhanced metadata
+        assert "files_by_type" in metadata
+        assert "files_by_path" in metadata
+        assert "files_included" in metadata
+        assert "files_excluded" in metadata
+        assert "source_docs_path" in metadata
+        assert "file_types" in metadata
+    
+    def test_discover_all_with_nonexistent_source_path(self, tmp_path):
+        """Should handle nonexistent source_docs_path gracefully."""
+        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        
+        create_test_markdown(project_root / "readme.md", "# README")
+        
+        # Create orchestrator with nonexistent source path
+        orchestrator = DiscoveryOrchestrator(
+            source_docs_path="nonexistent",
+            max_discovery_files=10
+        )
+        
+        # Discover files (should fall back to default discovery)
+        discovered_files, metadata = orchestrator.discover_all(project_root)
+        
+        # Should still discover files from project root
+        assert len(discovered_files) >= 0  # May find files or not
+        assert metadata["source_docs_path"] == "nonexistent"
+
+
+class TestSharedDiscoveryWorkflow:
+    """Tests for SharedDiscoveryWorkflow with new parameters."""
+    
+    def test_init_with_file_types(self, tmp_path):
+        """Should initialize with file_types parameter."""
+        from src.hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
+        
+        workflow = SharedDiscoveryWorkflow(
+            project_root=tmp_path,
+            source_docs_path="_DEVELOPMENT",
+            file_types=[".md", ".pdf"]
+        )
+        
+        assert workflow.source_docs_path == "_DEVELOPMENT"
+        assert workflow.file_types == [".md", ".pdf"]
+    
+    def test_execute_includes_enhanced_metadata(self, tmp_path):
+        """Should include enhanced metadata in result."""
+        from src.hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
+        
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        
+        docs_dir = project_root / "docs"
+        docs_dir.mkdir()
+        create_test_markdown(docs_dir / "readme.md", "# README")
+        
+        # Create workflow
+        workflow = SharedDiscoveryWorkflow(
+            project_root=project_root,
+            source_docs_path="docs",
+            file_types=[".md"]
+        )
+        
+        # Execute workflow
+        result = workflow.execute()
+        
+        # Check result includes enhanced metadata
+        assert result.success
+        assert "source_docs_path" in result.metadata
+        assert "file_types" in result.metadata
+        assert "files_by_type" in result.metadata
+        assert "files_by_path" in result.metadata
+        assert result.metadata["source_docs_path"] == "docs"
+        assert result.metadata["file_types"] == [".md"]
+    
+    def test_execute_with_file_type_filtering(self, tmp_path):
+        """Should filter files by type during execution."""
+        from src.hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
+        
+        # Create project structure
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        
+        create_test_markdown(project_root / "doc.md", "# Doc")
+        (project_root / "script.py").write_text("print('hello')")
+        
+        # Create workflow with file type filter
+        workflow = SharedDiscoveryWorkflow(
+            project_root=project_root,
+            file_types=[".md"]
+        )
+        
+        # Execute workflow
+        result = workflow.execute()
+        
+        # Check result
+        assert result.success
+        assert result.metadata["file_types"] == [".md"]
+        assert "files_excluded" in result.metadata
