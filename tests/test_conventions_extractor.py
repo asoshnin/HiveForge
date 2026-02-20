@@ -9,7 +9,7 @@ import json
 import pytest
 from pathlib import Path
 
-from src.hiveforge.steering.analyzers.conventions_extractor import (
+from hiveforge.steering.analyzers.conventions_extractor import (
     extract_conventions,
     summarize_conventions,
     _detect_naming_style,

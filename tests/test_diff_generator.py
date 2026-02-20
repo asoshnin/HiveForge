@@ -8,8 +8,8 @@ and formatting functionality.
 import pytest
 from hypothesis import given, strategies as st
 
-from src.hiveforge.steering.diff_generator import DiffGenerator
-from src.hiveforge.steering.models import FileDiff, DiffHunk, DiffLine
+from hiveforge.steering.diff_generator import DiffGenerator
+from hiveforge.steering.models import FileDiff, DiffHunk, DiffLine
 
 
 class TestDiffGeneratorUnit:

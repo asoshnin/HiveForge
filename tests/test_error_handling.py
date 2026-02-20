@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from src.hiveforge.steering.error_handling import (
+from hiveforge.steering.error_handling import (
     ErrorRecovery,
     ErrorCategory,
     ErrorSeverity,

@@ -7,7 +7,7 @@ file type detection, and file listing.
 
 import pytest
 from pathlib import Path
-from src.hiveforge.steering.utils import (
+from hiveforge.steering.utils import (
     create_staging_directory,
     is_supported_file_type,
     get_file_type,

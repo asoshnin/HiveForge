@@ -11,8 +11,8 @@ from unittest.mock import Mock, MagicMock, patch, call
 import tempfile
 import shutil
 
-from src.hiveforge.steering.workflows.init_workflow import InitWorkflow
-from src.hiveforge.steering.models import (
+from hiveforge.steering.workflows.init_workflow import InitWorkflow
+from hiveforge.steering.models import (
     SteeringConfig,
     ParsedDocument,
     CodeAnalysisResult,
@@ -184,7 +184,7 @@ class TestStepCheckExistingFiles:
 class TestStepAnalyzeCode:
     """Test code analysis step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.CodeAnalyzer')
+    @patch('hiveforge.steering.workflows.init_workflow.CodeAnalyzer')
     def test_analyzes_code_successfully(self, mock_analyzer_class, config_with_code_analysis, temp_project_dir):
         """Test successful code analysis."""
         workflow = InitWorkflow(config_with_code_analysis, project_root=temp_project_dir)
@@ -206,7 +206,7 @@ class TestStepAnalyzeCode:
         mock_analyzer_class.assert_called_once_with(temp_project_dir)
         mock_analyzer.analyze.assert_called_once()
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.CodeAnalyzer')
+    @patch('hiveforge.steering.workflows.init_workflow.CodeAnalyzer')
     def test_handles_code_analysis_failure(self, mock_analyzer_class, config_with_code_analysis, temp_project_dir):
         """Test graceful handling of code analysis failure."""
         workflow = InitWorkflow(config_with_code_analysis, project_root=temp_project_dir)
@@ -225,8 +225,8 @@ class TestStepAnalyzeCode:
 class TestStepParseArtifacts:
     """Test artifact parsing step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.parse_directory')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.parse_directory')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_parses_artifacts_successfully(self, mock_is_empty, mock_parse, basic_config, temp_project_dir):
         """Test successful artifact parsing."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -251,7 +251,7 @@ class TestStepParseArtifacts:
         assert workflow.state.parsed_documents == mock_docs
         mock_parse.assert_called_once_with(workflow.state.staging_dir, show_progress=True)
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_skips_parsing_when_empty(self, mock_is_empty, basic_config, temp_project_dir):
         """Test that parsing is skipped when staging folder is empty."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -263,7 +263,7 @@ class TestStepParseArtifacts:
         
         assert workflow.state.parsed_documents == []
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_adds_warning_when_empty(self, mock_is_empty, basic_config, temp_project_dir):
         """Test that warning is added when staging folder is empty (R2.1)."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -281,10 +281,10 @@ class TestStepParseArtifacts:
         assert workflow.state.metadata["source_documents_found"] == 0
         assert workflow.state.metadata["confidence_level"] == "low"
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_adds_autonomous_warning_when_empty(self, mock_is_empty, config_with_code_analysis, temp_project_dir):
         """Test that autonomous mode warning is added when staging folder is empty (R2.2)."""
-        from src.hiveforge.steering.models import FeatureFlagConfig
+        from hiveforge.steering.models import FeatureFlagConfig
         
         # Create config with autonomous mode enabled
         config_with_code_analysis.feature_flags = FeatureFlagConfig(
@@ -305,7 +305,7 @@ class TestStepParseArtifacts:
         assert any("No source documents found" in w for w in workflow.state.warnings)
         assert any("Autonomous mode with no source documents" in w for w in workflow.state.warnings)
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_no_autonomous_warning_without_feature_flag(self, mock_is_empty, basic_config, temp_project_dir):
         """Test that autonomous warning is NOT added when feature flag is disabled."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -324,7 +324,7 @@ class TestStepParseArtifacts:
 class TestStepBuildKnowledgeBase:
     """Test knowledge base building step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
     def test_builds_knowledge_base_with_documents_only(self, mock_kb_class, basic_config, temp_project_dir):
         """Test building knowledge base with only documents."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -344,7 +344,7 @@ class TestStepBuildKnowledgeBase:
             code_analysis=None
         )
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
     def test_builds_knowledge_base_with_code_analysis(self, mock_kb_class, basic_config, temp_project_dir):
         """Test building knowledge base with code analysis."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -366,7 +366,7 @@ class TestStepBuildKnowledgeBase:
 class TestStepRunGapAnalysis:
     """Test gap analysis step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.GapAnalysisEngine')
+    @patch('hiveforge.steering.workflows.init_workflow.GapAnalysisEngine')
     def test_runs_gap_analysis(self, mock_engine_class, basic_config, temp_project_dir):
         """Test running gap analysis."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -392,7 +392,7 @@ class TestStepRunGapAnalysis:
 class TestStepConductConversation:
     """Test conversation step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.SteeringAssistant')
+    @patch('hiveforge.steering.workflows.init_workflow.SteeringAssistant')
     def test_conducts_conversation(self, mock_assistant_class, basic_config, temp_project_dir):
         """Test conducting conversation."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -413,7 +413,7 @@ class TestStepConductConversation:
 class TestStepPopulateTemplates:
     """Test template population step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
     def test_populates_templates(self, mock_populator_class, basic_config, temp_project_dir):
         """Test populating templates with confidence tagging."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -471,7 +471,7 @@ class TestStepWriteFiles:
 class TestStepRunValidation:
     """Test validation step."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.init_workflow.SteeringValidator')
     def test_runs_validation(self, mock_validator_class, basic_config, temp_project_dir):
         """Test running validation."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -490,7 +490,7 @@ class TestStepRunValidation:
         assert workflow.state.validation_report == mock_report
         mock_validator.validate_all.assert_called_once()
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.init_workflow.SteeringValidator')
     def test_handles_validation_failure(self, mock_validator_class, basic_config, temp_project_dir):
         """Test graceful handling of validation failure."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -548,13 +548,13 @@ class TestCombineKnowledge:
 class TestFullWorkflowExecution:
     """Test complete workflow execution."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.SteeringValidator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.SteeringAssistant')
-    @patch('src.hiveforge.steering.workflows.init_workflow.GapAnalysisEngine')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.parse_directory')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.SteeringAssistant')
+    @patch('hiveforge.steering.workflows.init_workflow.GapAnalysisEngine')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.parse_directory')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_successful_workflow_execution(
         self,
         mock_is_empty,
@@ -601,7 +601,7 @@ class TestFullWorkflowExecution:
         assert result is True
         assert (workflow.state.steering_dir / "tech-stack.md").exists()
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
     def test_workflow_handles_knowledge_base_failure(self, mock_kb_class, basic_config, temp_project_dir):
         """Test that workflow handles knowledge base failure gracefully."""
         workflow = InitWorkflow(basic_config, project_root=temp_project_dir)
@@ -683,8 +683,8 @@ class TestSourceDocsPathParameter:
         assert workflow.source_docs_path is None
         assert workflow.state.staging_dir == temp_project_dir / ".kiro" / "onboarding"
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.parse_directory')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.parse_directory')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_custom_source_path_discovers_documents(
         self,
         mock_is_empty,
@@ -887,9 +887,9 @@ if __name__ == "__main__":
 class TestContentTaggerIntegration:
     """Test ContentTagger integration in InitWorkflow."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_tagged_content_in_generated_files(
         self,
         mock_is_empty,
@@ -950,9 +950,9 @@ class TestContentTaggerIntegration:
         # Check for inferred section tags
         assert "<!-- INFERRED:" in content or "inferred_sections:" in content
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_metadata_headers_present(
         self,
         mock_is_empty,
@@ -1011,9 +1011,9 @@ class TestContentTaggerIntegration:
         assert "overall:" in content
         assert "level:" in content
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_low_confidence_warnings(
         self,
         mock_is_empty,
@@ -1065,9 +1065,9 @@ class TestContentTaggerIntegration:
         assert "⚠️" in content or "LOW CONFIDENCE" in content
         assert "limited source material" in content.lower() or "inferred" in content.lower()
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_file_structure_preserved(
         self,
         mock_is_empty,
@@ -1136,9 +1136,9 @@ PostgreSQL
         assert "React" in content
         assert "PostgreSQL" in content
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_confidence_calculation_with_mixed_sources(
         self,
         mock_is_empty,
@@ -1199,9 +1199,9 @@ PostgreSQL
         assert hasattr(workflow.state.metadata, '__getitem__')
         # The metadata should have overall_confidence set
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.init_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
+    @patch('hiveforge.steering.workflows.init_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.init_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.init_workflow.is_staging_folder_empty')
     def test_source_docs_path_in_metadata(
         self,
         mock_is_empty,

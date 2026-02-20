@@ -103,6 +103,11 @@ def steering_init(
         "--conservative-inference",
         help="Reduce inference aggressiveness"
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Preview what would be created without writing files"
+    ),
 ) -> None:
     """
     Initialize steering files from scratch.
@@ -126,8 +131,11 @@ def steering_init(
         
         # Enable web research for missing info
         hiveforge steering init --research
+        
+        # Preview what would be created without writing files
+        hiveforge steering init --dry-run
     
-    Requirements: 1.1, 1.4, 1.5, 1.6, 1.7
+    Requirements: 1.1, 1.4, 1.5, 1.6, 1.7, R4.3
     """
     try:
         # Create shared workflow adapter
@@ -136,6 +144,7 @@ def steering_init(
             auto_discover=analyze_code,
             autonomous=use_autonomous_generation,
             confidence_threshold=confidence_threshold,
+            dry_run=dry_run,
             config={
                 "research_enabled": research,
                 "skip_validation": skip_validation,

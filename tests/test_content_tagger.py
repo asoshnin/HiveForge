@@ -7,8 +7,8 @@ including inferred section tagging, metadata headers, and low confidence warning
 
 import pytest
 from datetime import datetime
-from src.hiveforge.steering.content_tagger import ContentTagger
-from src.hiveforge.steering.confidence import ConfidenceScore
+from hiveforge.steering.content_tagger import ContentTagger
+from hiveforge.steering.confidence import ConfidenceScore
 
 
 class TestContentTagger:

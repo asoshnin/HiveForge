@@ -42,18 +42,38 @@ async def discover_docs(
         project_root: Path to project root directory (default: current directory)
         source_docs_path: Optional path to prioritize for discovery (relative to project_root).
                          When provided, discovery focuses on this path first.
-                         Example: "_DEVELOPMENT" or "docs"
+                         Examples:
+                           - "_DEVELOPMENT" - Discover docs in _DEVELOPMENT folder
+                           - "docs" - Discover docs in docs folder
+                           - "documentation/specs" - Discover docs in nested folder
+                         Note: Discovery still scans other paths if budget remains
         file_types: Optional list of file extensions to include (e.g., [".md", ".pdf"]).
                    When provided, only files matching these extensions are discovered.
                    This helps filter out source code when you only want documentation.
+                   Examples:
+                     - [".md"] - Only markdown files
+                     - [".md", ".pdf"] - Markdown and PDF files
+                     - [".md", ".pdf", ".txt"] - Documentation files only
         include_git_history: Analyze git commits and PRs (default: False)
         max_discovery_files: Maximum files to analyze (default: 1000)
         max_file_size_mb: Maximum file size in MB (default: 10)
     
     Returns:
-        Structured result with status, message, discovered files, and metadata
+        Structured result with status, message, discovered files, and metadata.
+        
+        Discovery Statistics:
+          - files_discovered: Total files found
+          - files_by_type: Breakdown by file extension
+          - files_by_path: Breakdown by directory path
+          - files_included: Files within size/count limits
+          - files_excluded: Files skipped (too large, wrong type, etc.)
+        
+        Warnings:
+          - "X files skipped: too large" - Files exceeded max_file_size_mb
+          - "Discovery limit reached" - Hit max_discovery_files limit
+          - Path validation errors - Invalid or inaccessible source_docs_path
     
-    Example:
+    Example Response:
         {
             "status": "success",
             "message": "Discovery complete: 42 files found",
@@ -72,8 +92,17 @@ async def discover_docs(
             "max_discovery_files": 1000,
             "max_file_size_mb": 10,
             "discovery_method": "scalable",
-            "discovery_metadata": {...}
+            "discovery_metadata": {
+                "source_docs_path": "_DEVELOPMENT",
+                "prioritized_path_files": 18
+            }
         }
+    
+    Example Usage from KIRO Chat:
+        "Discover existing documentation in my project"
+        "Discover docs in _DEVELOPMENT folder"
+        "Find all markdown files in docs/"
+        "Discover documentation with file_types=['.md', '.pdf']"
     """
     try:
         # Import shared workflow

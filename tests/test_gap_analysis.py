@@ -7,9 +7,9 @@ and prioritization functionality.
 
 import pytest
 from pathlib import Path
-from src.hiveforge.steering.gap_analysis import GapAnalysisEngine
-from src.hiveforge.steering.knowledge_base import KnowledgeBase
-from src.hiveforge.steering.models import (
+from hiveforge.steering.gap_analysis import GapAnalysisEngine
+from hiveforge.steering.knowledge_base import KnowledgeBase
+from hiveforge.steering.models import (
     ParsedDocument,
     CodeAnalysisResult,
     TechStackInfo,

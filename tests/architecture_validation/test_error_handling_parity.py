@@ -67,7 +67,7 @@ class TestErrorResponseParity:
     @pytest.mark.asyncio
     async def test_llm_api_error(self, python_project):
         """Test error response for LLM API failure."""
-        with patch('src.hiveforge.steering.workflows.InitWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.InitWorkflow.execute') as mock:
             mock.side_effect = Exception("LLM API rate limit exceeded")
             
             # CLI error
@@ -98,7 +98,7 @@ class TestRollbackBehavior:
         ).read_text()
         
         # Simulate failed update
-        with patch('src.hiveforge.steering.workflows.UpdateWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.UpdateWorkflow.execute') as mock:
             mock.side_effect = Exception("Update failed")
             
             run_cli_command(["steering", "update", "--incremental"])
@@ -118,7 +118,7 @@ class TestRollbackBehavior:
         ).read_text()
         
         # Simulate failed update
-        with patch('src.hiveforge.steering.workflows.UpdateWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.UpdateWorkflow.execute') as mock:
             mock.side_effect = Exception("Update failed")
             
             run_cli_command(["steering", "update", "--incremental"])
@@ -136,7 +136,7 @@ class TestErrorMessageConsistency:
     
     def test_user_error_messages_match(self):
         """Test that user-facing error messages are identical."""
-        from src.hiveforge.steering.error_handling import (
+        from hiveforge.steering.error_handling import (
             ToolExecutor,
             ErrorContext,
             ErrorSeverity
@@ -168,7 +168,7 @@ class TestErrorMessageConsistency:
     
     def test_system_error_messages_match(self):
         """Test that system error messages are consistent."""
-        from src.hiveforge.steering.error_handling import (
+        from hiveforge.steering.error_handling import (
             ToolExecutor,
             ErrorContext,
             ErrorSeverity
@@ -207,7 +207,7 @@ class TestRecoveryOptions:
     @pytest.mark.asyncio
     async def test_retry_recovery_option(self, python_project):
         """Test that retry option is available for transient errors."""
-        with patch('src.hiveforge.steering.workflows.InitWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.InitWorkflow.execute') as mock:
             mock.side_effect = Exception("Temporary network error")
             
             # CLI should suggest retry
@@ -226,7 +226,7 @@ class TestRecoveryOptions:
     @pytest.mark.asyncio
     async def test_abort_recovery_option(self, python_project):
         """Test that abort option is available for fatal errors."""
-        with patch('src.hiveforge.steering.workflows.InitWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.InitWorkflow.execute') as mock:
             mock.side_effect = Exception("Fatal error: corrupted state")
             
             # CLI should allow abort

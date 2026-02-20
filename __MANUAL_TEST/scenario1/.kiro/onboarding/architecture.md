@@ -1,0 +1,1 @@
+/Users/alexeysoshnin/Documents/_playground/HiveForge/__MANUAL_TEST/scenario1/_DEVELOPMENT/architecture.md

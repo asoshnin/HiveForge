@@ -393,7 +393,56 @@ Convert to `.kiro/steering/architecture.md`:
 - User-task associations
 ```
 
-#### Option B: AI-Assisted Conversion (Recommended)
+#### Option B: KIRO IDE + HiveForge Power (Recommended)
+
+**Use the HiveForge Power (MCP tool) from within KIRO IDE:**
+
+1. **Place your documents** in `.kiro/onboarding/` (or any custom folder)
+
+2. **In KIRO chat, type:**
+```
+Initialize steering files for my project
+```
+
+**What happens:**
+- KIRO invokes the HiveForge Power's `init_steering` MCP tool
+- The tool reads all documents in `.kiro/onboarding/`
+- LLM transforms them into properly formatted steering files
+- Files are saved to `.kiro/steering/`
+
+**Using custom source document location:**
+
+If your documents are in a different folder (e.g., `docs/design/` or `_DEVELOPMENT/`):
+
+```
+Initialize steering files for my project using documents from docs/design/
+```
+
+**Parameters you can specify:**
+- `source_docs_path`: Custom folder for source documents (e.g., "docs/design", "_DEVELOPMENT")
+- `dry_run`: Preview what would be created without writing files
+- `autonomous`: Enable autonomous generation (LLM fills gaps without asking)
+- `confidence_threshold`: Confidence level for autonomous decisions (0.0-1.0, default: 0.7)
+
+**Example with custom path:**
+```
+Use the HiveForge Power to initialize steering files.
+Set source_docs_path to "_DEVELOPMENT" to use documents from that folder.
+```
+
+**Example with dry-run:**
+```
+Initialize steering files in dry-run mode to preview what would be created
+```
+
+**Advantages:**
+- ✅ Uses LLM for intelligent extraction
+- ✅ No manual Q&A required
+- ✅ Supports custom document locations
+- ✅ Can preview with dry-run mode
+- ✅ Automatic confidence scoring
+
+#### Option C: AI-Assisted Conversion (External Assistant)
 
 **Use an AI assistant (outside KIRO) to convert documents:**
 
@@ -424,13 +473,16 @@ For each file, extract relevant information from my documents and format it acco
 5. Assistant generates all 8 steering files
 6. You review and refine
 
-#### Option C: KIRO-Internal Assistant (Future Enhancement)
+#### Option D: KIRO-Internal Assistant (Legacy)
 
-**Planned for v2.0:** A dedicated agent that:
-- Reads your existing documents
-- Asks clarifying questions
-- Generates steering files automatically
-- Validates consistency across files
+**Note:** This was the original planned approach, but has been superseded by the HiveForge Power (Option B above).
+
+If you prefer to use the Steering Assistant agent directly:
+- Act as Steering Assistant agent in KIRO
+- Provide your documents and ask it to transform them into steering files
+- The agent will ask clarifying questions and generate files
+
+**Recommendation:** Use Option B (HiveForge Power) instead for better integration and features.
 
 #### v2.1.0: Error Handling During Conversion
 

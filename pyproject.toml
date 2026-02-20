@@ -1,6 +1,6 @@
 [project]
 name = "hiveforge"
-version = "1.0.0"
+version = "2.2.0"
 description = "Scaffold KIRO Methodology v05 projects with multi-agent architecture"
 authors = [
     {name = "Alex Soshnin", email = "89580632+asoshnin@users.noreply.github.com"}

@@ -2,7 +2,7 @@
 
 import pytest
 from pathlib import Path
-from src.hiveforge.steering.shared.base import (
+from hiveforge.steering.shared.base import (
     SharedWorkflowBase,
     WorkflowResult,
 )

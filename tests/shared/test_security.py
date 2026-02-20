@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.hiveforge.steering.shared.security import (
+from hiveforge.steering.shared.security import (
     SecurityError,
     InputValidationError,
     PathTraversalError,

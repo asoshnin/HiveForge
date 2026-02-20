@@ -10,8 +10,8 @@ import pytest
 import tempfile
 from pathlib import Path
 
-from src.hiveforge.steering.validators.steering_validator import SteeringValidator
-from src.hiveforge.steering.models import ValidationIssue
+from hiveforge.steering.validators.steering_validator import SteeringValidator
+from hiveforge.steering.models import ValidationIssue
 
 
 class TestSteeringValidatorInit:

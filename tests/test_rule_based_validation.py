@@ -8,13 +8,13 @@ functions that use regex and keyword matching without LLM calls.
 import pytest
 from pathlib import Path
 
-from src.hiveforge.steering.validators.rule_based import (
+from hiveforge.steering.validators.rule_based import (
     check_completeness,
     check_structure,
     check_consistency,
 )
-from src.hiveforge.steering.models import Template, TemplateSection, ValidationIssue
-from src.hiveforge.steering.templates import get_all_templates
+from hiveforge.steering.models import Template, TemplateSection, ValidationIssue
+from hiveforge.steering.templates import get_all_templates
 
 
 class TestCheckCompleteness:

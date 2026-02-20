@@ -17,7 +17,7 @@ from hypothesis import given, settings, assume
 from hypothesis.strategies import integers, lists, text, one_of, booleans
 from hypothesis.strategies import composite, sampled_from
 
-from src.hiveforge.steering.scalable_discovery import (
+from hiveforge.steering.scalable_discovery import (
     ScalableDiscovery,
     HeuristicSampler,
     IntelligentFileRanker,

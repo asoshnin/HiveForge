@@ -8,8 +8,8 @@ functionality.
 import pytest
 from hypothesis import given, strategies as st
 
-from src.hiveforge.steering.customization_detector import CustomizationDetector
-from src.hiveforge.steering.models import Customization
+from hiveforge.steering.customization_detector import CustomizationDetector
+from hiveforge.steering.models import Customization
 
 
 class TestCustomizationDetectorUnit:

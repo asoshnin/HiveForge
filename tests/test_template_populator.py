@@ -8,7 +8,7 @@ replacement, frontmatter preservation, and batch processing.
 import pytest
 from pathlib import Path
 
-from src.hiveforge.steering.template_populator import TemplatePopulator
+from hiveforge.steering.template_populator import TemplatePopulator
 
 
 class TestTemplatePopulator:

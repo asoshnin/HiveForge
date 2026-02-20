@@ -9,14 +9,14 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from src.hiveforge.steering.shared.adapters import (
+from hiveforge.steering.shared.adapters import (
     SharedValidateWorkflow,
     SharedInitWorkflow,
     SharedUpdateWorkflow,
     SharedResetWorkflow,
     SharedDiscoveryWorkflow
 )
-from src.hiveforge.steering.shared.base import WorkflowResult
+from hiveforge.steering.shared.base import WorkflowResult
 
 
 class TestSharedValidateWorkflow:
@@ -41,7 +41,7 @@ class TestSharedValidateWorkflow:
         assert workflow.strict is True
         assert workflow.use_llm is False
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
+    @patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
     def test_execute_success_no_warnings(self, mock_validate_class, tmp_path):
         """Test successful validation with no warnings."""
         # Setup mock validation report
@@ -70,7 +70,7 @@ class TestSharedValidateWorkflow:
         assert result.metadata["files_checked"] == 3
         assert result.metadata["overall_status"] == "pass"
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
+    @patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
     def test_execute_success_with_warnings(self, mock_validate_class, tmp_path):
         """Test successful validation with warnings."""
         # Setup mock validation report with warnings
@@ -101,7 +101,7 @@ class TestSharedValidateWorkflow:
         assert "Warning 1" in result.warnings
         assert "Warning 2" in result.warnings
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
+    @patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
     def test_execute_failure_with_critical_issues(self, mock_validate_class, tmp_path):
         """Test failed validation with critical issues."""
         # Setup mock validation report with critical issues
@@ -132,7 +132,7 @@ class TestSharedValidateWorkflow:
         assert "Critical error 1" in result.errors
         assert "Critical error 2" in result.errors
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
+    @patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
     def test_execute_strict_mode_treats_warnings_as_errors(self, mock_validate_class, tmp_path):
         """Test that strict mode treats warnings as errors."""
         # Setup mock validation report with warnings
@@ -159,7 +159,7 @@ class TestSharedValidateWorkflow:
         assert result.success is False
         assert len(result.warnings) == 1
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
+    @patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
     def test_execute_passes_config_to_v02_workflow(self, mock_validate_class, tmp_path):
         """Test that configuration is passed correctly to v02 workflow."""
         # Setup mock
@@ -191,7 +191,7 @@ class TestSharedValidateWorkflow:
         config = call_kwargs['config']
         assert config.strict_mode is True
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
+    @patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow')
     def test_execute_handles_exceptions(self, mock_validate_class, tmp_path):
         """Test that exceptions are handled gracefully."""
         # Setup mock to raise exception
@@ -280,7 +280,7 @@ class TestSharedInitWorkflow:
         assert workflow.auto_discover is True
         assert workflow.autonomous is True
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_success(self, mock_init_class, tmp_path):
         """Test successful init workflow execution."""
         # Create mock steering directory with files
@@ -308,7 +308,7 @@ class TestSharedInitWorkflow:
         assert result.metadata["files_count"] == 2
         assert result.metadata["source_docs_path"] is None
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_with_source_docs_path_in_metadata(self, mock_init_class, tmp_path):
         """Test that source_docs_path is included in result metadata."""
         # Create mock steering directory with files
@@ -335,7 +335,7 @@ class TestSharedInitWorkflow:
         assert result.success is True
         assert result.metadata["source_docs_path"] == "_DEVELOPMENT"
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_failure(self, mock_init_class, tmp_path):
         """Test failed init workflow execution."""
         # Setup mock workflow
@@ -354,7 +354,7 @@ class TestSharedInitWorkflow:
         assert result.success is False
         assert "failed or was cancelled" in result.message
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_with_autonomous_mode(self, mock_init_class, tmp_path):
         """Test that autonomous mode is configured correctly."""
         # Setup mock
@@ -384,7 +384,7 @@ class TestSharedInitWorkflow:
         assert config.feature_flags.use_autonomous_generation is True
         assert config.feature_flags.confidence_threshold == 0.8
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_with_non_autonomous_mode(self, mock_init_class, tmp_path):
         """Test that non-autonomous mode is configured correctly."""
         # Setup mock
@@ -411,7 +411,7 @@ class TestSharedInitWorkflow:
         assert config.interactive is True
         assert config.feature_flags is None
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_with_warnings(self, mock_init_class, tmp_path):
         """Test that warnings are collected from validation report."""
         # Setup mock with validation warnings
@@ -438,7 +438,7 @@ class TestSharedInitWorkflow:
         assert "Warning 1" in result.warnings
         assert "Warning 2" in result.warnings
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_execute_handles_exceptions(self, mock_init_class, tmp_path):
         """Test that exceptions are handled gracefully."""
         # Setup mock to raise exception
@@ -453,7 +453,7 @@ class TestSharedInitWorkflow:
         assert "Test error" in result.message
         assert len(result.errors) > 0
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_backward_compatibility_without_source_docs_path(self, mock_init_class, tmp_path):
         """Test backward compatibility when source_docs_path is not provided."""
         # Create mock steering directory with files
@@ -478,7 +478,7 @@ class TestSharedInitWorkflow:
         assert result.metadata["source_docs_path"] is None
         assert "Successfully initialized" in result.message
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_empty_source_folder_warnings_collected(self, mock_init_class, tmp_path):
         """Test that empty source folder warnings are collected in result (R2.1, R2.2)."""
         # Create mock steering directory with files
@@ -540,7 +540,7 @@ class TestSharedUpdateWorkflow:
         assert workflow.preserve_customizations is False
         assert workflow.incremental is False
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
+    @patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
     def test_execute_success(self, mock_update_class, tmp_path):
         """Test successful update workflow execution."""
         # Create mock steering directory with files
@@ -566,7 +566,7 @@ class TestSharedUpdateWorkflow:
         assert len(result.files_modified) == 2
         assert result.metadata["customizations_detected"] == 1
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
+    @patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
     def test_execute_failure(self, mock_update_class, tmp_path):
         """Test failed update workflow execution."""
         # Setup mock workflow
@@ -584,7 +584,7 @@ class TestSharedUpdateWorkflow:
         assert result.success is False
         assert "failed or was cancelled" in result.message
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
+    @patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
     def test_execute_with_specific_files(self, mock_update_class, tmp_path):
         """Test update with specific files filter."""
         # Create mock steering directory with files
@@ -612,7 +612,7 @@ class TestSharedUpdateWorkflow:
         assert len(result.files_modified) == 1
         assert "tech-stack.md" in result.files_modified[0]
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
+    @patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
     def test_execute_with_incremental_mode(self, mock_update_class, tmp_path):
         """Test that incremental mode is configured correctly."""
         # Setup mock
@@ -637,7 +637,7 @@ class TestSharedUpdateWorkflow:
         config = call_kwargs['config']
         assert config.incremental is True
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
+    @patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
     def test_execute_with_warnings(self, mock_update_class, tmp_path):
         """Test that warnings are collected from validation report."""
         # Setup mock with validation warnings
@@ -663,7 +663,7 @@ class TestSharedUpdateWorkflow:
         assert "Warning 1" in result.warnings
         assert "Warning 2" in result.warnings
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
+    @patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow')
     def test_execute_handles_exceptions(self, mock_update_class, tmp_path):
         """Test that exceptions are handled gracefully."""
         # Setup mock to raise exception
@@ -736,7 +736,7 @@ class TestSharedResetWorkflow:
         assert result.success is False
         assert "No steering files found" in result.message
     
-    @patch('src.hiveforge.steering.templates.get_all_templates')
+    @patch('hiveforge.steering.templates.get_all_templates')
     def test_execute_reset_all_files(self, mock_get_templates, tmp_path):
         """Test resetting all files."""
         # Create steering directory with files
@@ -771,7 +771,7 @@ class TestSharedResetWorkflow:
         assert len(result.files_modified) == 2
         assert "backup_location" in result.metadata
     
-    @patch('src.hiveforge.steering.templates.get_all_templates')
+    @patch('hiveforge.steering.templates.get_all_templates')
     def test_execute_reset_specific_file(self, mock_get_templates, tmp_path):
         """Test resetting a specific file."""
         # Create steering directory with files
@@ -803,7 +803,7 @@ class TestSharedResetWorkflow:
         assert len(result.files_modified) == 1
         assert "tech-stack.md" in result.files_modified[0]
     
-    @patch('src.hiveforge.steering.templates.get_all_templates')
+    @patch('hiveforge.steering.templates.get_all_templates')
     def test_execute_creates_backup(self, mock_get_templates, tmp_path):
         """Test that backup is created before reset."""
         # Create steering directory with file
@@ -845,7 +845,7 @@ class TestSharedResetWorkflow:
         test_file.write_text("content")
         
         # Mock get_all_templates to raise an exception
-        with patch('src.hiveforge.steering.templates.get_all_templates', side_effect=RuntimeError("Test error")):
+        with patch('hiveforge.steering.templates.get_all_templates', side_effect=RuntimeError("Test error")):
             workflow = SharedResetWorkflow(project_root=tmp_path)
             result = workflow.execute()
             
@@ -889,7 +889,7 @@ class TestSharedDiscoveryWorkflow:
         
         assert workflow.source_docs_path == "docs"
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_success_with_files(self, mock_orchestrator_class, tmp_path):
         """Test successful discovery with files found."""
         # Setup mock discovered files
@@ -926,7 +926,7 @@ class TestSharedDiscoveryWorkflow:
         assert result.metadata["discovery_method"] == "full_scan"
         assert result.metadata["source_docs_path"] is None
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_with_source_docs_path_in_metadata(self, mock_orchestrator_class, tmp_path):
         """Test that source_docs_path is included in result metadata."""
         # Setup mock discovered files
@@ -953,7 +953,7 @@ class TestSharedDiscoveryWorkflow:
         assert result.success is True
         assert result.metadata["source_docs_path"] == "_DEVELOPMENT"
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_success_with_git_history(self, mock_orchestrator_class, tmp_path):
         """Test successful discovery with git history analysis."""
         # Setup mock discovered files
@@ -983,7 +983,7 @@ class TestSharedDiscoveryWorkflow:
         assert result.metadata["commit_count"] == 25
         assert result.metadata["include_git_history"] is True
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_no_files_found(self, mock_orchestrator_class, tmp_path):
         """Test discovery when no files are found."""
         # Setup mock with no files
@@ -1008,7 +1008,7 @@ class TestSharedDiscoveryWorkflow:
         assert "no relevant files found" in result.message
         assert result.metadata["files_discovered"] == 0
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_with_skipped_files(self, mock_orchestrator_class, tmp_path):
         """Test discovery with some files skipped."""
         # Setup mock discovered files
@@ -1045,7 +1045,7 @@ class TestSharedDiscoveryWorkflow:
         assert any("3 files skipped: binary_file" in w for w in result.warnings)
         assert any("1 files skipped: limit_reached" in w for w in result.warnings)
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_passes_config_to_orchestrator(self, mock_orchestrator_class, tmp_path):
         """Test that configuration is passed correctly to orchestrator."""
         # Setup mock
@@ -1069,7 +1069,7 @@ class TestSharedDiscoveryWorkflow:
             file_types=None
         )
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_execute_handles_exceptions(self, mock_orchestrator_class, tmp_path):
         """Test that exceptions are handled gracefully."""
         # Setup mock to raise exception
@@ -1084,7 +1084,7 @@ class TestSharedDiscoveryWorkflow:
         assert "Test error" in result.message
         assert len(result.errors) > 0
     
-    @patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
+    @patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator')
     def test_backward_compatibility_without_source_docs_path(self, mock_orchestrator_class, tmp_path):
         """Test backward compatibility when source_docs_path is not provided."""
         # Setup mock discovered files
@@ -1113,10 +1113,10 @@ class TestSharedDiscoveryWorkflow:
 class TestSharedInitWorkflowTelemetry:
     """Tests for telemetry collection in SharedInitWorkflow (Task 2.6)."""
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_telemetry_collects_new_parameters(self, mock_init_class, tmp_path):
         """Test that telemetry collects dry_run and copy_files parameters."""
-        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        from hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
         
         # Create mock steering directory with files
         steering_dir = tmp_path / ".kiro" / "steering"
@@ -1157,10 +1157,10 @@ class TestSharedInitWorkflowTelemetry:
         assert event.parameters["dry_run"] is True
         assert event.parameters["copy_files"] is True
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_telemetry_collects_confidence_metrics(self, mock_init_class, tmp_path):
         """Test that telemetry collects confidence level distribution."""
-        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        from hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
         
         # Create mock steering directory with files
         steering_dir = tmp_path / ".kiro" / "steering"
@@ -1201,10 +1201,10 @@ class TestSharedInitWorkflowTelemetry:
         assert event.additional_data["overall_confidence_score"] == 0.65
         assert event.additional_data["source_documents_found"] == 3
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_telemetry_collects_performance_metrics(self, mock_init_class, tmp_path):
         """Test that telemetry collects performance metrics."""
-        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        from hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
         
         # Create mock steering directory with files
         steering_dir = tmp_path / ".kiro" / "steering"
@@ -1245,10 +1245,10 @@ class TestSharedInitWorkflowTelemetry:
         assert event.additional_data["confidence_calc_time_ms"] == 150
         assert event.additional_data["content_tagging_time_ms"] == 50
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_telemetry_collects_error_metrics(self, mock_init_class, tmp_path):
         """Test that telemetry collects error metrics."""
-        from src.hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
+        from hiveforge.steering.shared.telemetry import TelemetryCollector, TelemetryLevel, InterfaceType
         
         # Setup mock to raise exception
         mock_init_class.side_effect = ValueError("Path validation failed")
@@ -1277,7 +1277,7 @@ class TestSharedInitWorkflowTelemetry:
         assert "Path validation failed" in event.error_message
         assert event.error_recoverable is True
     
-    @patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow')
+    @patch('hiveforge.steering.workflows.init_workflow.InitWorkflow')
     def test_result_metadata_includes_new_parameters(self, mock_init_class, tmp_path):
         """Test that result metadata includes dry_run and copy_files."""
         # Create mock steering directory with files

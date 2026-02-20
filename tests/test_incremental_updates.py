@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 import pytest
 from hypothesis import given, settings, strategies as st
 
-from src.hiveforge.steering.incremental_updater import (
+from hiveforge.steering.incremental_updater import (
     ChangeInfo,
     IncrementalUpdateResult,
     IncrementalUpdater,

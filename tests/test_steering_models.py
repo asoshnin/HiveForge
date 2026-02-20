@@ -7,7 +7,7 @@ to ensure they can be instantiated correctly and have proper validation.
 
 import pytest
 from pathlib import Path
-from src.hiveforge.steering.models import (
+from hiveforge.steering.models import (
     ParsedDocument,
     Template,
     TemplateSection,

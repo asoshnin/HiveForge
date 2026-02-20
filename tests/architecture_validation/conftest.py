@@ -206,7 +206,7 @@ def cleanup_kiro_files(tmp_path):
 @pytest.fixture
 def mock_llm_api():
     """Fixture to mock LLM API calls."""
-    with patch("src.hiveforge.steering.workflows.InitWorkflow._call_llm") as mock:
+    with patch("hiveforge.steering.workflows.InitWorkflow._call_llm") as mock:
         mock.return_value = {
             "content": "# Test Conventions\n\n## Naming\n- snake_case for functions",
             "confidence": 0.9

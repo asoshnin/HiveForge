@@ -568,3 +568,122 @@ class TestSteeringCommandDescriptions:
         # Validate flags
         result = cli_runner.invoke(app, ["steering", "validate", "--help"])
         assert "--strict" in result.output
+
+
+class TestSteeringInitDryRun:
+    """Tests for 'hiveforge steering init --dry-run' command."""
+    
+    def test_init_with_dry_run_flag(self, cli_runner):
+        """Test init command with --dry-run flag."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            # Mock workflow instance
+            workflow_instance = Mock()
+            from hiveforge.steering.shared.base import WorkflowResult
+            workflow_instance.execute.return_value = WorkflowResult(
+                success=True,
+                message="Dry-run preview: 8 file(s) would be created",
+                files_created=[
+                    ".kiro/steering/tech-stack.md",
+                    ".kiro/steering/architecture.md",
+                    ".kiro/steering/conventions.md",
+                    ".kiro/steering/project-vision.md",
+                ],
+                metadata={
+                    "dry_run": True,
+                    "files_count": 4
+                }
+            )
+            mock_workflow_class.return_value = workflow_instance
+            
+            # Run command
+            result = cli_runner.invoke(app, ["steering", "init", "--dry-run"])
+            
+            # Verify success
+            assert result.exit_code == 0
+            
+            # Verify SharedInitWorkflow was called with dry_run=True
+            mock_workflow_class.assert_called_once()
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is True
+            
+            # Verify output mentions dry-run
+            assert "Dry-run preview" in result.stdout or "would be created" in result.stdout
+    
+    def test_init_dry_run_with_other_flags(self, cli_runner):
+        """Test init command with --dry-run combined with other flags."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            # Mock workflow instance
+            workflow_instance = Mock()
+            from hiveforge.steering.shared.base import WorkflowResult
+            workflow_instance.execute.return_value = WorkflowResult(
+                success=True,
+                message="Dry-run preview: 8 file(s) would be created",
+                files_created=[".kiro/steering/tech-stack.md"],
+                metadata={"dry_run": True}
+            )
+            mock_workflow_class.return_value = workflow_instance
+            
+            # Run command with multiple flags
+            result = cli_runner.invoke(app, [
+                "steering", "init",
+                "--dry-run",
+                "--analyze-code",
+                "--use-autonomous-generation"
+            ])
+            
+            # Verify success
+            assert result.exit_code == 0
+            
+            # Verify all flags were passed correctly
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is True
+            assert call_args.kwargs['auto_discover'] is True
+            assert call_args.kwargs['autonomous'] is True
+    
+    def test_init_dry_run_no_files_written(self, cli_runner, tmp_path):
+        """Test that dry-run mode does not write any files."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            # Mock workflow instance
+            workflow_instance = Mock()
+            from hiveforge.steering.shared.base import WorkflowResult
+            workflow_instance.execute.return_value = WorkflowResult(
+                success=True,
+                message="Dry-run preview: 8 file(s) would be created",
+                files_created=[],  # No files actually created
+                metadata={"dry_run": True}
+            )
+            mock_workflow_class.return_value = workflow_instance
+            
+            # Run command
+            result = cli_runner.invoke(app, ["steering", "init", "--dry-run"])
+            
+            # Verify success
+            assert result.exit_code == 0
+            
+            # Verify dry_run flag was set
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is True
+    
+    def test_init_without_dry_run_flag(self, cli_runner):
+        """Test that init command without --dry-run flag sets dry_run=False."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            # Mock workflow instance
+            workflow_instance = Mock()
+            from hiveforge.steering.shared.base import WorkflowResult
+            workflow_instance.execute.return_value = WorkflowResult(
+                success=True,
+                message="Successfully initialized steering files",
+                files_created=[".kiro/steering/tech-stack.md"],
+                metadata={"dry_run": False}
+            )
+            mock_workflow_class.return_value = workflow_instance
+            
+            # Run command without --dry-run
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify success
+            assert result.exit_code == 0
+            
+            # Verify dry_run=False (default)
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is False

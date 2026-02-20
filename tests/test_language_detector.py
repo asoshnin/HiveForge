@@ -9,14 +9,14 @@ and assigns confidence scores.
 import pytest
 from pathlib import Path
 
-from src.hiveforge.steering.analyzers.language_detector import (
+from hiveforge.steering.analyzers.language_detector import (
     detect_languages,
     get_language_confidence_score,
     check_language_markers,
     _count_lines_in_file,
     _detect_language_from_shebang,
 )
-from src.hiveforge.steering.models import LanguageInfo
+from hiveforge.steering.models import LanguageInfo
 
 
 def create_source_file(file_path: Path, content: str, lines: int = None):

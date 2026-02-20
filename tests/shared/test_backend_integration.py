@@ -15,14 +15,14 @@ import shutil
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.hiveforge.steering.shared.adapters import (
+from hiveforge.steering.shared.adapters import (
     SharedInitWorkflow,
     SharedUpdateWorkflow,
     SharedValidateWorkflow,
     SharedResetWorkflow,
     SharedDiscoveryWorkflow
 )
-from src.hiveforge.steering.shared.telemetry import TelemetryCollector, InterfaceType
+from hiveforge.steering.shared.telemetry import TelemetryCollector, InterfaceType
 
 
 class TestSecurityErrorHandlingIntegration:
@@ -31,7 +31,7 @@ class TestSecurityErrorHandlingIntegration:
     def test_init_workflow_with_rollback_on_failure(self, tmp_path):
         """Test that init workflow rolls back on failure."""
         # Create a scenario where init will fail
-        with patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
             mock_workflow = Mock()
             mock_workflow.execute.return_value = False  # Simulate failure
             mock_workflow.state.validation_report = None
@@ -53,7 +53,7 @@ class TestSecurityErrorHandlingIntegration:
         steering_dir.mkdir(parents=True)
         (steering_dir / "test.md").write_text("# Test")
         
-        with patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow') as mock_update:
+        with patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow') as mock_update:
             # Setup mock with warnings
             warning1 = Mock(message="Warning 1")
             warning2 = Mock(message="Warning 2")
@@ -84,7 +84,7 @@ class TestSecurityErrorHandlingIntegration:
         original_content = "# Original content"
         (steering_dir / "tech-stack.md").write_text(original_content)
         
-        with patch('src.hiveforge.steering.templates.get_all_templates') as mock_templates:
+        with patch('hiveforge.steering.templates.get_all_templates') as mock_templates:
             # Mock template
             mock_template = Mock()
             mock_template.frontmatter = {}
@@ -120,7 +120,7 @@ class TestTelemetryIntegration:
         steering_dir.mkdir(parents=True)
         (steering_dir / "test.md").write_text("# Test")
         
-        with patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
             mock_workflow = Mock()
             mock_workflow.execute.return_value = True
             mock_workflow.state.validation_report = None
@@ -145,7 +145,7 @@ class TestTelemetryIntegration:
         telemetry_dir = tmp_path / ".kiro" / ".telemetry"
         telemetry = TelemetryCollector(telemetry_dir=telemetry_dir)
         
-        with patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
             mock_workflow = Mock()
             mock_workflow.execute.return_value = False  # Failure
             mock_workflow.state.validation_report = None
@@ -179,7 +179,7 @@ class TestEndToEndWorkflow:
         steering_dir.mkdir(parents=True)
         (steering_dir / "test.md").write_text("# Test")
         
-        with patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
             # Setup successful workflow
             mock_workflow = Mock()
             mock_workflow.execute.return_value = True
@@ -201,7 +201,7 @@ class TestEndToEndWorkflow:
     
     def test_error_propagation_through_layers(self, tmp_path):
         """Test that errors propagate correctly through all layers."""
-        with patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
             # Setup workflow that raises exception
             mock_init.side_effect = RuntimeError("Test error")
             
@@ -227,7 +227,7 @@ class TestRollbackScenarios:
         original_file = steering_dir / "original.md"
         original_file.write_text("# Original")
         
-        with patch('src.hiveforge.steering.workflows.update_workflow.UpdateWorkflow') as mock_update:
+        with patch('hiveforge.steering.workflows.update_workflow.UpdateWorkflow') as mock_update:
             # Setup workflow that fails after modifying files
             def side_effect_execute():
                 # Simulate file modification
@@ -255,7 +255,7 @@ class TestRollbackScenarios:
         steering_dir.mkdir(parents=True)
         (steering_dir / "test.md").write_text("# Test")
         
-        with patch('src.hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
+        with patch('hiveforge.steering.workflows.init_workflow.InitWorkflow') as mock_init:
             mock_workflow = Mock()
             mock_workflow.execute.return_value = True  # Success
             mock_workflow.state.validation_report = None
@@ -278,7 +278,7 @@ class TestMultipleErrorCollection:
     
     def test_collect_multiple_errors_from_validation(self, tmp_path):
         """Test that multiple validation errors are collected."""
-        with patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow') as mock_validate:
+        with patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow') as mock_validate:
             # Setup validation with multiple errors
             error1 = Mock(message="Error 1")
             error2 = Mock(message="Error 2")
@@ -309,7 +309,7 @@ class TestMultipleErrorCollection:
     
     def test_collect_errors_and_warnings_together(self, tmp_path):
         """Test that errors and warnings are collected separately."""
-        with patch('src.hiveforge.steering.workflows.validate_workflow.ValidateWorkflow') as mock_validate:
+        with patch('hiveforge.steering.workflows.validate_workflow.ValidateWorkflow') as mock_validate:
             # Setup validation with both errors and warnings
             error1 = Mock(message="Error 1")
             warning1 = Mock(message="Warning 1")
@@ -345,7 +345,7 @@ class TestDiscoveryWorkflowIntegration:
     
     def test_discovery_with_empty_results(self, tmp_path):
         """Test that discovery handles empty results gracefully."""
-        with patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator') as mock_orch:
+        with patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator') as mock_orch:
             # Setup empty discovery
             mock_orchestrator = Mock()
             mock_orchestrator.discover_all.return_value = ([], {"file_count": 0, "method": "full_scan"})
@@ -361,7 +361,7 @@ class TestDiscoveryWorkflowIntegration:
     
     def test_discovery_collects_skip_warnings(self, tmp_path):
         """Test that discovery collects warnings for skipped files."""
-        with patch('src.hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator') as mock_orch:
+        with patch('hiveforge.steering.parsers.orchestrator.DiscoveryOrchestrator') as mock_orch:
             # Setup discovery with skipped files
             mock_orchestrator = Mock()
             mock_orchestrator.discover_all.return_value = (

@@ -1,6 +1,6 @@
 # HiveForge Steering Assistant Power
 
-**Version**: 2.0.0  
+**Version**: 2.2.0  
 **Category**: Documentation  
 **Author**: HiveForge Team
 
@@ -51,6 +51,33 @@ pip install hiveforge-steering-mcp
 
 The Power activates automatically when you mention keywords like "steering", "documentation", or "onboarding" in your KIRO chat.
 
+### Source Document Location
+
+**Important**: By default, the Power looks for existing documentation in `.kiro/onboarding/` directory. This is where you should place any existing documentation you want the Power to analyze when generating steering files.
+
+**Default behavior**:
+- The Power scans `.kiro/onboarding/` for existing docs (README files, architecture docs, etc.)
+- If found, these documents are used to generate more accurate steering files
+- If the folder is empty, the Power will infer content from code analysis (with lower confidence)
+
+**Custom source paths**:
+You can specify a different location for your source documents:
+
+```
+"Initialize steering files using documents from my _DEVELOPMENT folder"
+```
+
+Or more explicitly:
+
+```
+"Initialize steering files with source_docs_path='docs/onboarding'"
+```
+
+**Examples**:
+- `"Use documents from __DEVELOPMENT/ to initialize steering files"`
+- `"Initialize steering with source_docs_path='documentation/project-docs'"`
+- `"Generate steering files from docs in my-docs/ folder"`
+
 ### Initialize Steering Files
 
 ```
@@ -58,10 +85,11 @@ The Power activates automatically when you mention keywords like "steering", "do
 ```
 
 This will:
-1. Analyze your project structure and code
-2. Discover existing documentation
-3. Generate 4-5 steering files with AI-powered content
-4. Save files to `.kiro/steering/`
+1. Look for documents in `.kiro/onboarding/` (or custom path if specified)
+2. Analyze your project structure and code
+3. Discover existing documentation
+4. Generate 4-5 steering files with AI-powered content
+5. Save files to `.kiro/steering/`
 
 ### Update Existing Files
 
@@ -118,9 +146,12 @@ Initialize steering files for a new project.
 
 **Parameters**:
 - `project_root` (string, default: "."): Path to project root
+- `source_docs_path` (string, optional): Custom path to source documents, relative to project root (e.g., `"_DEVELOPMENT"`, `"docs/specs"`). When omitted, uses `.kiro/onboarding/` by default.
 - `auto_discover` (boolean, default: true): Enable automatic discovery
 - `autonomous` (boolean, default: true): Enable AI generation
-- `confidence_threshold` (float, default: 0.7): Minimum confidence for AI decisions
+- `confidence_threshold` (float, default: 0.7): Minimum confidence for autonomous decisions (autonomous mode only)
+- `dry_run` (boolean, default: false): Preview what would be created without writing files
+- `copy_files` (boolean, default: false): Copy source files to staging instead of using symlinks
 
 **Example Response**:
 ```json
@@ -133,8 +164,12 @@ Initialize steering files for a new project.
     ".kiro/steering/conventions.md",
     ".kiro/steering/project-vision.md"
   ],
+  "warnings": [],
   "autonomous": true,
-  "files_count": 5
+  "files_count": 5,
+  "source_documents_found": 3,
+  "confidence_level": "high",
+  "confidence_score": 0.82
 }
 ```
 
@@ -210,6 +245,8 @@ Discover existing documentation and project files.
 
 **Parameters**:
 - `project_root` (string, default: "."): Path to project root
+- `source_docs_path` (string, optional): Prioritize this path for discovery (relative to project root)
+- `file_types` (array, optional): Filter by file extensions (e.g., `[".md", ".pdf"]`)
 - `include_git_history` (boolean, default: false): Analyze git commits
 - `max_discovery_files` (integer, default: 1000): Maximum files to analyze
 - `max_file_size_mb` (integer, default: 10): Maximum file size in MB
@@ -221,6 +258,8 @@ Discover existing documentation and project files.
   "message": "Discovery complete: 42 files found",
   "files_discovered": 42,
   "files_included": 37,
+  "files_by_type": {".md": 25, ".pdf": 12},
+  "files_by_path": {"_DEVELOPMENT": 37},
   "discovery_method": "scalable"
 }
 ```
@@ -358,6 +397,27 @@ The Power activates on these keywords:
 
 ## Troubleshooting
 
+### No Documents Found / Low Confidence Warning
+
+**Problem**: Power generates files but warns "No source documents found" or shows low confidence scores
+
+**Cause**: The Power couldn't find existing documentation in the expected location (`.kiro/onboarding/` by default)
+
+**Solution**:
+1. **If you have existing docs**: Place them in `.kiro/onboarding/` directory before running init
+2. **If docs are elsewhere**: Use `source_docs_path` parameter to point to your docs:
+   ```
+   "Initialize steering files with source_docs_path='docs/project-info'"
+   ```
+3. **If you have no docs**: This is expected - the Power will infer content from code analysis. Generated files will have `[INFERRED]` tags on sections that were generated without source documents.
+
+**Understanding confidence scores**:
+- **High confidence (0.7-1.0)**: Most content came from source documents
+- **Medium confidence (0.4-0.7)**: Mix of source documents and code analysis
+- **Low confidence (0.0-0.4)**: Mostly inferred from code, few source documents
+
+Files with low confidence will have warnings at the top and `[INFERRED]` tags on sections that need review.
+
 ### Power Not Activating
 
 **Problem**: Power doesn't respond to keywords
@@ -375,6 +435,21 @@ The Power activates on these keywords:
 1. Check project root path is correct
 2. Verify `.kiro/steering/` directory permissions
 3. Check logs for errors: `FASTMCP_LOG_LEVEL=DEBUG`
+
+### Wrong Documents Being Used
+
+**Problem**: Power is using the wrong documentation files
+
+**Solution**:
+1. Specify the correct path explicitly:
+   ```
+   "Initialize steering with source_docs_path='path/to/correct/docs'"
+   ```
+2. Check that `.kiro/onboarding/` doesn't contain old/incorrect docs
+3. Use dry-run mode to preview what will be generated:
+   ```
+   "Initialize steering files in dry-run mode with source_docs_path='my-docs'"
+   ```
 
 ### Customizations Lost
 
@@ -419,6 +494,21 @@ The Power has comprehensive test coverage:
 ---
 
 ## Changelog
+
+### Version 2.2.0 (2026-02-20)
+
+**Feature Release**: Source Documents Path & Hallucination Guardrails
+
+- ✅ `source_docs_path` parameter for custom document locations
+- ✅ `dry_run` mode to preview without writing files
+- ✅ `copy_files` parameter for symlink vs. copy control
+- ✅ Confidence scoring and hallucination guardrails
+- ✅ `[INFERRED]` tags on sections generated without source documents
+- ✅ `file_types` filter for `discover_docs`
+- ✅ Enhanced discovery statistics
+- ✅ Security: path traversal, symlink attack, null byte injection prevention
+
+**Breaking Changes**: None (all new parameters are optional)
 
 ### Version 2.0.0 (2026-02-17)
 

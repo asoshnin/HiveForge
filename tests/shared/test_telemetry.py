@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 from datetime import datetime
 
-from src.hiveforge.steering.shared.telemetry import (
+from hiveforge.steering.shared.telemetry import (
     TelemetryCollector,
     TelemetryEvent,
     TelemetryLevel,

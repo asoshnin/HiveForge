@@ -8,14 +8,14 @@ detects architectural patterns from directory structure.
 import pytest
 from pathlib import Path
 
-from src.hiveforge.steering.analyzers.architecture_inferrer import (
+from hiveforge.steering.analyzers.architecture_inferrer import (
     infer_architecture,
     get_architecture_confidence_score,
     detect_monorepo,
     _detect_architecture_pattern,
     _calculate_pattern_score,
 )
-from src.hiveforge.steering.models import ArchitectureInfo
+from hiveforge.steering.models import ArchitectureInfo
 
 
 def create_directory_structure(base_path: Path, structure: dict):

@@ -93,7 +93,8 @@ class SharedInitWorkflow(SharedWorkflowBase):
                 v02_workflow = InitWorkflow(
                     config=v02_config,
                     project_root=self.project_root,
-                    source_docs_path=self.source_docs_path
+                    source_docs_path=self.source_docs_path,
+                    dry_run=self.dry_run
                 )
                 
                 success = v02_workflow.execute()
@@ -105,12 +106,24 @@ class SharedInitWorkflow(SharedWorkflowBase):
             # Collect created files (after successful execution)
             steering_dir = self._get_steering_dir()
             files_created = []
-            if steering_dir.exists():
-                files_created = [str(f.relative_to(self.project_root)) 
-                                for f in steering_dir.glob("*.md")]
+            
+            # In dry-run mode, no files are actually created
+            if self.dry_run:
+                # Get preview files from workflow metadata
+                if hasattr(v02_workflow.state, 'metadata') and 'dry_run_preview' in v02_workflow.state.metadata:
+                    preview_files = v02_workflow.state.metadata['dry_run_preview']
+                    files_created = [f".kiro/steering/{filename}" for filename in preview_files.keys()]
+            else:
+                # Collect actually created files
+                if steering_dir.exists():
+                    files_created = [str(f.relative_to(self.project_root)) 
+                                    for f in steering_dir.glob("*.md")]
             
             # Build result message
-            message = f"Successfully initialized steering files ({len(files_created)} files created)"
+            if self.dry_run:
+                message = f"Dry-run preview: {len(files_created)} file(s) would be created"
+            else:
+                message = f"Successfully initialized steering files ({len(files_created)} files created)"
             
             # Collect warnings from workflow state (R2.1, R2.2)
             warnings = []

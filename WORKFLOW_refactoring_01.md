@@ -266,15 +266,66 @@ ls -la .kiro/onboarding/
 
 ---
 
-### Step 2.2: Use KIRO IDE + Steering Assistant Agent (RECOMMENDED)
+### Step 2.2: Use KIRO IDE + HiveForge Power (RECOMMENDED)
 
-**This approach uses LLM to automatically transform documents - no tedious Q&A!**
+**This approach uses the HiveForge Power (MCP tool) to automatically transform documents - no tedious Q&A!**
 
 1. **Open VeriQ in KIRO IDE**
 
-2. **Act as Steering Assistant agent**
+2. **In KIRO chat, type:**
 
-3. **Use this exact prompt:**
+```
+Initialize steering files for my project
+```
+
+**What happens:**
+- KIRO invokes the HiveForge Power's `init_steering` MCP tool
+- The tool reads all documents in `.kiro/onboarding/`
+- LLM transforms them into properly formatted steering files
+- Files are saved to `.kiro/steering/`
+- No manual Q&A required!
+
+**Using custom source document location:**
+
+If your documents are in a different folder (e.g., `_DEVELOPMENT/` or `docs/design/`), specify the path:
+
+```
+Initialize steering files for my project using documents from _DEVELOPMENT/
+```
+
+Or more explicitly:
+
+```
+Use the HiveForge Power to initialize steering files. 
+Set source_docs_path to "_DEVELOPMENT" to use documents from that folder instead of .kiro/onboarding/
+```
+
+**Parameters you can specify:**
+- `source_docs_path`: Custom folder for source documents (e.g., "_DEVELOPMENT", "docs/design")
+- `dry_run`: Preview what would be created without writing files
+- `autonomous`: Enable autonomous generation (LLM fills gaps without asking)
+- `confidence_threshold`: Confidence level for autonomous decisions (0.0-1.0, default: 0.7)
+
+**Example with dry-run:**
+```
+Initialize steering files in dry-run mode to preview what would be created
+```
+
+3. **Review generated files:**
+```bash
+ls -la .kiro/steering/
+cat .kiro/steering/project-vision.md
+# ... review all files
+```
+
+**Note:** If the HiveForge Power is not available in your KIRO installation, you can fall back to using the Steering Assistant agent (see alternative approach below) or the CLI method (Step 2.3).
+
+**Alternative - Using Steering Assistant Agent:**
+
+If you prefer to use the agent directly:
+
+1. Act as Steering Assistant agent in KIRO
+2. Use this prompt:
 
 ```
 I have original project documents in .kiro/onboarding/ that describe the intended system design.
@@ -293,19 +344,6 @@ Please:
    - qa-standards.md - Testing strategy, coverage requirements
 
 Extract all relevant information from the documents and format according to steering file templates.
-```
-
-**What happens:**
-- LLM reads your original documents
-- LLM transforms them into properly formatted steering files
-- Files are saved to `.kiro/steering/`
-- No manual Q&A required!
-
-4. **Review generated files:**
-```bash
-ls -la .kiro/steering/
-cat .kiro/steering/project-vision.md
-# ... review all files
 ```
 
 ---
@@ -390,7 +428,7 @@ $ hiveforge steering validate --strict
 
 ---
 
-## Phase 3: Discrepancy Analysis
+## Phase 3: Manual Discrepancy Analysis (KIRO IDE)
 
 **⚠️ Critical Limitation:** HiveForge does NOT have built-in discrepancy analysis.
 
@@ -405,6 +443,8 @@ $ hiveforge steering validate --strict
 - Identify convention violations in your codebase
 
 **Solution for Gap Analysis:** You need KIRO IDE + Orchestrator for that - it uses LLM-powered agents to manually analyze the gap between what's documented and what's implemented.
+
+---
 
 ### Step 3.1: Open VeriQ in KIRO IDE
 
@@ -875,7 +915,7 @@ telemetry.record_error(
 |------|------|----------------|-------------|
 | Install HiveForge | Terminal | `pip install -e .` | README.md |
 | Initialize project | HiveForge CLI | `hiveforge -n veriq` | src/hiveforge/cli.py |
-| **Transform documents** | **KIRO IDE** | **Act as Steering Assistant** | **.kiro/agents/steering_assistant.md** |
+| **Transform documents** | **KIRO IDE** | **"Initialize steering files for my project"** | **hiveforge-power/POWER.md** |
 | Transform documents (alt) | HiveForge CLI | `hiveforge steering init --analyze-code` | src/hiveforge/steering/cli.py |
 | Update steering docs | HiveForge CLI | `hiveforge steering update` | src/hiveforge/steering/cli.py |
 | Validate steering docs | HiveForge CLI | `hiveforge steering validate --strict` | src/hiveforge/steering/cli.py |
@@ -884,18 +924,40 @@ telemetry.record_error(
 
 **Legend:**
 - ✅ HiveForge CLI - Automated feature
-- ⚠️ KIRO IDE - LLM-powered agent (recommended for document transformation)
+- ⚠️ KIRO IDE - LLM-powered (recommended for document transformation via HiveForge Power)
 - 📝 Manual - User must do manually
 
-**Recommendation:** Use KIRO IDE + Steering Assistant for document transformation (uses LLM, minimal user input)
+**Recommendation:** Use KIRO IDE + HiveForge Power for document transformation (uses LLM via MCP tools, minimal user input)
 
 ---
 
 ## Example Prompts
 
-### KIRO IDE Steering Assistant (RECOMMENDED - Uses LLM!)
+### KIRO IDE HiveForge Power (RECOMMENDED - Uses MCP Tools!)
 
-Use this prompt to transform original documents into steering files:
+Use this simple prompt in KIRO chat to transform original documents into steering files:
+
+```
+Initialize steering files for my project
+```
+
+**With custom source document location:**
+
+```
+Initialize steering files for my project using documents from _DEVELOPMENT/
+```
+
+**With dry-run to preview:**
+
+```
+Initialize steering files in dry-run mode to preview what would be created
+```
+
+**Why this is better:** Uses the HiveForge Power (MCP tool) which leverages LLM - no manual Q&A required!
+
+### KIRO IDE Steering Assistant Agent (Alternative)
+
+If you prefer to use the agent directly, use this prompt:
 
 ```
 I have original project documents in .kiro/onboarding/ that describe the intended system design.
@@ -1158,18 +1220,19 @@ HiveForge only:
 
 For comparison: Use the KIRO IDE workflow in Phase 3.
 
-### Why should I use KIRO IDE + Steering Assistant instead of CLI?
+### Why should I use KIRO IDE + HiveForge Power instead of CLI?
 
-**Answer:** The CLI approach (`hiveforge steering init`) does NOT use LLM - it requires you to manually answer many questions via terminal. The KIRO IDE approach uses LLM to automatically transform your documents with minimal user input.
+**Answer:** The CLI approach (`hiveforge steering init`) does NOT use LLM - it requires you to manually answer many questions via terminal. The KIRO IDE approach uses the HiveForge Power (MCP tool) which leverages LLM to automatically transform your documents with minimal user input.
 
-| Aspect | CLI Approach | KIRO IDE Approach |
-|--------|--------------|-------------------|
+| Aspect | CLI Approach | KIRO IDE + Power Approach |
+|--------|--------------|---------------------------|
 | LLM Used | ❌ No | ✅ Yes |
-| User Input | Many questions | Minimal |
+| User Input | Many questions | Minimal (just a prompt) |
 | Time | Slow (Q&A) | Fast (automated) |
 | Quality | Depends on your answers | LLM extracts from docs |
+| Custom paths | Via flags | Via natural language |
 
-**Recommendation:** Always use KIRO IDE + Steering Assistant for document transformation!
+**Recommendation:** Always use KIRO IDE + HiveForge Power for document transformation!
 
 ### What if validation fails with false positives?
 

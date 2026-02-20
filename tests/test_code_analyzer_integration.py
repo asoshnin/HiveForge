@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from src.hiveforge.steering.analyzers.code_analyzer import CodeAnalyzer, analyze_codebase
-from src.hiveforge.steering.models import CodeAnalysisResult
+from hiveforge.steering.analyzers.code_analyzer import CodeAnalyzer, analyze_codebase
+from hiveforge.steering.models import CodeAnalysisResult
 
 
 @pytest.fixture

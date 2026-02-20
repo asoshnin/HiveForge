@@ -12,19 +12,19 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from io import StringIO
 
-from src.hiveforge.steering.agents.steering_assistant import (
+from hiveforge.steering.agents.steering_assistant import (
     SteeringAssistant,
     QuestionBatch,
     ResearchResult,
 )
-from src.hiveforge.steering.knowledge_base import KnowledgeBase
-from src.hiveforge.steering.models import (
+from hiveforge.steering.knowledge_base import KnowledgeBase
+from hiveforge.steering.models import (
     GapAnalysisResult,
     Question,
     ParsedDocument,
     CodeAnalysisResult,
 )
-from src.hiveforge.steering.response_cache import ResponseCache
+from hiveforge.steering.response_cache import ResponseCache
 
 
 @pytest.fixture
@@ -787,7 +787,7 @@ class TestConfidenceIntegration:
         mock_response_cache
     ):
         """Test that result format is compatible with ConfidenceCalculator."""
-        from src.hiveforge.steering.confidence import ConfidenceCalculator
+        from hiveforge.steering.confidence import ConfidenceCalculator
         
         assistant = SteeringAssistant(
             knowledge_base=sample_knowledge_base,

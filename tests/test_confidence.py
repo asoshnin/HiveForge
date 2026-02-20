@@ -6,7 +6,7 @@ including file-level and overall confidence calculations.
 """
 
 import pytest
-from src.hiveforge.steering.confidence import ConfidenceCalculator, ConfidenceScore
+from hiveforge.steering.confidence import ConfidenceCalculator, ConfidenceScore
 
 
 class TestConfidenceScore:

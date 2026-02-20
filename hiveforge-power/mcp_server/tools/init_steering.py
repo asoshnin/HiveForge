@@ -44,7 +44,11 @@ async def init_steering(
         source_docs_path: Optional path to source documents folder (relative to project_root).
                          When provided, restricts document discovery to that path.
                          When NOT provided, uses default behavior (scan .kiro/onboarding/ first).
-                         Example: "_DEVELOPMENT" or "docs/design"
+                         Examples:
+                           - "_DEVELOPMENT" - Use docs from _DEVELOPMENT folder
+                           - "docs/design" - Use docs from docs/design folder
+                           - "my-docs" - Use docs from my-docs folder
+                         Note: Only one path is used (no merging of multiple locations)
         auto_discover: Enable automatic discovery of existing docs (default: True)
         autonomous: Enable autonomous generation mode (LLM fills gaps without asking) (default: True)
         confidence_threshold: Minimum confidence for autonomous decisions (0.0-1.0, default: 0.7).
@@ -57,9 +61,20 @@ async def init_steering(
         copy_files: If True, copy source files to staging. If False, use symlinks for performance (default: False)
     
     Returns:
-        Structured result with status, message, files created, and metadata
+        Structured result with status, message, files created, and metadata.
+        
+        Confidence Metadata:
+          - confidence_level: "high" (0.7-1.0), "medium" (0.4-0.7), or "low" (0.0-0.4)
+          - confidence_score: Overall confidence score (0.0-1.0)
+          - source_documents_found: Number of source documents discovered
+          - Files with low confidence include [INFERRED] tags on inferred sections
+        
+        Warnings:
+          - "No source documents found" - Empty source folder, all content inferred
+          - "Low confidence" - Few source documents, mostly inferred content
+          - Path validation errors - Invalid or inaccessible source_docs_path
     
-    Example:
+    Example Response:
         {
             "status": "success",
             "message": "Successfully initialized steering files (5 files created)",
@@ -69,19 +84,29 @@ async def init_steering(
                 ".kiro/steering/conventions.md",
                 ".kiro/steering/project-vision.md"
             ],
-            "warnings": [],
+            "warnings": ["No source documents found in .kiro/onboarding/"],
             "errors": [],
             "autonomous": true,
             "auto_discover": true,
             "confidence_threshold": 0.7,
             "files_count": 5,
-            "source_documents_found": 3,
-            "confidence_level": "medium",
+            "source_documents_found": 0,
+            "confidence_level": "low",
+            "confidence_score": 0.35,
             "metadata": {
-                "source_docs_path": "_DEVELOPMENT",
-                "discovery_stats": {...}
+                "source_docs_path": null,
+                "discovery_stats": {
+                    "files_discovered": 0,
+                    "files_included": 0
+                }
             }
         }
+    
+    Example Usage from KIRO Chat:
+        "Initialize steering files for my project"
+        "Initialize steering files using documents from __DEVELOPMENT"
+        "Initialize steering with source_docs_path='docs/specs'"
+        "Show me what steering files would be generated (dry-run mode)"
     """
     try:
         # Import shared workflow

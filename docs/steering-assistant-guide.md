@@ -3,13 +3,15 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Getting Started](#getting-started)
-3. [Init Workflow](#init-workflow)
-4. [Update Workflow](#update-workflow)
-5. [Validate Workflow](#validate-workflow)
-6. [Best Practices](#best-practices)
-7. [Troubleshooting](#troubleshooting)
-8. [Advanced Usage](#advanced-usage)
+2. [Terminology](#terminology)
+3. [Getting Started](#getting-started)
+4. [Using from KIRO IDE](#using-from-kiro-ide)
+5. [Init Workflow](#init-workflow)
+6. [Update Workflow](#update-workflow)
+7. [Validate Workflow](#validate-workflow)
+8. [Best Practices](#best-practices)
+9. [Troubleshooting](#troubleshooting)
+10. [Advanced Usage](#advanced-usage)
 
 ## Overview
 
@@ -31,6 +33,34 @@ The Steering Assistant is an AI-powered tool that helps you create and maintain 
 - **Project Updates**: Keep steering files in sync with code changes
 - **Team Onboarding**: Create comprehensive documentation for new team members
 - **Compliance**: Ensure documentation meets organizational standards
+
+## Terminology
+
+To avoid confusion, here are the different components with similar names:
+
+### HiveForge Power (MCP Tools)
+- **What**: A KIRO Power that provides MCP tools for the KIRO orchestrator
+- **Where**: Installed as `hiveforge-steering-mcp` package
+- **How to use**: Activated automatically in KIRO IDE when you mention keywords like "steering" or "documentation"
+- **Example**: "Initialize steering files for my project" (in KIRO chat)
+
+### Steering Assistant Agent (KIRO Agent)
+- **What**: A KIRO agent definition that can be invoked for interactive steering file creation
+- **Where**: Defined in `.kiro/agents/steering_assistant.md`
+- **How to use**: Fallback option when Power is not available or for complex interactive workflows
+- **Example**: Invoke via KIRO agent system (less common)
+
+### SteeringAssistant Class (Python Class)
+- **What**: Internal Python class that implements the AI conversation logic
+- **Where**: `src/hiveforge/steering/agents/steering_assistant.py`
+- **How to use**: Used internally by workflows, not directly by users
+- **Example**: Called by InitWorkflow during autonomous mode
+
+**Key Distinction**: 
+- Use **HiveForge Power** from KIRO IDE (recommended, automatic)
+- Use **CLI commands** for scripting and automation
+- The **Steering Assistant agent** is a fallback for complex scenarios
+- The **SteeringAssistant class** is internal implementation
 
 ## Getting Started
 
@@ -57,9 +87,143 @@ hiveforge steering init
 ls .kiro/steering/
 ```
 
+## Using from KIRO IDE
+
+The HiveForge Power provides the easiest way to work with steering files from within KIRO IDE.
+
+### Automatic Activation
+
+The Power activates automatically when you mention these keywords in KIRO chat:
+- "steering"
+- "steering files"
+- "documentation"
+- "onboarding"
+- "project setup"
+- "project documentation"
+
+### Basic Usage Examples
+
+**Initialize steering files:**
+```
+"Please initialize steering files for my project"
+```
+
+**Initialize with custom source documents:**
+```
+"Initialize steering files using documents from my __DEVELOPMENT folder"
+```
+
+**Initialize with specific path:**
+```
+"Initialize steering files with source_docs_path='docs/project-info'"
+```
+
+**Preview without creating files (dry-run):**
+```
+"Show me what steering files would be generated without creating them"
+```
+
+**Update existing files:**
+```
+"Update my steering files with the latest changes"
+```
+
+**Validate files:**
+```
+"Validate my steering files for completeness"
+```
+
+### Source Document Location
+
+**Default behavior**: The Power looks for existing documentation in `.kiro/onboarding/` directory.
+
+**Custom paths**: You can specify a different location:
+- `"Use documents from _DEVELOPMENT/ to initialize steering files"`
+- `"Initialize steering with source_docs_path='documentation/specs'"`
+- `"Generate steering files from docs in my-docs/ folder"`
+
+**Understanding confidence scores**:
+- Files generated from source documents have **high confidence**
+- Files inferred from code analysis have **lower confidence** and include `[INFERRED]` tags
+- Low confidence warnings appear at the top of generated files
+
+### Parameters Available
+
+When using the Power, you can specify these parameters naturally:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `source_docs_path` | Custom location for source documents | "use docs from my-docs/" |
+| `dry_run` | Preview without creating files | "show me what would be generated" |
+| `auto_discover` | Enable automatic discovery | "discover existing docs" |
+| `autonomous` | Enable AI generation | "generate autonomously" |
+| `confidence_threshold` | Minimum confidence (autonomous mode only) | "use confidence threshold 0.8" |
+
+**Note**: `confidence_threshold` only applies when `autonomous=True`. It determines the minimum confidence score required for the AI to proceed without asking questions.
+
+### Response Format
+
+The Power returns structured JSON responses:
+
+```json
+{
+  "status": "success",
+  "message": "Successfully initialized steering files (5 files created)",
+  "files_created": [
+    ".kiro/steering/tech-stack.md",
+    ".kiro/steering/architecture.md",
+    ".kiro/steering/conventions.md",
+    ".kiro/steering/project-vision.md"
+  ],
+  "warnings": ["No source documents found in .kiro/onboarding/"],
+  "confidence_level": "medium",
+  "source_documents_found": 0,
+  "files_count": 5
+}
+```
+
+### When to Use CLI vs Power
+
+**Use HiveForge Power (KIRO IDE)**:
+- Interactive exploration and generation
+- Quick updates and validation
+- Natural language interface
+- Automatic keyword activation
+
+**Use CLI**:
+- Scripting and automation
+- CI/CD pipelines
+- Batch processing
+- Non-interactive workflows
+
 ## Init Workflow
 
 The init workflow creates steering files from scratch.
+
+### Source Document Location
+
+**Important**: By default, the init workflow looks for existing documentation in `.kiro/onboarding/` directory.
+
+**Default behavior**:
+```bash
+# Looks in .kiro/onboarding/ for source documents
+hiveforge steering init
+```
+
+**Custom source path**:
+```bash
+# Use documents from a different location
+hiveforge steering init --source-docs-path=docs/project-info
+
+# Use documents from development folder
+hiveforge steering init --source-docs-path=__DEVELOPMENT
+```
+
+**What happens**:
+1. The workflow scans the specified path for documentation
+2. Documents found are used to generate more accurate steering files
+3. If no documents found, content is inferred from code analysis (with `[INFERRED]` tags)
+4. Confidence scores are calculated based on source document availability
 
 ### Basic Init
 
@@ -69,12 +233,13 @@ hiveforge steering init
 ```
 
 This will:
-1. Create `.kiro/onboarding/` staging folder
+1. Look for documents in `.kiro/onboarding/` (or custom path if specified)
 2. Check for existing steering files (prompts for backup if found)
-3. Parse any artifacts in `.kiro/onboarding/`
+3. Parse any artifacts found
 4. Conduct interactive conversation to gather missing information
-5. Generate 8 steering files in `.kiro/steering/`
-6. Validate generated files
+5. Generate steering files in `.kiro/steering/`
+6. Add confidence metadata and `[INFERRED]` tags where needed
+7. Validate generated files
 
 ### Init with Code Analysis
 
@@ -98,7 +263,7 @@ This automatically extracts:
 ### Init with Artifacts
 
 ```bash
-# 1. Place artifacts in staging folder
+# 1. Place artifacts in staging folder (default location)
 mkdir -p .kiro/onboarding
 cp project-spec.md .kiro/onboarding/
 cp architecture-diagram.pdf .kiro/onboarding/
@@ -106,12 +271,35 @@ cp requirements.png .kiro/onboarding/
 
 # 2. Run init
 hiveforge steering init
+
+# OR use a custom source path
+mkdir -p docs/project-info
+cp project-spec.md docs/project-info/
+hiveforge steering init --source-docs-path=docs/project-info
 ```
 
 **Supported Formats:**
 - **Markdown** (.md): Project specs, requirements, documentation
 - **PDF** (.pdf): Architecture diagrams, design docs, presentations
 - **Images** (.png, .jpg): Screenshots, diagrams, mockups (OCR)
+
+### Dry-Run Mode (Preview)
+
+```bash
+# Preview what would be generated without creating files
+hiveforge steering init --dry-run
+
+# Preview with custom source path
+hiveforge steering init --dry-run --source-docs-path=docs/specs
+```
+
+**Use Cases:**
+- Preview generated content before committing
+- Test different source document locations
+- Verify confidence scores before generation
+- Check for warnings without making changes
+
+**Output**: Returns preview of all files that would be created, including metadata and confidence scores.
 
 ### Non-Interactive Mode
 
@@ -154,12 +342,47 @@ hiveforge steering init --skip-validation
 ### Complete Example
 
 ```bash
-# Full-featured init
+# Full-featured init with custom source path
 hiveforge steering init \
+  --source-docs-path=__DEVELOPMENT \
   --analyze-code \
   --research \
   --interactive
+
+# Preview mode with custom source
+hiveforge steering init \
+  --dry-run \
+  --source-docs-path=docs/specs \
+  --analyze-code
 ```
+
+### Understanding Confidence Metadata
+
+Generated files include confidence metadata in YAML frontmatter:
+
+```yaml
+---
+confidence_level: medium
+confidence_score: 0.65
+source_documents_found: 3
+inferred_sections: ["Rationale", "Trade-offs"]
+---
+```
+
+**Confidence Levels**:
+- **High (0.7-1.0)**: Most content from source documents, minimal inference
+- **Medium (0.4-0.7)**: Mix of source documents and code analysis
+- **Low (0.0-0.4)**: Mostly inferred from code, few source documents
+
+**Inferred Section Tags**:
+Sections generated without source documents are marked with `[INFERRED]`:
+
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
+
+These sections should be reviewed and updated with accurate information.
 
 ## Update Workflow
 
@@ -716,4 +939,4 @@ config = SteeringConfig(
 ---
 
 **Last Updated**: February 2026
-**Version**: 1.0.0
+**Version**: 2.2.0

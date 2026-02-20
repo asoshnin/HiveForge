@@ -9,7 +9,7 @@ import json
 import pytest
 from pathlib import Path
 
-from src.hiveforge.steering.analyzers.tech_stack_extractor import (
+from hiveforge.steering.analyzers.tech_stack_extractor import (
     extract_tech_stack,
     get_tech_stack_confidence_scores,
     _parse_package_json,
@@ -18,7 +18,7 @@ from src.hiveforge.steering.analyzers.tech_stack_extractor import (
     _parse_go_mod,
     _parse_cargo_toml,
 )
-from src.hiveforge.steering.models import TechStackInfo, Dependency
+from hiveforge.steering.models import TechStackInfo, Dependency
 
 
 class TestExtractTechStack:

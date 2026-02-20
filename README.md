@@ -5,8 +5,8 @@
 [![PyPI version](https://badge.fury.io/py/hiveforge.svg)](https://badge.fury.io/py/hiveforge)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-66%20passed-brightgreen)](https://github.com/asoshnin/HiveForge)
-[![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen)](https://github.com/asoshnin/HiveForge)
+[![Tests](https://img.shields.io/badge/tests-169%20passed-brightgreen)](https://github.com/asoshnin/HiveForge)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](https://github.com/asoshnin/HiveForge)
 
 **hiveforge** is a CLI tool that scaffolds [KIRO Methodology v05](https://kiro.ai) projects with a complete multi-agent architecture, steering files, and swarm state management—ready for use with Kiro IDE.
 
@@ -17,6 +17,10 @@
 - 🤖 **7 Specialized Agent Definitions** - Orchestrator, Data Architect, Backend Engineer, Frontend Engineer, QA Engineer, DevOps Engineer, Red Team
 - 📋 **8 Steering Files** - Project vision, tech stack, conventions, architecture, and standards
 - 🧭 **Steering Assistant** - AI-powered tool to create and maintain steering files throughout your project lifecycle
+- 📂 **Custom Source Document Paths** - Specify where your design documents are located (v2.2.0)
+- 🎯 **Confidence Scoring** - Know which content is from documents vs. inferred (v2.2.0)
+- ⚠️ **Hallucination Guardrails** - Clear warnings when source material is missing (v2.2.0)
+- 👁️ **Dry-Run Mode** - Preview what will be generated before committing (v2.2.0)
 - 📊 **Swarm State Management** - Pre-configured `swarm_state.md` with dynamic placeholders
 - 🔒 **Permission-Based Security** - `toolsSettings` enforce role boundaries (Orchestrator can't write to `src/`)
 - ⚡ **Zero Configuration** - Works out of the box, no setup required

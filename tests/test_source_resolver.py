@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from src.hiveforge.steering.source_resolver import (
+from hiveforge.steering.source_resolver import (
     PathTraversalError,
     PathValidationError,
     SourceDocumentInfo,
@@ -584,7 +584,7 @@ class TestGitignoreRespect:
     def test_gitignore_without_pathspec(self, resolver, temp_project, monkeypatch):
         """Test behavior when pathspec library is not available."""
         # Mock pathspec as None
-        import src.hiveforge.steering.source_resolver as resolver_module
+        import hiveforge.steering.source_resolver as resolver_module
         monkeypatch.setattr(resolver_module, "pathspec", None)
         
         # Create new resolver to trigger _load_gitignore

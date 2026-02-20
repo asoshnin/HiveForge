@@ -7,7 +7,7 @@ and inline comments from codebases.
 
 import pytest
 from pathlib import Path
-from src.hiveforge.steering.analyzers.documentation_parser import (
+from hiveforge.steering.analyzers.documentation_parser import (
     parse_codebase_documentation,
     get_documentation_summary,
     _parse_readme_files,
@@ -17,7 +17,7 @@ from src.hiveforge.steering.analyzers.documentation_parser import (
     _get_language_from_extension,
     _parse_text_file,
 )
-from src.hiveforge.steering.models import ParsedDocument
+from hiveforge.steering.models import ParsedDocument
 
 
 @pytest.fixture

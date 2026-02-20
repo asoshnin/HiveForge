@@ -14,11 +14,11 @@ from pypdf import PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 
-from src.hiveforge.steering.parsers.pdf import (
+from hiveforge.steering.parsers.pdf import (
     parse_pdf,
     extract_pdf_info,
 )
-from src.hiveforge.steering.models import ParsedDocument
+from hiveforge.steering.models import ParsedDocument
 
 
 def create_test_pdf(file_path: Path, pages_content: list[str], metadata: dict = None):

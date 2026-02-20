@@ -166,7 +166,7 @@ class TestErrorObfuscation:
     @pytest.mark.asyncio
     async def test_api_key_not_exposed(self):
         """Test that API keys are not exposed in error messages."""
-        with patch('src.hiveforge.steering.workflows.InitWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.InitWorkflow.execute') as mock:
             mock.side_effect = Exception(
                 "OpenAI API error: Invalid API key sk-1234567890abcdefghij"
             )
@@ -188,7 +188,7 @@ class TestErrorObfuscation:
     @pytest.mark.asyncio
     async def test_file_paths_not_exposed(self):
         """Test that internal file paths are not exposed in errors."""
-        with patch('src.hiveforge.steering.workflows.InitWorkflow.execute') as mock:
+        with patch('hiveforge.steering.workflows.InitWorkflow.execute') as mock:
             mock.side_effect = Exception(
                 "Error reading /home/user/.config/hiveforge/api_keys.json"
             )
@@ -213,7 +213,7 @@ class TestSecurityLogging:
     
     def test_security_violations_are_logged(self, python_project):
         """Test that security violations are logged."""
-        from src.hiveforge.steering.security_wrappers import SecurityLogger
+        from hiveforge.steering.security_wrappers import SecurityLogger
         
         logger = SecurityLogger()
         
@@ -234,7 +234,7 @@ class TestSecurityLogging:
     
     def test_failed_validations_are_logged(self, python_project):
         """Test that failed validations are logged."""
-        from src.hiveforge.steering.security_wrappers import SecurityLogger
+        from hiveforge.steering.security_wrappers import SecurityLogger
         
         logger = SecurityLogger()
         
@@ -256,7 +256,7 @@ class TestSecureExecutionDecorator:
     @pytest.mark.asyncio
     async def test_decorator_validates_inputs(self):
         """Test that decorator validates all inputs."""
-        from src.hiveforge.steering.security_wrappers import secure_tool_execution
+        from hiveforge.steering.security_wrappers import secure_tool_execution
         
         @secure_tool_execution
         async def test_tool(project_root: str, confidence: float):
@@ -274,7 +274,7 @@ class TestSecureExecutionDecorator:
     @pytest.mark.asyncio
     async def test_decorator_sanitizes_paths(self):
         """Test that decorator sanitizes path inputs."""
-        from src.hiveforge.steering.security_wrappers import secure_tool_execution
+        from hiveforge.steering.security_wrappers import secure_tool_execution
         
         @secure_tool_execution
         async def test_tool(project_root: str):

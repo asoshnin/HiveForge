@@ -9,11 +9,11 @@ import pytest
 from pathlib import Path
 from PIL import Image, ImageDraw
 
-from src.hiveforge.steering.parsers.orchestrator import (
+from hiveforge.steering.parsers.orchestrator import (
     parse_directory,
     get_parsing_summary
 )
-from src.hiveforge.steering.models import ParsedDocument
+from hiveforge.steering.models import ParsedDocument
 
 
 def create_test_markdown(file_path: Path, content: str):
@@ -548,7 +548,7 @@ class TestDiscoveryOrchestrator:
     
     def test_init_with_source_docs_path(self):
         """Should initialize with source_docs_path parameter."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         orchestrator = DiscoveryOrchestrator(
             source_docs_path="_DEVELOPMENT",
@@ -560,7 +560,7 @@ class TestDiscoveryOrchestrator:
     
     def test_filter_by_file_types(self, tmp_path):
         """Should filter files by specified file types."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         # Create test files
         files = [
@@ -586,7 +586,7 @@ class TestDiscoveryOrchestrator:
     
     def test_filter_by_file_types_no_filter(self, tmp_path):
         """Should return all files when no filter specified."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         files = [
             tmp_path / "doc.md",
@@ -606,7 +606,7 @@ class TestDiscoveryOrchestrator:
     
     def test_update_discovery_stats(self, tmp_path):
         """Should update discovery statistics correctly."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         # Create test files in different directories
         docs_dir = tmp_path / "docs"
@@ -643,7 +643,7 @@ class TestDiscoveryOrchestrator:
     
     def test_discover_all_with_source_docs_path(self, tmp_path):
         """Should prioritize source_docs_path when discovering files."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         # Create project structure
         project_root = tmp_path / "project"
@@ -679,7 +679,7 @@ class TestDiscoveryOrchestrator:
     
     def test_discover_all_with_file_types(self, tmp_path):
         """Should filter by file types during discovery."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         # Create project structure
         project_root = tmp_path / "project"
@@ -706,7 +706,7 @@ class TestDiscoveryOrchestrator:
     
     def test_discover_all_returns_enhanced_metadata(self, tmp_path):
         """Should return enhanced metadata with statistics."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         # Create project structure
         project_root = tmp_path / "project"
@@ -733,7 +733,7 @@ class TestDiscoveryOrchestrator:
     
     def test_discover_all_with_nonexistent_source_path(self, tmp_path):
         """Should handle nonexistent source_docs_path gracefully."""
-        from src.hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
+        from hiveforge.steering.parsers.orchestrator import DiscoveryOrchestrator
         
         # Create project structure
         project_root = tmp_path / "project"
@@ -760,7 +760,7 @@ class TestSharedDiscoveryWorkflow:
     
     def test_init_with_file_types(self, tmp_path):
         """Should initialize with file_types parameter."""
-        from src.hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
+        from hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
         
         workflow = SharedDiscoveryWorkflow(
             project_root=tmp_path,
@@ -773,7 +773,7 @@ class TestSharedDiscoveryWorkflow:
     
     def test_execute_includes_enhanced_metadata(self, tmp_path):
         """Should include enhanced metadata in result."""
-        from src.hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
+        from hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
         
         # Create project structure
         project_root = tmp_path / "project"
@@ -804,7 +804,7 @@ class TestSharedDiscoveryWorkflow:
     
     def test_execute_with_file_type_filtering(self, tmp_path):
         """Should filter files by type during execution."""
-        from src.hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
+        from hiveforge.steering.shared.adapters import SharedDiscoveryWorkflow
         
         # Create project structure
         project_root = tmp_path / "project"

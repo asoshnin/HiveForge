@@ -9,8 +9,8 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from src.hiveforge.steering.workflows.validate_workflow import ValidateWorkflow
-from src.hiveforge.steering.models import (
+from hiveforge.steering.workflows.validate_workflow import ValidateWorkflow
+from hiveforge.steering.models import (
     SteeringConfig,
     ValidationReport,
     ValidationIssue,
@@ -128,7 +128,7 @@ class TestValidateWorkflowFileVerification:
 class TestValidateWorkflowValidation:
     """Test validation step."""
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_run_validator_success(self, mock_validator_class, config, temp_project):
         """Test successful validation run."""
         # Setup mock
@@ -155,7 +155,7 @@ class TestValidateWorkflowValidation:
         # Verify report was stored
         assert workflow.state.validation_report == mock_report
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_run_validator_failure(self, mock_validator_class, config, temp_project):
         """Test validation run with exception."""
         # Setup mock to raise exception
@@ -381,7 +381,7 @@ class TestValidateWorkflowExitCode:
 class TestValidateWorkflowExecution:
     """Test complete workflow execution."""
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_execute_success(self, mock_validator_class, config, temp_project):
         """Test successful complete workflow execution."""
         # Setup mock
@@ -401,7 +401,7 @@ class TestValidateWorkflowExecution:
         assert exit_code == 0
         assert workflow.state.validation_report == mock_report
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_execute_with_critical_issues(self, mock_validator_class, config, temp_project):
         """Test workflow execution with critical issues."""
         # Setup mock
@@ -438,7 +438,7 @@ class TestValidateWorkflowExecution:
         
         assert exit_code == 1
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_execute_with_exception(self, mock_validator_class, config, temp_project):
         """Test workflow execution with exception."""
         # Setup mock to raise exception
@@ -455,7 +455,7 @@ class TestValidateWorkflowExecution:
 class TestValidateWorkflowStrictMode:
     """Test strict mode behavior."""
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_strict_mode_treats_warnings_as_errors(
         self,
         mock_validator_class,
@@ -491,7 +491,7 @@ class TestValidateWorkflowStrictMode:
         # In strict mode, warnings should cause non-zero exit code
         assert exit_code == 1
     
-    @patch('src.hiveforge.steering.workflows.validate_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.validate_workflow.SteeringValidator')
     def test_normal_mode_allows_warnings(
         self,
         mock_validator_class,

@@ -419,3 +419,340 @@ class TestCLIProjectRootHandling:
                 # Verify project_root was passed
                 call_args = mock_workflow_class.call_args
                 assert call_args.kwargs['project_root'] == Path("/test/project")
+
+
+class TestCLINewParameters:
+    """Tests for new CLI parameters added in v2.2.0."""
+    
+    def test_init_with_dry_run_flag(self, cli_runner):
+        """Test that init command passes dry_run parameter correctly."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = "Preview output"
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, [
+                "steering", "init",
+                "--dry-run"
+            ])
+            
+            # Verify workflow was created with dry_run=True
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is True
+            
+            # Verify workflow was executed
+            mock_workflow.execute.assert_called_once()
+            
+            # Verify output contains preview
+            assert "Preview output" in result.output
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_without_dry_run_flag(self, cli_runner):
+        """Test that init command defaults dry_run to False."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = "Success"
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify workflow was created with dry_run=False (default)
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is False
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_dry_run_displays_preview_without_writing_files(self, cli_runner):
+        """Test that dry-run mode displays preview without writing files."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = (
+                "DRY RUN MODE - No files written\n"
+                "Preview of steering files:\n"
+                "- tech-stack.md\n"
+                "- architecture.md\n"
+            )
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, [
+                "steering", "init",
+                "--dry-run"
+            ])
+            
+            # Verify preview is displayed
+            assert "DRY RUN MODE" in result.output
+            assert "No files written" in result.output
+            assert "Preview" in result.output
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_dry_run_with_other_flags(self, cli_runner):
+        """Test that dry-run works with other flags."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = "Preview"
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, [
+                "steering", "init",
+                "--dry-run",
+                "--research",
+                "--analyze-code"
+            ])
+            
+            # Verify all parameters were passed
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is True
+            assert call_args.kwargs['config']['research_enabled'] is True
+            assert call_args.kwargs['auto_discover'] is True
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_dry_run_handles_errors_gracefully(self, cli_runner):
+        """Test that dry-run mode handles errors gracefully."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_workflow.execute.side_effect = RuntimeError("Dry run failed")
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, [
+                "steering", "init",
+                "--dry-run"
+            ])
+            
+            # Verify error is displayed
+            assert result.exit_code == 1
+            assert "Error" in result.output
+            assert "Dry run failed" in result.output
+
+
+class TestCLIOutputFormatting:
+    """Tests for CLI output formatting with new features."""
+    
+    def test_init_displays_confidence_metadata(self, cli_runner):
+        """Test that init command displays confidence metadata in output."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = (
+                "✓ Steering files created successfully\n"
+                "Confidence: HIGH (0.85)\n"
+                "Source documents: 5 found\n"
+            )
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify confidence metadata is displayed
+            assert "Confidence" in result.output
+            assert "Source documents" in result.output
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_displays_low_confidence_warning(self, cli_runner):
+        """Test that init command displays warning for low confidence."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = (
+                "⚠️  Warning: Low confidence (0.25)\n"
+                "No source documents found in .kiro/onboarding/\n"
+                "Consider using --analyze-code or providing documentation\n"
+            )
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify warning is displayed
+            assert "Warning" in result.output or "⚠️" in result.output
+            assert "Low confidence" in result.output or "confidence" in result.output.lower()
+            
+            # Verify exit code (should still be 0 - warning, not error)
+            assert result.exit_code == 0
+    
+    def test_init_displays_inferred_sections_notice(self, cli_runner):
+        """Test that init command displays notice about inferred sections."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = (
+                "✓ Steering files created\n"
+                "Note: Some sections marked as [INFERRED] - review and update as needed\n"
+            )
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify notice is displayed
+            assert "[INFERRED]" in result.output or "inferred" in result.output.lower()
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_displays_discovery_statistics(self, cli_runner):
+        """Test that init command displays discovery statistics."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = (
+                "✓ Steering files created\n"
+                "Discovery statistics:\n"
+                "  - Files discovered: 42\n"
+                "  - Files included: 38\n"
+                "  - Files excluded: 4\n"
+            )
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify statistics are displayed
+            assert "discovered" in result.output.lower() or "Discovery" in result.output
+            
+            # Verify exit code
+            assert result.exit_code == 0
+
+
+class TestCLIErrorHandlingNewFeatures:
+    """Tests for error handling with new features."""
+    
+    def test_init_handles_empty_source_folder_gracefully(self, cli_runner):
+        """Test that init command handles empty source folder with clear message."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = (
+                "⚠️  Warning: No source documents found\n"
+                "Steering files created with inferred content\n"
+                "Confidence: LOW (0.30)\n"
+            )
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify warning is displayed
+            assert "Warning" in result.output or "⚠️" in result.output
+            assert "No source documents" in result.output or "no source" in result.output.lower()
+            
+            # Verify exit code (warning, not error)
+            assert result.exit_code == 0
+    
+    def test_init_handles_confidence_calculation_failure(self, cli_runner):
+        """Test that init command handles confidence calculation failure."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_workflow.execute.side_effect = RuntimeError(
+                "Failed to calculate confidence scores"
+            )
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify error is displayed
+            assert result.exit_code == 1
+            assert "Error" in result.output
+            assert "confidence" in result.output.lower()
+    
+    def test_init_handles_tagging_failure(self, cli_runner):
+        """Test that init command handles content tagging failure."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_workflow.execute.side_effect = RuntimeError(
+                "Failed to tag inferred sections"
+            )
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify error is displayed
+            assert result.exit_code == 1
+            assert "Error" in result.output
+            assert "tag" in result.output.lower() or "Failed" in result.output
+
+
+class TestCLIBackwardCompatibility:
+    """Tests to ensure backward compatibility with existing CLI behavior."""
+    
+    def test_init_without_new_parameters_works_as_before(self, cli_runner):
+        """Test that init command works without new parameters (backward compatibility)."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = "Success"
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, ["steering", "init"])
+            
+            # Verify workflow was created with defaults
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['dry_run'] is False
+            assert call_args.kwargs['project_root'] == Path.cwd()
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_with_existing_flags_still_works(self, cli_runner):
+        """Test that existing flags still work with new features."""
+        with patch('hiveforge.steering.cli.SharedInitWorkflow') as mock_workflow_class:
+            mock_workflow = Mock()
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.format_for_cli.return_value = "Success"
+            mock_workflow.execute.return_value = mock_result
+            mock_workflow_class.return_value = mock_workflow
+            
+            result = cli_runner.invoke(app, [
+                "steering", "init",
+                "--research",
+                "--analyze-code",
+                "--no-interactive"
+            ])
+            
+            # Verify all existing flags work
+            call_args = mock_workflow_class.call_args
+            assert call_args.kwargs['config']['research_enabled'] is True
+            assert call_args.kwargs['auto_discover'] is True
+            assert call_args.kwargs['config']['interactive'] is False
+            
+            # Verify exit code
+            assert result.exit_code == 0
+    
+    def test_init_help_text_includes_new_flags(self, cli_runner):
+        """Test that help text includes documentation for new flags."""
+        result = cli_runner.invoke(app, ["steering", "init", "--help"])
+        
+        # Verify help text includes dry-run flag
+        assert "--dry-run" in result.output
+        assert "preview" in result.output.lower() or "Preview" in result.output
+        
+        # Verify exit code
+        assert result.exit_code == 0

@@ -78,7 +78,8 @@ class InitWorkflow:
         self,
         config: SteeringConfig,
         project_root: Optional[Path] = None,
-        source_docs_path: Optional[str] = None
+        source_docs_path: Optional[str] = None,
+        dry_run: bool = False
     ):
         """
         Initialize the init workflow.
@@ -87,10 +88,12 @@ class InitWorkflow:
             config: SteeringConfig with workflow settings
             project_root: Root directory of the project (defaults to current directory)
             source_docs_path: Optional path to source documents folder (relative to project_root)
+            dry_run: If True, preview what would be created without writing files
         """
         self.config = config
         self.project_root = project_root or Path.cwd()
         self.source_docs_path = source_docs_path
+        self.dry_run = dry_run
         
         # Initialize workflow state
         self.state = WorkflowState(
@@ -108,6 +111,8 @@ class InitWorkflow:
         logger.info(f"Initialized InitWorkflow for project: {self.project_root}")
         if source_docs_path:
             logger.info(f"Custom source documents path: {source_docs_path}")
+        if dry_run:
+            logger.info("Dry-run mode enabled - no files will be written")
     
     def execute(self) -> bool:
         """
@@ -783,30 +788,52 @@ class InitWorkflow:
         Files are already tagged with confidence metadata and [INFERRED] markers
         from the previous step.
         
-        Requirements: 4.7, R3.3, R3.4
+        In dry-run mode, files are not written but preview is stored in metadata.
+        
+        Requirements: 4.7, R3.3, R3.4, R4.1, R4.2
         """
         logger.info("Step 9: Writing steering files")
-        print("\n💾 Writing steering files...")
         
-        try:
-            # Ensure steering directory exists
-            self.state.steering_dir.mkdir(parents=True, exist_ok=True)
+        if self.dry_run:
+            print("\n🔍 Dry-run mode: Previewing files (no files will be written)...")
             
-            # Write each file (content is already tagged)
-            written_files = []
+            # Store preview in metadata instead of writing files
+            preview = {}
             for filename, content in getattr(self.state, 'populated_files', {}).items():
-                file_path = self.state.steering_dir / filename
-                file_path.write_text(content, encoding='utf-8')
-                written_files.append(filename)
-                logger.info(f"Wrote: {filename}")
+                preview[filename] = content
+                logger.info(f"Preview: {filename} ({len(content)} characters)")
             
-            print(f"   ✓ Wrote {len(written_files)} file(s) to {self.state.steering_dir}")
-            for filename in written_files:
+            # Store preview in state metadata
+            self.state.metadata["dry_run_preview"] = preview
+            self.state.metadata["dry_run"] = True
+            
+            print(f"   ✓ Generated preview for {len(preview)} file(s)")
+            for filename in preview.keys():
                 print(f"     • {filename}")
-        
-        except Exception as e:
-            logger.error(f"Failed to write files: {e}", exc_info=True)
-            raise RuntimeError(f"Could not write steering files: {e}")
+            print(f"\n   ℹ️  No files were written (dry-run mode)")
+            
+        else:
+            print("\n💾 Writing steering files...")
+            
+            try:
+                # Ensure steering directory exists
+                self.state.steering_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Write each file (content is already tagged)
+                written_files = []
+                for filename, content in getattr(self.state, 'populated_files', {}).items():
+                    file_path = self.state.steering_dir / filename
+                    file_path.write_text(content, encoding='utf-8')
+                    written_files.append(filename)
+                    logger.info(f"Wrote: {filename}")
+                
+                print(f"   ✓ Wrote {len(written_files)} file(s) to {self.state.steering_dir}")
+                for filename in written_files:
+                    print(f"     • {filename}")
+            
+            except Exception as e:
+                logger.error(f"Failed to write files: {e}", exc_info=True)
+                raise RuntimeError(f"Could not write steering files: {e}")
     
     def _step_run_validation(self) -> None:
         """

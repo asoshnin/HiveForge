@@ -8,8 +8,8 @@ and resolution functionality.
 import pytest
 from hypothesis import given, strategies as st
 
-from src.hiveforge.steering.conflict_resolver import ConflictResolver
-from src.hiveforge.steering.models import Conflict
+from hiveforge.steering.conflict_resolver import ConflictResolver
+from hiveforge.steering.models import Conflict
 
 
 class TestConflictResolverUnit:

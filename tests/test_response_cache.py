@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from src.hiveforge.steering.response_cache import ResponseCache
+from hiveforge.steering.response_cache import ResponseCache
 
 
 class TestResponseCache:

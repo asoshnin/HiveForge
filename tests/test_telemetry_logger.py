@@ -8,7 +8,7 @@ import json
 import tempfile
 from pathlib import Path
 from hypothesis import given, strategies as st
-from src.hiveforge.steering.telemetry_logger import TelemetryLogger
+from hiveforge.steering.telemetry_logger import TelemetryLogger
 
 
 def test_session_creation():

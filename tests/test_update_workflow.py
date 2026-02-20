@@ -9,8 +9,8 @@ and incremental updates.
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
-from src.hiveforge.steering.workflows.update_workflow import UpdateWorkflow
-from src.hiveforge.steering.models import (
+from hiveforge.steering.workflows.update_workflow import UpdateWorkflow
+from hiveforge.steering.models import (
     SteeringConfig,
     ParsedDocument,
     GapAnalysisResult,
@@ -150,7 +150,7 @@ class TestUpdateWorkflowParsing:
         
         assert workflow.state.parsed_documents == []
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.parse_directory')
+    @patch('hiveforge.steering.workflows.update_workflow.parse_directory')
     def test_parse_new_artifacts_with_files(self, mock_parse, config, temp_project):
         """Test parsing when staging folder has artifacts."""
         # Create artifact in staging
@@ -176,8 +176,8 @@ class TestUpdateWorkflowParsing:
 class TestUpdateWorkflowCustomizationDetection:
     """Test detection of user customizations."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.get_all_templates')
-    @patch('src.hiveforge.steering.workflows.update_workflow.CustomizationDetector')
+    @patch('hiveforge.steering.workflows.update_workflow.get_all_templates')
+    @patch('hiveforge.steering.workflows.update_workflow.CustomizationDetector')
     def test_detect_customizations(self, mock_detector_class, mock_get_templates, config, temp_project):
         """Test customization detection."""
         # Setup mocks
@@ -210,7 +210,7 @@ class TestUpdateWorkflowCustomizationDetection:
 class TestUpdateWorkflowConflictDetection:
     """Test conflict detection between old and new information."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.ConflictResolver')
+    @patch('hiveforge.steering.workflows.update_workflow.ConflictResolver')
     def test_detect_conflicts_found(self, mock_resolver, config, temp_project):
         """Test conflict detection when conflicts exist."""
         mock_conflict = Conflict(
@@ -231,7 +231,7 @@ class TestUpdateWorkflowConflictDetection:
         assert len(workflow.state.conflicts) == 1
         assert workflow.state.conflicts[0].section == "Backend"
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.ConflictResolver')
+    @patch('hiveforge.steering.workflows.update_workflow.ConflictResolver')
     def test_detect_conflicts_none_found(self, mock_resolver, config, temp_project):
         """Test conflict detection when no conflicts exist."""
         mock_resolver.detect_conflicts.return_value = []
@@ -248,7 +248,7 @@ class TestUpdateWorkflowConflictDetection:
 class TestUpdateWorkflowDiffGeneration:
     """Test diff generation for proposed changes."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_generate_diffs(self, mock_diff_gen, config, temp_project):
         """Test diff generation."""
         mock_diff = FileDiff(
@@ -280,7 +280,7 @@ class TestUpdateWorkflowDiffGeneration:
         assert "tech-stack.md" in workflow.diffs
         assert workflow.diffs["tech-stack.md"].file_name == "tech-stack.md"
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_generate_diffs_no_changes(self, mock_diff_gen, config, temp_project):
         """Test diff generation when no changes exist."""
         mock_diff = FileDiff(
@@ -305,7 +305,7 @@ class TestUpdateWorkflowUserApproval:
     """Test user approval process."""
     
     @patch('builtins.input', return_value='y')
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_get_user_approval_accepted(self, mock_diff_gen, mock_input, config, temp_project):
         """Test user approval when changes are accepted."""
         mock_diff = FileDiff(
@@ -326,7 +326,7 @@ class TestUpdateWorkflowUserApproval:
         assert result is True
     
     @patch('builtins.input', return_value='n')
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_get_user_approval_rejected(self, mock_diff_gen, mock_input, config, temp_project):
         """Test user approval when changes are rejected."""
         mock_diff = FileDiff(
@@ -346,7 +346,7 @@ class TestUpdateWorkflowUserApproval:
         
         assert result is False
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_get_user_approval_no_changes(self, mock_diff_gen, config, temp_project):
         """Test user approval when no changes exist."""
         mock_diff = FileDiff(
@@ -369,7 +369,7 @@ class TestUpdateWorkflowUserApproval:
 class TestUpdateWorkflowApplyChanges:
     """Test applying approved changes."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_apply_changes(self, mock_diff_gen, config, temp_project):
         """Test applying changes to files."""
         mock_diff = FileDiff(
@@ -394,7 +394,7 @@ class TestUpdateWorkflowApplyChanges:
 class TestUpdateWorkflowValidation:
     """Test validation of updated files."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.update_workflow.SteeringValidator')
     def test_run_validation(self, mock_validator_class, config, temp_project):
         """Test validation step."""
         mock_validator = Mock()
@@ -420,15 +420,15 @@ class TestUpdateWorkflowValidation:
 class TestUpdateWorkflowIntegration:
     """Integration tests for complete update workflow."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.SteeringValidator')
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
-    @patch('src.hiveforge.steering.workflows.update_workflow.ConflictResolver')
-    @patch('src.hiveforge.steering.workflows.update_workflow.CustomizationDetector')
-    @patch('src.hiveforge.steering.workflows.update_workflow.TemplatePopulator')
-    @patch('src.hiveforge.steering.workflows.update_workflow.SteeringAssistant')
-    @patch('src.hiveforge.steering.workflows.update_workflow.GapAnalysisEngine')
-    @patch('src.hiveforge.steering.workflows.update_workflow.KnowledgeBase')
-    @patch('src.hiveforge.steering.workflows.update_workflow.parse_directory')
+    @patch('hiveforge.steering.workflows.update_workflow.SteeringValidator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.ConflictResolver')
+    @patch('hiveforge.steering.workflows.update_workflow.CustomizationDetector')
+    @patch('hiveforge.steering.workflows.update_workflow.TemplatePopulator')
+    @patch('hiveforge.steering.workflows.update_workflow.SteeringAssistant')
+    @patch('hiveforge.steering.workflows.update_workflow.GapAnalysisEngine')
+    @patch('hiveforge.steering.workflows.update_workflow.KnowledgeBase')
+    @patch('hiveforge.steering.workflows.update_workflow.parse_directory')
     @patch('builtins.input', return_value='y')
     def test_execute_complete_workflow(
         self,
@@ -532,7 +532,7 @@ class TestUpdateWorkflowErrorHandling:
         with pytest.raises(RuntimeError):
             workflow._step_parse_existing_files()
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_apply_changes_error(self, mock_diff_gen, config, temp_project):
         """Test error handling when applying changes fails."""
         mock_diff_gen.has_changes.return_value = True
@@ -608,7 +608,7 @@ class TestUpdateWorkflowHelperMethods:
 class TestUpdateWorkflowIdempotence:
     """Test idempotent behavior of update workflow."""
     
-    @patch('src.hiveforge.steering.workflows.update_workflow.DiffGenerator')
+    @patch('hiveforge.steering.workflows.update_workflow.DiffGenerator')
     def test_no_changes_when_content_identical(self, mock_diff_gen, config, temp_project):
         """Test that no changes are proposed when content is identical."""
         mock_diff = FileDiff(

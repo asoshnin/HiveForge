@@ -6,7 +6,7 @@ Validates: Requirements 10.1-10.7
 
 import time
 from hypothesis import given, strategies as st
-from src.hiveforge.steering.performance_monitor import PerformanceMonitor
+from hiveforge.steering.performance_monitor import PerformanceMonitor
 
 
 def test_start_timer_resets_state():

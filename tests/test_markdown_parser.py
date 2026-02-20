@@ -10,12 +10,12 @@ import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from src.hiveforge.steering.parsers.markdown import (
+from hiveforge.steering.parsers.markdown import (
     parse_markdown,
     extract_headers,
     extract_code_blocks,
 )
-from src.hiveforge.steering.models import ParsedDocument
+from hiveforge.steering.models import ParsedDocument
 
 
 class TestParseMarkdown:

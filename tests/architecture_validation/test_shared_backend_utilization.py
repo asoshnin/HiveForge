@@ -44,9 +44,9 @@ class TestSharedBackendImports:
         """Verify CLI uses shared workflow modules.
         
         Expected behavior:
-        - from src.hiveforge.steering.shared.workflows import InitWorkflow
-        - from src.hiveforge.steering.shared.workflows import UpdateWorkflow
-        - from src.hiveforge.steering.shared.workflows import ValidateWorkflow
+        - from hiveforge.steering.shared.workflows import InitWorkflow
+        - from hiveforge.steering.shared.workflows import UpdateWorkflow
+        - from hiveforge.steering.shared.workflows import ValidateWorkflow
         - All imports succeed without errors
         """
         # TODO Phase 2: Implement after shared backend created
@@ -102,7 +102,7 @@ class TestCodePathSharing:
         """Test that both interfaces use the same security wrappers.
         
         Expected behavior:
-        - Both import from src.hiveforge.steering.shared.security_wrappers
+        - Both import from hiveforge.steering.shared.security_wrappers
         - secure_tool_execution decorator used by both
         - validate_parameters() called by both
         - sanitize_path() used for all path inputs
@@ -115,7 +115,7 @@ class TestCodePathSharing:
         """Test that both interfaces use the same error handling.
         
         Expected behavior:
-        - Both import from src.hiveforge.steering.shared.error_handling
+        - Both import from hiveforge.steering.shared.error_handling
         - ToolExecutor used for all tool operations
         - ErrorContext provides consistent error information
         - ErrorSeverity levels applied identically

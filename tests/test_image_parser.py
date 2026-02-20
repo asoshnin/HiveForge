@@ -10,13 +10,13 @@ import pytest
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-from src.hiveforge.steering.parsers.image import (
+from hiveforge.steering.parsers.image import (
     parse_image,
     is_supported_image_format,
     get_image_info,
     TESSERACT_AVAILABLE,
 )
-from src.hiveforge.steering.models import ParsedDocument
+from hiveforge.steering.models import ParsedDocument
 
 
 def is_tesseract_installed():

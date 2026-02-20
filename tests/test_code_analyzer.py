@@ -13,13 +13,13 @@ from unittest.mock import Mock, patch, MagicMock
 
 import pytest
 
-from src.hiveforge.steering.analyzers.code_analyzer import (
+from hiveforge.steering.analyzers.code_analyzer import (
     CodeAnalyzer,
     analyze_codebase,
     LARGE_CODEBASE_THRESHOLD,
     PROGRESS_UPDATE_INTERVAL,
 )
-from src.hiveforge.steering.models import (
+from hiveforge.steering.models import (
     CodeAnalysisResult,
     LanguageInfo,
     TechStackInfo,
@@ -112,7 +112,7 @@ class TestGitignoreHandling:
     
     def test_load_gitignore_without_pathspec(self, analyzer, temp_project):
         """Test handling when pathspec library is not available."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.pathspec", None):
+        with patch("hiveforge.steering.analyzers.code_analyzer.pathspec", None):
             analyzer._load_gitignore()
             
             # Should log warning but not fail
@@ -156,7 +156,7 @@ class TestLanguageDetection:
     
     def test_detect_languages_calls_module(self, analyzer):
         """Test that detect_languages calls the language detector module."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.detect_languages") as mock_detect:
+        with patch("hiveforge.steering.analyzers.code_analyzer.detect_languages") as mock_detect:
             mock_detect.return_value = [
                 LanguageInfo(name="Python", percentage=60.0, file_count=2, line_count=100),
                 LanguageInfo(name="JavaScript", percentage=40.0, file_count=1, line_count=50),
@@ -170,7 +170,7 @@ class TestLanguageDetection:
     
     def test_detect_languages_handles_error(self, analyzer):
         """Test error handling in language detection."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.detect_languages") as mock_detect:
+        with patch("hiveforge.steering.analyzers.code_analyzer.detect_languages") as mock_detect:
             mock_detect.side_effect = Exception("Test error")
             
             result = analyzer.detect_languages()
@@ -184,7 +184,7 @@ class TestTechStackExtraction:
     
     def test_extract_tech_stack_calls_module(self, analyzer):
         """Test that extract_tech_stack calls the extractor module."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.extract_tech_stack") as mock_extract:
+        with patch("hiveforge.steering.analyzers.code_analyzer.extract_tech_stack") as mock_extract:
             mock_tech_stack = TechStackInfo(
                 backend_framework="Express",
                 frontend_framework="React"
@@ -199,7 +199,7 @@ class TestTechStackExtraction:
     
     def test_extract_tech_stack_handles_error(self, analyzer):
         """Test error handling in tech stack extraction."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.extract_tech_stack") as mock_extract:
+        with patch("hiveforge.steering.analyzers.code_analyzer.extract_tech_stack") as mock_extract:
             mock_extract.side_effect = Exception("Test error")
             
             result = analyzer.extract_tech_stack()
@@ -214,7 +214,7 @@ class TestArchitectureInference:
     
     def test_infer_architecture_calls_module(self, analyzer):
         """Test that infer_architecture calls the inferrer module."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.infer_architecture") as mock_infer:
+        with patch("hiveforge.steering.analyzers.code_analyzer.infer_architecture") as mock_infer:
             mock_arch = ArchitectureInfo(
                 pattern="layered",
                 key_components=["Controllers", "Services", "Models"]
@@ -229,7 +229,7 @@ class TestArchitectureInference:
     
     def test_infer_architecture_handles_error(self, analyzer):
         """Test error handling in architecture inference."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.infer_architecture") as mock_infer:
+        with patch("hiveforge.steering.analyzers.code_analyzer.infer_architecture") as mock_infer:
             mock_infer.side_effect = Exception("Test error")
             
             result = analyzer.infer_architecture()
@@ -244,8 +244,8 @@ class TestConventionsExtraction:
     
     def test_extract_conventions_calls_module(self, analyzer):
         """Test that extract_conventions calls the extractor module."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.extract_conventions") as mock_extract:
-            with patch("src.hiveforge.steering.analyzers.code_analyzer.summarize_conventions") as mock_summarize:
+        with patch("hiveforge.steering.analyzers.code_analyzer.extract_conventions") as mock_extract:
+            with patch("hiveforge.steering.analyzers.code_analyzer.summarize_conventions") as mock_summarize:
                 mock_extract.return_value = {"naming": {}, "formatting": {}}
                 mock_summarize.return_value = {
                     "function_naming": "snake_case",
@@ -263,7 +263,7 @@ class TestConventionsExtraction:
     
     def test_extract_conventions_handles_error(self, analyzer):
         """Test error handling in conventions extraction."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.extract_conventions") as mock_extract:
+        with patch("hiveforge.steering.analyzers.code_analyzer.extract_conventions") as mock_extract:
             mock_extract.side_effect = Exception("Test error")
             
             result = analyzer.extract_conventions()
@@ -277,7 +277,7 @@ class TestDocumentationParsing:
     
     def test_parse_documentation_calls_module(self, analyzer):
         """Test that _parse_documentation calls the parser module."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.parse_codebase_documentation") as mock_parse:
+        with patch("hiveforge.steering.analyzers.code_analyzer.parse_codebase_documentation") as mock_parse:
             mock_parse.return_value = []
             
             result = analyzer._parse_documentation()
@@ -291,7 +291,7 @@ class TestDocumentationParsing:
     
     def test_parse_documentation_handles_error(self, analyzer):
         """Test error handling in documentation parsing."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.parse_codebase_documentation") as mock_parse:
+        with patch("hiveforge.steering.analyzers.code_analyzer.parse_codebase_documentation") as mock_parse:
             mock_parse.side_effect = Exception("Test error")
             
             result = analyzer._parse_documentation()
@@ -387,7 +387,7 @@ class TestProgressUpdates:
         analyzer.start_time = time.time()
         analyzer.last_progress_update = time.time() - PROGRESS_UPDATE_INTERVAL - 1
         
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.logger") as mock_logger:
+        with patch("hiveforge.steering.analyzers.code_analyzer.logger") as mock_logger:
             analyzer._log_progress("Test message")
             
             # Should log info message
@@ -399,7 +399,7 @@ class TestProgressUpdates:
         analyzer.start_time = time.time()
         analyzer.last_progress_update = time.time()
         
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.logger") as mock_logger:
+        with patch("hiveforge.steering.analyzers.code_analyzer.logger") as mock_logger:
             analyzer._log_progress("Test message")
             
             # Should only log debug, not info
@@ -540,7 +540,7 @@ class TestAnalyzeMethod:
                                 with patch.object(analyzer, "extract_conventions", return_value=ConventionsInfo()):
                                     with patch.object(analyzer, "_parse_documentation", return_value=[]):
                                         with patch.object(analyzer, "_save_cache"):
-                                            with patch("src.hiveforge.steering.analyzers.code_analyzer.logger") as mock_logger:
+                                            with patch("hiveforge.steering.analyzers.code_analyzer.logger") as mock_logger:
                                                 analyzer.analyze()
                                                 
                                                 # Should log warning
@@ -554,7 +554,7 @@ class TestConvenienceFunction:
     
     def test_analyze_codebase_function(self, temp_project):
         """Test analyze_codebase convenience function."""
-        with patch("src.hiveforge.steering.analyzers.code_analyzer.CodeAnalyzer") as mock_class:
+        with patch("hiveforge.steering.analyzers.code_analyzer.CodeAnalyzer") as mock_class:
             mock_instance = Mock()
             mock_instance.analyze.return_value = CodeAnalysisResult()
             mock_class.return_value = mock_instance
