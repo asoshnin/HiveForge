@@ -1,14 +1,6 @@
 """
 Source Document Resolver for HiveForge Steering.
 
-**DEPRECATED**: This module has been moved to hiveforge-power/hiveforge/steering/source_resolver.py
-Please update your imports to use the new location:
-    from hiveforge.steering.source_resolver import SourceDocumentResolver
-
-This file will be removed in a future version.
-
----
-
 This module provides secure path resolution and document discovery for custom
 source document locations. It includes comprehensive security checks to prevent
 path traversal attacks and respects .gitignore patterns.

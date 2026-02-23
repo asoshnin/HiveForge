@@ -152,6 +152,11 @@ class CodeAnalyzer:
             languages, tech_stack, architecture, conventions
         )
         
+        # Step 9: Classify project type (P1-2)
+        self._log_progress("Classifying project type")
+        classification = self._heuristic_classify(languages)
+        logger.info(f"Project classified as: {classification.get('project_type', 'unknown')}")
+        
         # Build result
         result = CodeAnalysisResult(
             languages=languages,
@@ -159,7 +164,8 @@ class CodeAnalyzer:
             architecture=architecture,
             conventions=conventions,
             documentation=documentation,
-            confidence_scores=confidence_scores
+            confidence_scores=confidence_scores,
+            classification=classification  # P1-2
         )
         
         # Cache results
@@ -679,6 +685,163 @@ class CodeAnalyzer:
         
         return False
     
+    async def classify_project_with_llm(
+        self,
+        llm_provider: "LLMProvider"
+    ) -> Dict[str, any]:
+        """
+        Enrich project classification with LLM.
+        
+        First runs heuristic classification, then uses LLM to add
+        one_line_description and key_capabilities.
+        
+        Args:
+            llm_provider: LLMProvider instance for LLM calls
+            
+        Returns:
+            Dict with keys: project_type, has_frontend, has_database,
+            has_rest_api, primary_language, one_line_description,
+            key_capabilities
+            
+        Requirements: P2-2
+        """
+        # Get base classification from heuristics
+        languages = self.detect_languages()
+        base_classification = self._heuristic_classify(languages)
+        
+        if not llm_provider.is_available():
+            logger.info("LLM unavailable, using heuristic classification only")
+            return base_classification
+        
+        try:
+            # Build prompt for LLM enrichment
+            prompt = self._build_classification_prompt(base_classification)
+            
+            response = await llm_provider.complete(
+                system_prompt=(
+                    "You are a code analysis expert. Analyze the project "
+                    "and respond with JSON containing: project_type, "
+                    "has_frontend, has_database, has_rest_api, "
+                    "primary_language, one_line_description, "
+                    "key_capabilities (list of 3 strings)"
+                ),
+                user_prompt=prompt,
+                max_tokens=500,
+                temperature=0.1,
+                json_mode=True
+            )
+            
+            if response:
+                enriched = self._parse_classification_response(response)
+                logger.info(
+                    f"LLM enrichment successful: {enriched.get('one_line_description', 'N/A')}"
+                )
+                return enriched
+        
+        except Exception as e:
+            logger.warning(f"LLM enrichment failed: {e}")
+        
+        return base_classification
+    
+    def _build_classification_prompt(
+        self,
+        base_classification: Dict[str, any]
+    ) -> str:
+        """
+        Build prompt for LLM classification enrichment.
+        
+        Args:
+            base_classification: Base classification from heuristics
+            
+        Returns:
+            Prompt string for LLM
+        """
+        # Get tech stack info
+        tech_stack = self.extract_tech_stack()
+        
+        # Get dependencies (limit to 10)
+        dependencies = []
+        if hasattr(tech_stack, 'dependencies'):
+            dependencies = [d.name if hasattr(d, 'name') else str(d) 
+                          for d in tech_stack.dependencies[:10]]
+        
+        # Get languages
+        languages = self.detect_languages()
+        language_names = [lang.name for lang in languages[:5]]
+        
+        # Get architecture
+        architecture = self.infer_architecture()
+        arch_pattern = architecture.pattern if hasattr(architecture, 'pattern') else 'unknown'
+        
+        return f"""
+Analyze this project and provide enriched classification:
+
+Base Classification:
+- Project Type: {base_classification['project_type']}
+- Has Frontend: {base_classification['has_frontend']}
+- Has Database: {base_classification['has_database']}
+- Has REST API: {base_classification['has_rest_api']}
+- Primary Language: {base_classification['primary_language']}
+
+Code Summary:
+- Languages: {', '.join(language_names)}
+- Dependencies: {', '.join(dependencies) if dependencies else 'None detected'}
+- Architecture: {arch_pattern}
+
+Provide JSON response with:
+{{
+  "project_type": "{base_classification['project_type']}",
+  "has_frontend": {str(base_classification['has_frontend']).lower()},
+  "has_database": {str(base_classification['has_database']).lower()},
+  "has_rest_api": {str(base_classification['has_rest_api']).lower()},
+  "primary_language": "{base_classification['primary_language']}",
+  "one_line_description": "A concise description of what this project does",
+  "key_capabilities": ["capability 1", "capability 2", "capability 3"]
+}}
+
+Base your answer only on the provided analysis. No explanations.
+"""
+    
+    def _parse_classification_response(self, response: str) -> Dict[str, any]:
+        """
+        Parse JSON response from LLM.
+        
+        Args:
+            response: LLM response string
+            
+        Returns:
+            Parsed classification dict
+        """
+        import re
+        
+        try:
+            # Extract JSON from response
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                
+                # Validate required keys
+                required_keys = [
+                    'project_type', 'has_frontend', 'has_database',
+                    'has_rest_api', 'primary_language', 'one_line_description',
+                    'key_capabilities'
+                ]
+                
+                if all(key in data for key in required_keys):
+                    logger.debug("Successfully parsed LLM classification response")
+                    return data
+                else:
+                    logger.warning("LLM response missing required keys")
+        
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse classification JSON: {e}")
+        except Exception as e:
+            logger.warning(f"Error parsing classification response: {e}")
+        
+        # Return base classification on parse failure
+        languages = self.detect_languages()
+        return self._heuristic_classify(languages)
+    
     def _load_gitignore(self) -> None:
         """
         Load .gitignore file and build pathspec matcher.
@@ -980,198 +1143,6 @@ class CodeAnalyzer:
         except Exception as e:
             logger.warning(f"Error saving cache: {e}")
             # Don't fail if caching fails
-
-
-    def _heuristic_classify(self, languages: List) -> Dict[str, any]:
-        """
-        Classify project type using heuristics.
-
-        This method detects project type (CLI tool, MCP server, web app, library)
-        based on directory structure and decorators. Does NOT call self.analyze()
-        to avoid recursion.
-
-        Args:
-            languages: List of detected languages
-
-        Returns:
-            Dict with keys: project_type, has_frontend, has_database,
-            has_rest_api, primary_language, one_line_description,
-            key_capabilities
-
-        Requirements: P1-2
-        """
-        logger.info("Classifying project type using heuristics")
-
-        # Extract public API (for MCP/CLI detection)
-        public_api = self.extract_public_api()
-
-        # Detect project type
-        project_type = self._detect_project_type(public_api, languages)
-
-        # Detect features
-        has_frontend = self._detect_frontend()
-        has_database = self._detect_database()
-        has_rest_api = self._detect_rest_api()
-
-        # Determine primary language
-        primary_language = languages[0].name if languages else "Unknown"
-
-        logger.info(
-            f"Classification: type={project_type}, "
-            f"frontend={has_frontend}, db={has_database}, api={has_rest_api}"
-        )
-
-        return {
-            'project_type': project_type,
-            'has_frontend': has_frontend,
-            'has_database': has_database,
-            'has_rest_api': has_rest_api,
-            'primary_language': primary_language,
-            'one_line_description': '[INFERRED: project description]',
-            'key_capabilities': [
-                '[INFERRED: capability 1]',
-                '[INFERRED: capability 2]',
-                '[INFERRED: capability 3]'
-            ]
-        }
-
-    def _detect_project_type(self, public_api, languages: List) -> str:
-        """
-        Detect project type from code patterns.
-
-        Args:
-            public_api: PublicAPIInfo with extracted API elements
-            languages: List of detected languages
-
-        Returns:
-            Project type string: mcp_server, cli_and_mcp, cli_tool, web_app, or library
-        """
-        # Check for MCP server
-        if self._detect_mcp(public_api):
-            if self._detect_cli(public_api):
-                return "cli_and_mcp"
-            return "mcp_server"
-
-        # Check for CLI tool
-        if self._detect_cli(public_api):
-            return "cli_tool"
-
-        # Check for web app
-        if self._detect_frontend():
-            return "web_app"
-
-        # Default to library
-        return "library"
-
-    def _detect_mcp(self, public_api) -> bool:
-        """
-        Check if project is MCP server.
-
-        Args:
-            public_api: PublicAPIInfo with extracted API elements
-
-        Returns:
-            True if project has MCP tools, False otherwise
-        """
-        # Check for mcp_server directory
-        if (self.project_root / 'mcp_server').exists():
-            logger.debug("Found mcp_server/ directory")
-            return True
-
-        # Check for @mcp.tool() decorators
-        if len(public_api.mcp_tools) > 0:
-            logger.debug(f"Found {len(public_api.mcp_tools)} MCP tools")
-            return True
-
-        return False
-
-    def _detect_cli(self, public_api) -> bool:
-        """
-        Check if project has CLI commands.
-
-        Args:
-            public_api: PublicAPIInfo with extracted API elements
-
-        Returns:
-            True if project has CLI commands, False otherwise
-        """
-        if len(public_api.cli_commands) > 0:
-            logger.debug(f"Found {len(public_api.cli_commands)} CLI commands")
-            return True
-
-        return False
-
-    def _detect_frontend(self) -> bool:
-        """
-        Check if project has frontend.
-
-        Returns:
-            True if project has frontend indicators, False otherwise
-        """
-        frontend_indicators = [
-            'src/components',
-            'src/pages',
-            'src/ui',
-            'app/components',
-        ]
-
-        for indicator in frontend_indicators:
-            if (self.project_root / indicator).exists():
-                logger.debug(f"Found frontend indicator: {indicator}")
-                return True
-
-        # Check for .tsx files
-        tsx_files = list(self.project_root.rglob('*.tsx'))
-        if len(tsx_files) > 0:
-            logger.debug(f"Found {len(tsx_files)} .tsx files")
-            return True
-
-        return False
-
-    def _detect_database(self) -> bool:
-        """
-        Check if project has database (project root only).
-
-        Returns:
-            True if project has database indicators, False otherwise
-        """
-        db_indicators = [
-            'migrations',
-            'prisma',
-            'alembic.ini',
-        ]
-
-        for indicator in db_indicators:
-            if (self.project_root / indicator).exists():
-                logger.debug(f"Found database indicator: {indicator}")
-                return True
-
-        # Check for models.py at project root only
-        if (self.project_root / 'models.py').exists():
-            logger.debug("Found models.py at project root")
-            return True
-
-        return False
-
-    def _detect_rest_api(self) -> bool:
-        """
-        Check if project has REST API.
-
-        Returns:
-            True if project has REST API indicators, False otherwise
-        """
-        api_indicators = [
-            'src/api',
-            'routes',
-            'endpoints',
-        ]
-
-        for indicator in api_indicators:
-            if (self.project_root / indicator).exists():
-                logger.debug(f"Found REST API indicator: {indicator}")
-                return True
-
-        return False
 
 
 

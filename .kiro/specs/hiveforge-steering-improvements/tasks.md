@@ -377,11 +377,11 @@ Implement rollback mechanism to restore previous steering files if generation fa
 - P0-4 (interactive flag)
 
 **Sub-tasks:**
-- [ ] 5.1 Implement _create_backup() method with timestamp
-- [ ] 5.2 Implement _cleanup_old_backups() method (keep 5 most recent)
-- [ ] 5.3 Implement _rollback_from_backup() method with atomic operation
-- [ ] 5.4 Add rollback prompt in interactive mode on generation failure
-- [ ] 5.5 Add unit tests for backup and rollback
+- [x] 5.1 Implement _create_backup() method with timestamp
+- [x] 5.2 Implement _cleanup_old_backups() method (keep 5 most recent)
+- [x] 5.3 Implement _rollback_from_backup() method with atomic operation
+- [x] 5.4 Add rollback prompt in interactive mode on generation failure
+- [x] 5.5 Add unit tests for backup and rollback
 
 ---
 
@@ -412,11 +412,11 @@ Port content_tagger.py, confidence.py, and source_resolver.py from src/ to hivef
 - None (can be done independently)
 
 **Sub-tasks:**
-- [ ] 6.1 Copy content_tagger.py and update imports
-- [ ] 6.2 Copy confidence.py and update imports
-- [ ] 6.3 Copy source_resolver.py and update imports
-- [ ] 6.4 Mark src/ versions as deprecated
-- [ ] 6.5 Run tests to verify porting
+- [x] 6.1 Copy content_tagger.py and update imports
+- [x] 6.2 Copy confidence.py and update imports
+- [x] 6.3 Copy source_resolver.py and update imports
+- [x] 6.4 Mark src/ versions as deprecated
+- [x] 6.5 Run tests to verify porting
 
 ---
 
@@ -449,11 +449,11 @@ Implement _filter_files_for_project_type() method that selects appropriate templ
 - P1-2 (_heuristic_classify for project type detection)
 
 **Sub-tasks:**
-- [ ] 1.1 Implement _filter_files_for_project_type() method
-- [ ] 1.2 Create tech-stack.cli.md variant
-- [ ] 1.3 Create tech-stack.web_app.md variant
-- [ ] 1.4 Create api-standards.mcp_server.md variant
-- [ ] 1.5 Add unit tests for template filtering
+- [x] 1.1 Implement _filter_files_for_project_type() method
+- [x] 1.2 Create tech-stack.cli.md variant
+- [x] 1.3 Create tech-stack.web_app.md variant
+- [x] 1.4 Create api-standards.mcp_server.md variant
+- [x] 1.5 Add unit tests for template filtering
 
 ---
 
@@ -482,11 +482,11 @@ Implement classify_project_with_llm() method that enriches heuristic classificat
 - P1-2 (_heuristic_classify)
 
 **Sub-tasks:**
-- [ ] 2.1 Implement classify_project_with_llm() method
-- [ ] 2.2 Implement LLM prompt for project enrichment
-- [ ] 2.3 Implement JSON response parsing
-- [ ] 2.4 Add error handling for LLM failures
-- [ ] 2.5 Add unit tests for enrichment
+- [x] 2.1 Implement classify_project_with_llm() method
+- [x] 2.2 Implement LLM prompt for project enrichment
+- [x] 2.3 Implement JSON response parsing
+- [x] 2.4 Add error handling for LLM failures
+- [x] 2.5 Add unit tests for enrichment
 
 ---
 
@@ -536,22 +536,22 @@ Implement _classify_section_with_llm() method that uses LLM to determine if a te
 Verify that template directories are unified. Add CI check to ensure src/ and hiveforge-power/ templates are byte-for-byte identical.
 
 **Acceptance Criteria:**
-- [ ] Canonical template location identified (hiveforge-power/ preferred)
-- [ ] CI check added to verify src/ and hiveforge-power/ templates are identical
-- [ ] CI fails if templates diverge
-- [ ] CI failure message indicates which files differ
-- [ ] Documentation updated to specify canonical location
-- [ ] Unit tests verify template resolution
+- [x] Canonical template location identified (hiveforge-power/ preferred)
+- [x] CI check added to verify src/ and hiveforge-power/ templates are identical
+- [x] CI fails if templates diverge
+- [x] CI failure message indicates which files differ
+- [x] Documentation updated to specify canonical location
+- [x] Unit tests verify template resolution
 
 **Dependencies:**
 - None (can be done independently)
 
 **Sub-tasks:**
-- [ ] 4.1 Identify canonical template location
-- [ ] 4.2 Implement template sync verification script
-- [ ] 4.3 Add CI check to .github/workflows/ci.yml
-- [ ] 4.4 Update documentation with canonical location
-- [ ] 4.5 Add unit tests for template resolution
+- [x] 4.1 Identify canonical template location
+- [x] 4.2 Implement template sync verification script
+- [x] 4.3 Add CI check to .github/workflows/ci.yml
+- [x] 4.4 Update documentation with canonical location
+- [x] 4.5 Add unit tests for template resolution
 
 ---
 
@@ -592,11 +592,11 @@ Verify that template directories are unified. Add CI check to ensure src/ and hi
 
 ## Documentation Tasks
 
-- [ ] Update README.md with LLMProvider configuration instructions
-- [ ] Create CONFIGURATION.md documenting ~/.hiveforge/llm_config.json format
-- [ ] Update API documentation for new public methods
-- [ ] Create MIGRATION.md for porting files from src/ to hiveforge-power/
-- [ ] Update ARCHITECTURE.md with new component diagrams
+- [x] Update README.md with LLMProvider configuration instructions
+- [x] Create CONFIGURATION.md documenting ~/.hiveforge/llm_config.json format
+- [x] Update API documentation for new public methods
+- [-] Create MIGRATION.md for porting files from src/ to hiveforge-power/
+- [x] Update ARCHITECTURE.md with new component diagrams
 
 ---
 

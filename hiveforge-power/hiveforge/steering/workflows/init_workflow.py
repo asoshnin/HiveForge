@@ -172,6 +172,14 @@ class InitWorkflow:
         except Exception as e:
             logger.error(f"Init workflow failed: {e}", exc_info=True)
             self._display_error_message(str(e))
+            
+            # Offer rollback in interactive mode if backup exists (Req P1-5)
+            if self._offer_rollback_on_failure():
+                if self._rollback_from_backup():
+                    print("\n   ✓ Successfully rolled back to previous steering files")
+                else:
+                    print("\n   ✗ Rollback failed - manual intervention required")
+            
             return False
     
     def _step_create_staging_directory(self) -> None:
@@ -288,7 +296,7 @@ class InitWorkflow:
         Returns:
             True if backup successful, False otherwise
             
-        Requirements: 13.2
+        Requirements: 13.2, P1-5
         """
         if not self.config.backup_enabled:
             logger.info("Backups disabled in config")
@@ -303,19 +311,182 @@ class InitWorkflow:
             logger.info(f"Creating backup in: {backup_dir}")
             print(f"\n   📦 Creating backup: {backup_dir}")
             
-            # Copy each file
+            # Copy each file, preserving timestamps and permissions
             for file_path in files:
                 dest_path = backup_dir / file_path.name
-                shutil.copy2(file_path, dest_path)
+                shutil.copy2(file_path, dest_path)  # copy2 preserves metadata
                 logger.debug(f"Backed up: {file_path.name}")
             
             print(f"   ✓ Backed up {len(files)} file(s)")
+            
+            # Store the backup directory path for potential rollback
+            self.state.last_backup_dir = backup_dir
+            
+            # Cleanup old backups (keep 5 most recent)
+            self._cleanup_old_backups()
+            
             return True
         
         except Exception as e:
             logger.error(f"Backup failed: {e}", exc_info=True)
             print(f"   ✗ Backup failed: {e}")
             return False
+    
+    def _cleanup_old_backups(self) -> None:
+        """
+        Keep only the 5 most recent backups, delete older ones.
+        
+        Requirements: P1-5
+        """
+        try:
+            backup_parent = self.config.backup_dir
+            if not backup_parent.exists():
+                return
+            
+            # Find all backup directories
+            backup_dirs = [
+                d for d in backup_parent.iterdir()
+                if d.is_dir() and d.name.startswith("steering_backup_")
+            ]
+            
+            # Sort by modification time (newest first)
+            backup_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+            
+            # Keep 5 most recent, delete the rest
+            if len(backup_dirs) > 5:
+                for old_backup in backup_dirs[5:]:
+                    logger.info(f"Deleting old backup: {old_backup.name}")
+                    shutil.rmtree(old_backup)
+                
+                deleted_count = len(backup_dirs) - 5
+                logger.info(f"Cleaned up {deleted_count} old backup(s)")
+        
+        except Exception as e:
+            logger.warning(f"Failed to cleanup old backups: {e}")
+            # Non-critical error, don't fail the workflow
+    
+    def _rollback_from_backup(self, backup_dir: Optional[Path] = None) -> bool:
+        """
+        Restore steering files from backup atomically.
+        
+        Args:
+            backup_dir: Specific backup directory to restore from.
+                       If None, uses most recent backup.
+        
+        Returns:
+            True if rollback successful, False otherwise
+            
+        Requirements: P1-5
+        """
+        try:
+            # Determine which backup to use
+            if backup_dir is None:
+                # Find most recent backup
+                backup_parent = self.config.backup_dir
+                if not backup_parent.exists():
+                    logger.error("No backup directory found")
+                    print("   ✗ No backups available for rollback")
+                    return False
+                
+                backup_dirs = [
+                    d for d in backup_parent.iterdir()
+                    if d.is_dir() and d.name.startswith("steering_backup_")
+                ]
+                
+                if not backup_dirs:
+                    logger.error("No backup directories found")
+                    print("   ✗ No backups available for rollback")
+                    return False
+                
+                # Sort by modification time (newest first)
+                backup_dirs.sort(key=lambda d: d.stat().st_mtime, reverse=True)
+                backup_dir = backup_dirs[0]
+            
+            if not backup_dir.exists():
+                logger.error(f"Backup directory not found: {backup_dir}")
+                print(f"   ✗ Backup directory not found: {backup_dir}")
+                return False
+            
+            logger.info(f"Rolling back from: {backup_dir}")
+            print(f"\n   🔄 Rolling back from: {backup_dir.name}")
+            
+            # Get list of files to restore
+            backup_files = list(backup_dir.glob("*.md"))
+            if not backup_files:
+                logger.error(f"No files found in backup: {backup_dir}")
+                print("   ✗ No files found in backup")
+                return False
+            
+            # Ensure steering directory exists
+            self.state.steering_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Atomic operation: copy all files to temp location first
+            temp_dir = self.state.steering_dir.parent / ".steering_temp"
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            
+            try:
+                # Copy backup files to temp directory
+                for backup_file in backup_files:
+                    temp_path = temp_dir / backup_file.name
+                    shutil.copy2(backup_file, temp_path)
+                
+                # Now move from temp to steering directory (atomic)
+                restored_files = []
+                for temp_file in temp_dir.glob("*.md"):
+                    dest_path = self.state.steering_dir / temp_file.name
+                    shutil.move(str(temp_file), str(dest_path))
+                    restored_files.append(temp_file.name)
+                    logger.info(f"Restored: {temp_file.name}")
+                
+                print(f"   ✓ Restored {len(restored_files)} file(s):")
+                for filename in restored_files:
+                    print(f"     • {filename}")
+                
+                return True
+            
+            finally:
+                # Cleanup temp directory
+                if temp_dir.exists():
+                    shutil.rmtree(temp_dir)
+        
+        except Exception as e:
+            logger.error(f"Rollback failed: {e}", exc_info=True)
+            print(f"   ✗ Rollback failed: {e}")
+            return False
+    
+    def _offer_rollback_on_failure(self) -> bool:
+        """
+        In interactive mode, offer to rollback on generation failure.
+        
+        Returns:
+            True if user wants to rollback, False otherwise
+            
+        Requirements: P1-5
+        """
+        if not self.config.interactive:
+            return False
+        
+        if not hasattr(self.state, 'last_backup_dir') or not self.state.last_backup_dir:
+            return False
+        
+        print("\n⚠️  Generation failed. A backup was created before the attempt.")
+        print(f"   Backup location: {self.state.last_backup_dir}")
+        print("\n   Options:")
+        print("     1. Rollback to previous steering files")
+        print("     2. Keep current state (you can manually fix issues)")
+        print()
+        
+        while True:
+            choice = input("   Choose option (1 or 2): ").strip()
+            
+            if choice == "1":
+                logger.info("User chose to rollback")
+                return True
+            elif choice == "2":
+                logger.info("User chose to keep current state")
+                return False
+            else:
+                print("   ⚠️  Invalid choice. Please enter 1 or 2.")
     
     def _step_analyze_code(self) -> None:
         """

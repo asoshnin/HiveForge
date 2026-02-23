@@ -130,6 +130,53 @@ class MyAnalyzer:
         return {"key": "value"}
 ```
 
+#### Adding LLM Provider Support
+
+```python
+# src/hiveforge/steering/llm/provider.py
+
+async def _call_my_provider(
+    self,
+    system_prompt: str,
+    user_prompt: str,
+    max_tokens: int,
+    temperature: float,
+    json_mode: bool
+) -> Optional[str]:
+    """Call custom LLM provider"""
+    try:
+        # Implementation
+        return response_text
+    except Exception as e:
+        self.logger.warning(f"My provider call failed: {e}")
+        raise
+```
+
+#### Adding Drift Detection Rules
+
+```python
+# src/hiveforge/steering/detectors/drift_detector.py
+
+def _check_my_rule(
+    self,
+    steering_content: str,
+    code_analysis: CodeAnalysisResult
+) -> List[DriftItem]:
+    """Check for custom drift pattern"""
+    items = []
+    
+    # Check for drift
+    if drift_detected:
+        items.append(DriftItem(
+            category=DriftCategory.CUSTOM,
+            description="Description of drift",
+            confidence=0.85,
+            suggested_action="How to fix"
+        ))
+    
+    return items
+```
+
 #### Adding a New Validator Rule
 
 ```python

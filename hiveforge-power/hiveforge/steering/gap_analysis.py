@@ -6,7 +6,9 @@ information by comparing knowledge base content against template requirements.
 """
 
 import re
-from typing import Dict, List
+import json
+import logging
+from typing import Dict, List, Optional
 from .knowledge_base import KnowledgeBase
 from .models import Template, GapAnalysisResult, Question
 from .templates import get_all_templates
@@ -25,7 +27,8 @@ class GapAnalysisEngine:
     def __init__(
         self,
         knowledge_base: KnowledgeBase,
-        templates: Dict[str, Template] = None
+        templates: Dict[str, Template] = None,
+        llm_provider = None
     ):
         """
         Initialize the gap analysis engine.
@@ -33,9 +36,12 @@ class GapAnalysisEngine:
         Args:
             knowledge_base: KnowledgeBase containing parsed documents and code analysis
             templates: Optional dictionary of templates (defaults to all templates)
+            llm_provider: Optional LLMProvider for semantic classification
         """
         self.knowledge_base = knowledge_base
         self.templates = templates or get_all_templates()
+        self.llm_provider = llm_provider
+        self.logger = logging.getLogger(__name__)
     
     def analyze(self, show_progress: bool = True) -> GapAnalysisResult:
         """
@@ -212,8 +218,146 @@ class GapAnalysisEngine:
             if matches >= len(keywords) * 0.5:  # At least 50% of keywords found
                 return "ambiguous"
         
-        # No information found
+        # No information found by keyword matching - try LLM classification if available
+        if self.llm_provider and self.llm_provider.is_available():
+            llm_classification = self._classify_section_with_llm(
+                template_name,
+                section_name,
+                content
+            )
+            if llm_classification:
+                return llm_classification
+        
+        # Fallback: No information found
         return "missing"
+    
+    def _classify_section_with_llm(
+        self,
+        template_name: str,
+        section_name: str,
+        content: str
+    ) -> Optional[str]:
+        """
+        Use LLM to classify a template section semantically.
+        
+        This method is called when keyword-matching returns "missing" to provide
+        a more intelligent classification based on semantic understanding of the
+        available context.
+        
+        Args:
+            template_name: Name of the template
+            section_name: Name of the section
+            content: Available context from knowledge base (max 800 chars)
+            
+        Returns:
+            Classification: "complete", "ambiguous", or "missing", or None if LLM fails
+            
+        Requirements: P2-3
+        """
+        try:
+            # Truncate content to max 800 chars to avoid token budget issues
+            truncated_content = content[:800] if len(content) > 800 else content
+            
+            # Build system prompt
+            system_prompt = (
+                "You are an expert at analyzing project documentation and determining "
+                "if specific information is present. Classify whether the provided context "
+                "contains sufficient information to fill a template section. "
+                "Respond with JSON only."
+            )
+            
+            # Build user prompt
+            user_prompt = f"""Analyze if the following context contains information for the "{section_name}" section of the "{template_name}" steering file.
+
+Template: {template_name}.md
+Section: {section_name}
+
+Available Context:
+{truncated_content}
+
+Classify the section as:
+- "complete": Context contains sufficient information to fill this section
+- "partial": Context has some relevant information but needs clarification
+- "missing": Context does not contain information for this section
+
+Respond with JSON in this exact format:
+{{
+  "classification": "complete" | "partial" | "missing",
+  "reason": "Brief explanation of your classification"
+}}"""
+            
+            # Call LLM with temperature 0.1 for consistent results
+            # Use asyncio to handle the async call from sync context
+            import asyncio
+            try:
+                # Try to get the running event loop
+                loop = asyncio.get_running_loop()
+                # We're in an async context, but this method is sync
+                # Create a task and run it
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        asyncio.run,
+                        self.llm_provider.complete(
+                            system_prompt=system_prompt,
+                            user_prompt=user_prompt,
+                            max_tokens=200,
+                            temperature=0.1,
+                            json_mode=True
+                        )
+                    )
+                    response = future.result(timeout=30)
+            except RuntimeError:
+                # No running event loop, we can use asyncio.run directly
+                response = asyncio.run(
+                    self.llm_provider.complete(
+                        system_prompt=system_prompt,
+                        user_prompt=user_prompt,
+                        max_tokens=200,
+                        temperature=0.1,
+                        json_mode=True
+                    )
+                )
+            
+            if not response:
+                self.logger.warning(
+                    f"LLM returned None for {template_name}.{section_name}, "
+                    "falling back to keyword matching"
+                )
+                return None
+            
+            # Parse JSON response
+            result = json.loads(response)
+            llm_classification = result.get("classification", "missing")
+            reason = result.get("reason", "")
+            
+            # Map LLM response to our classification system
+            classification_map = {
+                "complete": "complete",
+                "partial": "ambiguous",
+                "missing": "missing"
+            }
+            
+            mapped_classification = classification_map.get(llm_classification, "missing")
+            
+            self.logger.info(
+                f"LLM classified {template_name}.{section_name} as "
+                f"{mapped_classification} (reason: {reason})"
+            )
+            
+            return mapped_classification
+            
+        except json.JSONDecodeError as e:
+            self.logger.warning(
+                f"Failed to parse LLM JSON response for {template_name}.{section_name}: {e}"
+            )
+            return None
+        except Exception as e:
+            self.logger.warning(
+                f"LLM classification failed for {template_name}.{section_name}: "
+                f"{type(e).__name__}: {e}"
+            )
+            return None
     
     def _has_substantial_content(self, content: str, placeholder_pattern: str) -> bool:
         """

@@ -214,7 +214,7 @@ class AutonomousWorkflow(InitWorkflow):
         Generates files sequentially, passing previously generated files as
         context to maintain consistency across files.
         
-        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7, P0-3
+        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7, P0-3, P2-1
         """
         logger.info("Step 7: Generating files autonomously")
         print("\n📝 Generating steering files autonomously...")
@@ -222,15 +222,18 @@ class AutonomousWorkflow(InitWorkflow):
         # Get gap analysis questions
         questions = self.state.gap_analysis.questions if self.state.gap_analysis else []
         
+        # Filter templates based on project type (P2-1)
+        files_to_generate = self._filter_files_for_project_type(self.GENERATION_ORDER)
+        
         # Generate each file in order
-        for filename in self.GENERATION_ORDER:
+        for filename in files_to_generate:
             print(f"\n   Generating {filename}...", end=" ")
             
             try:
                 # Get context from previously generated files
                 previous_files = {
                     k: v for k, v in self.generated_files.items()
-                    if k in self.GENERATION_ORDER[:self.GENERATION_ORDER.index(filename)]
+                    if k in files_to_generate[:files_to_generate.index(filename)]
                 }
                 
                 # Generate file content with fallback handling (P0-3)
@@ -838,3 +841,69 @@ class AutonomousWorkflow(InitWorkflow):
         except Exception as e:
             logger.error(f"Failed to write draft files: {e}", exc_info=True)
             return False
+
+    def _filter_files_for_project_type(self, template_files: List[str]) -> List[str]:
+        """
+        Filter template files based on project type.
+
+        Skips templates that are not applicable to the detected project type:
+        - Skips ui-standards.md for CLI tools and MCP servers (no frontend)
+        - Skips db-standards.md for projects without database
+        - Selects project-type-specific template variants when available
+
+        Args:
+            template_files: List of template filenames to filter
+
+        Returns:
+            Filtered list of template filenames applicable to project type
+
+        Requirements: P2-1
+        """
+        if not self.state.code_analysis:
+            logger.warning("No code analysis available, using all templates")
+            return template_files
+
+        # Get project classification
+        try:
+            classification = self.state.code_analysis.classification
+            if not classification:
+                logger.warning("No project classification available, using all templates")
+                return template_files
+
+            project_type = classification.get('project_type', 'library')
+            has_frontend = classification.get('has_frontend', False)
+            has_database = classification.get('has_database', False)
+
+            logger.info(
+                f"Filtering templates for project_type={project_type}, "
+                f"has_frontend={has_frontend}, has_database={has_database}"
+            )
+        except Exception as e:
+            logger.warning(f"Error accessing classification: {e}, using all templates")
+            return template_files
+
+        filtered_files = []
+
+        for filename in template_files:
+            # Skip ui-standards.md for CLI tools and MCP servers (no frontend)
+            if filename == "ui-standards.md":
+                if project_type in ("cli_tool", "mcp_server", "cli_and_mcp") or not has_frontend:
+                    logger.info(f"Skipping {filename} for {project_type} (no frontend)")
+                    continue
+
+            # Skip db-standards.md for projects without database
+            if filename == "db-standards.md":
+                if not has_database:
+                    logger.info(f"Skipping {filename} for {project_type} (no database)")
+                    continue
+
+            # Add file to filtered list
+            filtered_files.append(filename)
+
+        logger.info(
+            f"Filtered {len(template_files)} templates to {len(filtered_files)} "
+            f"for project type {project_type}"
+        )
+
+        return filtered_files
+

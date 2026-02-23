@@ -154,6 +154,7 @@ class CodeAnalysisResult:
     conventions: ConventionsInfo = field(default_factory=ConventionsInfo)
     documentation: List[ParsedDocument] = field(default_factory=list)
     confidence_scores: Dict[str, float] = field(default_factory=dict)
+    classification: Optional[Dict[str, Any]] = None  # P1-2: Project type classification
     
     def to_summary(self, max_tokens: int = 2000) -> str:
         """
@@ -389,6 +390,7 @@ class WorkflowState:
     conflicts: List[Conflict] = field(default_factory=list)
     validation_report: Optional[ValidationReport] = None
     draft: Optional[DraftState] = None  # NEW: stores draft for MCP mode review
+    last_backup_dir: Optional[Path] = None  # NEW: stores last backup directory for rollback
 
 
 @dataclass

@@ -1,14 +1,6 @@
 """
 Content Tagger for Steering File Generation.
 
-**DEPRECATED**: This module has been moved to hiveforge-power/hiveforge/steering/content_tagger.py
-Please update your imports to use the new location:
-    from hiveforge.steering.content_tagger import ContentTagger
-
-This file will be removed in a future version.
-
----
-
 This module provides the ContentTagger class that adds metadata headers,
 inferred section tags, and low confidence warnings to generated steering files.
 

@@ -1,9 +1,15 @@
 ---
 inclusion: fileMatch
-patterns: ["src/ui/**", "src/components/**", "src/pages/**", "src/app/**", "**/*.tsx", "**/*.jsx"]
+patterns:
+  - "src/ui/**"
+  - "src/components/**"
+  - "src/pages/**"
+  - "src/app/**"
+  - "**/*.tsx"
+  - "**/*.jsx"
 priority: 2
-description: "UI component design rules. Only loaded when working on frontend code."---
-
+description: "UI component design rules. Only loaded when working on frontend code."
+---
 # UI Standards & Conventions
 
 ## Component Structure

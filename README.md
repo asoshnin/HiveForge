@@ -270,6 +270,90 @@ hiveforge -n my-app --force  # Preserves your steering edits
 
 ---
 
+## 🔧 LLM Configuration
+
+HiveForge uses an LLM provider abstraction that supports multiple backends with automatic fallback. When running inside KIRO IDE, no configuration is needed—it uses KIRO's native LLM capabilities automatically.
+
+### Provider Priority
+
+The system tries providers in this order:
+
+1. **KIRO Native** (primary in MCP mode) - Uses KIRO IDE's built-in LLM
+2. **Google Vertex AI** - Google Cloud's AI platform
+3. **OpenAI** - OpenAI's GPT models
+4. **None** - Falls back to `[INFERRED]` markers
+
+### Quick Setup
+
+#### For KIRO IDE Users (Recommended)
+No configuration needed! HiveForge automatically uses KIRO's native LLM when running inside the IDE.
+
+#### For CLI Users with Vertex AI
+```bash
+export HIVEFORGE_LLM_PROVIDER=vertex
+export GOOGLE_CLOUD_PROJECT=your-project-id
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+
+# Install with Vertex AI support
+pip install hiveforge-steering-mcp[vertex]
+```
+
+#### For CLI Users with OpenAI
+```bash
+export HIVEFORGE_LLM_PROVIDER=openai
+export OPENAI_API_KEY=sk-your-api-key
+
+# Install with OpenAI support
+pip install hiveforge-steering-mcp[openai]
+```
+
+### Configuration File (Optional)
+
+Create `~/.hiveforge/llm_config.json` for persistent configuration:
+
+**Vertex AI:**
+```json
+{
+  "provider_type": "vertex_ai",
+  "project_id": "your-gcp-project",
+  "model": "gemini-pro",
+  "temperature": 0.1,
+  "max_tokens": 2000
+}
+```
+
+**OpenAI:**
+```json
+{
+  "provider_type": "openai",
+  "api_key": "sk-your-api-key",
+  "model": "gpt-4",
+  "temperature": 0.1,
+  "max_tokens": 2000
+}
+```
+
+### Troubleshooting
+
+**"No LLM provider available"**
+- In KIRO IDE: Ensure you're running via MCP (not standalone CLI)
+- In CLI: Check environment variables or config file
+- Install optional dependencies: `pip install hiveforge-steering-mcp[vertex]` or `[openai]`
+
+**"Vertex AI call failed"**
+- Verify `GOOGLE_CLOUD_PROJECT` is set
+- Check credentials file exists and is valid
+- Ensure service account has Vertex AI permissions
+
+**"OpenAI call failed"**
+- Verify `OPENAI_API_KEY` is set and valid
+- Check API key has sufficient credits
+- Ensure you're not hitting rate limits
+
+For detailed configuration options, see [docs/CONFIGURATION.md](hiveforge-power/docs/CONFIGURATION.md).
+
+---
+
 ## 🧭 Steering Assistant
 
 The Steering Assistant is an AI-powered tool that helps you create and maintain steering files throughout your project lifecycle.

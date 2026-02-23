@@ -447,7 +447,7 @@ The Power activates automatically when you mention these keywords in KIRO chat:
 ```bash
 # Activate virtual environment if not already active
 cd ~/projects/HiveForge
-source venv/bin/activate  # Windows: venv\Scripts\activate.bat
+source venv/bin/activate  # Windows: .\venv\Scripts\activate
 
 # Test CLI
 hiveforge --help
@@ -544,7 +544,7 @@ hiveforge steering init
 # Activate HiveForge venv
 cd ~/projects/HiveForge
 source venv/bin/activate  # macOS/Linux
-venv\Scripts\activate.bat  # Windows
+.\venv\Scripts\activate  # Windows
 
 # Verify hiveforge is available
 which hiveforge  # macOS/Linux

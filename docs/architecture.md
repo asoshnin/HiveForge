@@ -464,9 +464,101 @@ This simplicity makes it easy to understand, maintain, and extend.
 
 The Steering Assistant is a comprehensive AI-powered system for creating and maintaining steering files.
 
+### v2.2.0 Enhancements
+
+The v2.2.0 release introduced significant improvements to the Steering Assistant:
+
+#### LLM Provider Abstraction
+
+**Priority-based provider routing:**
+1. **KIRO Native** (primary in MCP mode) - Uses KIRO IDE's built-in LLM via `ctx.sample()`
+2. **Google Vertex AI** - Google Cloud's AI platform
+3. **OpenAI** - OpenAI's GPT models
+4. **None** - Falls back to `[INFERRED]` markers
+
+**Key Features:**
+- Automatic provider selection based on context
+- Graceful fallback chain on provider failure
+- Configuration via environment variables or `~/.hiveforge/llm_config.json`
+- Optional dependencies: `pip install hiveforge-steering-mcp[vertex]` or `[openai]`
+
+#### Confidence Scoring System
+
+Generated steering files include confidence metadata:
+
+```yaml
+---
+confidence_level: medium
+confidence_score: 0.65
+source_documents_found: 3
+inferred_sections: ["Rationale", "Trade-offs"]
+---
+```
+
+**Confidence Levels:**
+- **High (0.7-1.0)**: Most content from source documents, minimal inference
+- **Medium (0.4-0.7)**: Mix of source documents and code analysis
+- **Low (0.0-0.4)**: Mostly inferred from code, few source documents
+
+**[INFERRED] Markers:**
+Sections generated without source documents are marked:
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
+
+#### Custom Source Document Paths
+
+Users can specify custom locations for source documents:
+```bash
+hiveforge steering init --source-docs-path="docs/design"
+```
+
+**Default behavior**: Looks in `.kiro/onboarding/` directory
+**Custom paths**: Any directory relative to project root
+
+#### Dry-Run Mode
+
+Preview what will be generated without creating files:
+```bash
+hiveforge steering init --dry-run
+```
+
+Returns preview of all files with metadata and confidence scores.
+
+#### Draft Review Workflow
+
+**In MCP mode (KIRO IDE):**
+1. Generate files and create DraftState
+2. Store draft in workflow state
+3. Return draft summary in result metadata
+4. User reviews draft in IDE
+5. User calls `update_steering(apply_draft=True)` to write files
+
+**In CLI mode:**
+1. Generate files and create DraftState
+2. Display draft summary
+3. Prompt user for approval
+4. Write files if approved
+
 ### Component Overview
 
-#### 1. Document Parsers (`steering/parsers/`)
+#### 1. LLM Provider (`steering/llm/provider.py`)
+
+**Responsibility:** Route LLM calls to available providers with automatic fallback.
+
+**Components:**
+- `LLMProvider` - Main provider abstraction
+- `ProviderType` - Enum for provider types (KIRO_NATIVE, VERTEX_AI, OPENAI, NONE)
+- `LLMConfig` - Configuration dataclass
+
+**Key Features:**
+- Priority-based routing (KIRO → Vertex → OpenAI → None)
+- Async support for non-blocking calls
+- Configuration loading from env vars and files
+- Graceful fallback on provider failure
+
+#### 2. Document Parsers (`steering/parsers/`)
 
 **Responsibility:** Parse various document formats into structured data.
 
@@ -481,7 +573,7 @@ The Steering Assistant is a comprehensive AI-powered system for creating and mai
 - Error resilience (skip corrupted files, continue processing)
 - Encoding fallback (UTF-8 → latin-1 → cp1252 → iso-8859-1)
 
-#### 2. Code Analyzers (`steering/analyzers/`)
+#### 3. Code Analyzers (`steering/analyzers/`)
 
 **Responsibility:** Analyze existing codebase to extract project information.
 
@@ -499,6 +591,11 @@ The Steering Assistant is a comprehensive AI-powered system for creating and mai
 - Sampling strategy for large codebases (>10k files)
 - .gitignore respect using pathspec library
 - Caching in `.kiro/.cache/code_analysis.json`
+
+**v2.2.0 Enhancements:**
+- `extract_public_api()` - Extracts MCP tools, CLI commands, and public classes
+- `_heuristic_classify()` - Detects project type (CLI tool, MCP server, web app, library)
+- Project type detection for template variant selection
 
 #### 3. Knowledge Base (`steering/knowledge_base.py`)
 
@@ -520,9 +617,9 @@ The Steering Assistant is a comprehensive AI-powered system for creating and mai
 - Group questions by steering file
 - Provide context for each question
 
-#### 5. Steering Assistant Agent (`steering/agents/steering_assistant.py`)
+#### 6. Steering Assistant Agent (`steering/agents/steering_assistant.py`)
 
-**Responsibility:** Conduct conversations to gather missing information.
+**Responsibility:** Generate steering file content using LLM synthesis.
 
 **Key Features:**
 - Question batching (max 8 per batch)
@@ -530,6 +627,13 @@ The Steering Assistant is a comprehensive AI-powered system for creating and mai
 - Response caching to avoid redundant API calls
 - Optional web research (when --research flag enabled)
 - Interactive vs non-interactive modes
+
+**v2.2.0 Enhancements:**
+- `generate_file()` method - Generates individual steering files using LLM
+- Automatic frontmatter stripping before LLM calls
+- [INFERRED] marker fallback when LLM unavailable
+- Context tracking (last 3 generated files for consistency)
+- Template variant resolution based on project type
 
 #### 6. Template Populator (`steering/template_populator.py`)
 
@@ -596,7 +700,25 @@ The Steering Assistant is a comprehensive AI-powered system for creating and mai
 4. Display report
 5. Return exit code
 
-#### 9. Supporting Components
+#### 10. Drift Detection (`steering/detectors/drift_detector.py`)
+
+**Responsibility:** Detect drift between steering files and codebase.
+
+**Key Features:**
+- Language version drift detection (tech-stack.md vs pyproject.toml)
+- New dependency detection (filters to significant dependencies only)
+- Architecture pattern drift detection
+- Naming convention mismatch detection
+- Confidence scoring for each drift item (0.0-1.0)
+
+**Significant Dependencies:**
+Only architecturally important dependencies are flagged:
+- Frameworks: FastAPI, Flask, Django
+- Databases: SQLAlchemy, Prisma, Redis
+- Testing: pytest
+- Data Science: NumPy, Pandas, PyTorch, TensorFlow
+
+#### 11. Supporting Components
 
 - `diff_generator.py` - Generate and format diffs using difflib and colorama
 - `conflict_resolver.py` - Detect and resolve conflicts between old and new information
@@ -604,6 +726,9 @@ The Steering Assistant is a comprehensive AI-powered system for creating and mai
 - `response_cache.py` - Cache LLM responses to avoid redundant API calls
 - `error_handling.py` - Centralized error handling with graceful degradation
 - `templates.py` - Template definitions and metadata
+- `content_tagger.py` - Tag content with [INFERRED] markers
+- `confidence.py` - Calculate confidence scores
+- `source_resolver.py` - Resolve custom source document paths
 
 ### Data Flow
 

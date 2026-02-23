@@ -26,6 +26,61 @@ The Steering Assistant is an AI-powered tool that helps you create and maintain 
 - **Maintains Over Time**: Updates steering files as your project evolves
 - **Preserves Customizations**: Keeps your manual edits during updates
 
+### v2.2.0 New Features
+
+#### Custom Source Document Paths
+
+Specify where your design documents are located:
+```bash
+hiveforge steering init --source-docs-path="docs/design"
+```
+
+**Default**: `.kiro/onboarding/`
+**Custom**: Any directory relative to project root
+
+#### Confidence Scoring
+
+Know which content is from documents vs. inferred:
+```yaml
+---
+confidence_level: medium
+confidence_score: 0.65
+source_documents_found: 3
+inferred_sections: ["Rationale", "Trade-offs"]
+---
+```
+
+**Confidence Levels:**
+- **High (0.7-1.0)**: Most content from source documents
+- **Medium (0.4-0.7)**: Mix of documents and code analysis
+- **Low (0.0-0.4)**: Mostly inferred from code
+
+#### [INFERRED] Markers
+
+Sections generated without source documents are clearly marked:
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
+
+These sections should be reviewed and updated with accurate information.
+
+#### Dry-Run Mode
+
+Preview what will be generated before committing:
+```bash
+hiveforge steering init --dry-run
+```
+
+Returns preview of all files with metadata and confidence scores.
+
+#### Hallucination Guardrails
+
+Clear warnings when source material is missing:
+- Low confidence warnings at top of files
+- [INFERRED] tags on inferred sections
+- Confidence metadata in frontmatter
+
 ### When to Use It
 
 - **New Projects**: Generate steering files from project specs and requirements
@@ -224,6 +279,18 @@ hiveforge steering init --source-docs-path=__DEVELOPMENT
 2. Documents found are used to generate more accurate steering files
 3. If no documents found, content is inferred from code analysis (with `[INFERRED]` tags)
 4. Confidence scores are calculated based on source document availability
+
+**Confidence Scoring:**
+- Files generated from source documents have **high confidence** (0.7-1.0)
+- Files inferred from code analysis have **lower confidence** (0.4-0.7)
+- Files with minimal information have **low confidence** (0.0-0.4)
+
+**[INFERRED] Markers:**
+Sections without source material are marked:
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
 
 ### Basic Init
 

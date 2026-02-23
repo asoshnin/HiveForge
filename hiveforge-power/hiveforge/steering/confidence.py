@@ -1,14 +1,6 @@
 """
 Confidence Calculator for Steering File Generation.
 
-**DEPRECATED**: This module has been moved to hiveforge-power/hiveforge/steering/confidence.py
-Please update your imports to use the new location:
-    from hiveforge.steering.confidence import ConfidenceScore, ConfidenceCalculator
-
-This file will be removed in a future version.
-
----
-
 This module provides confidence scoring for generated steering files based on
 the sources of information used (source documents, code analysis, LLM inference).
 
