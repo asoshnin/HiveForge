@@ -57,7 +57,7 @@ git --version
 
 **Expected output:**
 ```
-Python 3.11.5 (or higher)
+Python 3.11.5 (or higher, but do not use 3.14 or above)
 pip 23.x.x
 git version 2.x.x
 ```
@@ -72,8 +72,8 @@ git clone https://github.com/asoshnin/HiveForge.git
 cd HiveForge
 
 # Install CLI
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate.bat
+ py -3.12 -m venv venv # or whatever version between 11 and 13 which is installed on your pc
+source venv/bin/activate  # Windows: .\venv\Scripts\Activate.ps1
 pip install -e .
 
 # Install MCP Server (for KIRO Power)
@@ -235,6 +235,10 @@ cd ..
 
 KIRO needs to know about the MCP server. You'll configure this in KIRO's MCP settings file.
 
+**⚠️ IMPORTANT**: The MCP configuration should be placed in **your target project's folder** (the project you want to use HiveForge with), NOT in the HiveForge installation folder.
+
+**Example**: If you want to use HiveForge with a project at `D:\Users\asosh\playground\_KIRO\VeriQ_MVP`, you'll create the config file at `D:\Users\asosh\playground\_KIRO\VeriQ_MVP\.kiro\settings\mcp.json`
+
 #### Option A: Using uvx (Recommended for Production)
 
 **Note**: This option requires the package to be published to PyPI. Since HiveForge is not yet published, use Option B for local development.
@@ -270,7 +274,7 @@ Create or edit `~/.kiro/settings/mcp.json`:
   }
 }
 ```
-(!!! Could be different, see below)
+(!!! Could be different, see below for MAC)
 ```
 {
   "mcpServers": {
@@ -282,7 +286,27 @@ Create or edit `~/.kiro/settings/mcp.json`:
       "autoApprove": []
     },
     "hiveforge-steering": {
-      "command": "/Users/alexeysoshnin/Documents/_playground/VeriQ_MVP/venv/bin/python",
+      "command": "/absolute/path/to/HiveForge/venv/bin/python",
+      "args": ["-m", "mcp_server.server"],
+      "disabled": false,
+      "autoApprove": ["init_steering", "update_steering", "validate_steering"]
+    }
+  }
+}
+```
+or for windows:
+```
+{
+  "mcpServers": {
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"],
+      "env": {},
+      "disabled": true,
+      "autoApprove": []
+    },
+    "hiveforge-steering": {
+      "command": "/absolute/path/to/HiveForge/venv/Scripts/python.exe",
       "args": ["-m", "mcp_server.server"],
       "disabled": false,
       "autoApprove": ["init_steering", "update_steering", "validate_steering"]
@@ -347,26 +371,41 @@ cd
 
 #### Create the Config File
 
+**⚠️ CRITICAL**: Create this file in **your target project**, not in the HiveForge folder!
+
+**Steps:**
+
+1. **Open your target project in KIRO IDE** (e.g., `D:\Users\asosh\playground\_KIRO\VeriQ_MVP`)
+2. **Create the config file in that project**:
+
 **macOS/Linux:**
 ```bash
+# Navigate to YOUR project (not HiveForge!)
+cd /path/to/your/project
+
 # Create directory if it doesn't exist
-mkdir -p ~/.kiro/settings
+mkdir -p .kiro/settings
 
 # Create or edit the file
-nano ~/.kiro/settings/mcp.json
+nano .kiro/settings/mcp.json
 # or use your preferred editor: vim, code, etc.
 ```
 
 **Windows:**
 ```cmd
+# Navigate to YOUR project (not HiveForge!)
+cd D:\Users\asosh\playground\_KIRO\VeriQ_MVP
+
 # Create directory if it doesn't exist
-mkdir %USERPROFILE%\.kiro\settings
+mkdir .kiro\settings
 
 # Create or edit the file
-notepad %USERPROFILE%\.kiro\settings\mcp.json
+notepad .kiro\settings\mcp.json
 ```
 
-Paste the configuration from Option B above (with your correct path), save, and close.
+3. **Paste the configuration** from Option B above (with your correct HiveForge installation path)
+4. **Save and close**
+5. **Restart KIRO** or reload the MCP server from the MCP Server view
 
 ✅ **KIRO Configuration Complete!**
 
@@ -444,7 +483,14 @@ hiveforge-steering-mcp --help
 
 ### Verify KIRO Power Integration
 
-1. **Open KIRO IDE**
+**⚠️ IMPORTANT**: Before testing, make sure you have:
+1. Opened your target project (not HiveForge) in KIRO IDE
+2. Created `.kiro/settings/mcp.json` in that project folder
+3. Restarted KIRO or reloaded MCP servers
+
+**Then test:**
+
+1. **Open KIRO IDE** with your target project folder open
 
 2. **Check MCP Server Status**:
    - Look for MCP server indicator in KIRO UI
@@ -458,11 +504,9 @@ hiveforge-steering-mcp --help
 4. **Test Power Tools**:
    - In KIRO chat, type: "Initialize steering files for my project"
    - The Power should use the `init_steering` tool
-   - Files should be created in `.kiro/steering/`
+   - Files should be created in `.kiro/steering/` of your current project
 
-   **NB:** The Power uses the current working directory (the folder KIRO is open to). Open KIRO in your project folder, then run the command. The Power will analyze files in that directory and create .kiro/steering/ there.
-
-**Expected result**: Power responds and creates steering files.
+**Expected result**: Power responds and creates steering files in your project folder (not in HiveForge folder).
 
 ---
 
@@ -754,6 +798,93 @@ pip install -e .
 cd hiveforge-power
 pip install -e .
 ```
+
+---
+
+## Using HiveForge with Your Existing Project
+
+This section explains how to use HiveForge with a project you're already working on.
+
+### Scenario 1: Using HiveForge with a New Local Project
+
+```bash
+# 1. Create your project directory
+mkdir ~/my-new-project
+cd ~/my-new-project
+
+# 2. Initialize git (optional)
+git init
+
+# 3. Open the project in KIRO IDE
+# File → Open Folder → Select ~/my-new-project
+
+# 4. Create MCP config in your project
+mkdir -p .kiro/settings
+nano .kiro/settings/mcp.json
+# Paste the HiveForge MCP configuration (see Step 5 above)
+
+# 5. Restart KIRO or reload MCP servers
+
+# 6. Use HiveForge in KIRO chat
+# "Initialize steering files for my project"
+```
+
+### Scenario 2: Using HiveForge with an Existing GitHub Project
+
+```bash
+# 1. Clone your existing project
+cd ~/projects
+git clone https://github.com/yourusername/your-project.git
+cd your-project
+
+# 2. Open the project in KIRO IDE
+# File → Open Folder → Select ~/projects/your-project
+
+# 3. Create MCP config in your project
+mkdir -p .kiro/settings
+nano .kiro/settings/mcp.json
+# Paste the HiveForge MCP configuration (see Step 5 above)
+
+# 4. Restart KIRO or reload MCP servers
+
+# 5. Use HiveForge in KIRO chat
+# "Initialize steering files for my project"
+# HiveForge will analyze your existing code and documentation
+```
+
+### Scenario 3: Using HiveForge CLI with Any Project
+
+```bash
+# 1. Activate HiveForge virtual environment
+cd ~/projects/HiveForge
+source venv/bin/activate  # Windows: venv\Scripts\activate.bat
+
+# 2. Navigate to your project
+cd ~/projects/your-project
+
+# 3. Use HiveForge CLI commands
+hiveforge steering init
+hiveforge steering validate
+
+# 4. Deactivate when done
+deactivate
+```
+
+### Key Points
+
+- **HiveForge installation location**: `~/projects/HiveForge` (or wherever you cloned it)
+- **Your project location**: Can be anywhere (e.g., `~/projects/your-project`, `D:\Users\asosh\playground\_KIRO\VeriQ_MVP`)
+- **MCP config location**: Always in your project's `.kiro/settings/mcp.json`, NOT in HiveForge folder
+- **Virtual environment**: Only activate HiveForge's venv when using the CLI; KIRO Power doesn't require manual activation
+
+### Workflow Summary
+
+1. **Install HiveForge once** (Steps 1-4 above) → This creates the tool
+2. **For each project you want to use HiveForge with**:
+   - Open that project in KIRO IDE
+   - Create `.kiro/settings/mcp.json` in that project
+   - Point it to your HiveForge installation
+   - Use HiveForge tools in KIRO chat or via CLI
 
 ---
 
