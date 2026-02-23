@@ -13,8 +13,10 @@ The orchestrator:
 - Generates token-limited summaries (max 2000 tokens per template)
 """
 
+import ast
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Dict, List, Optional, Set
@@ -60,7 +62,8 @@ class CodeAnalyzer:
             project_root: Root directory of the project to analyze
         """
         self.project_root = Path(project_root).resolve()
-        self.excluded_paths: Set[Path] = set()
+        self.gitignore_spec: Optional[pathspec.PathSpec] = None
+        self.excluded_paths: Set[Path] = set()  # For backward compatibility
         self.start_time: Optional[float] = None
         self.last_progress_update: Optional[float] = None
         
@@ -179,7 +182,8 @@ class CodeAnalyzer:
         Requirements: 3A.3, 3A.4
         """
         try:
-            return detect_languages(self.project_root, self.excluded_paths)
+            excluded_paths = self._get_excluded_paths_for_analyzers()
+            return detect_languages(self.project_root, excluded_paths)
         except Exception as e:
             logger.error(f"Error detecting languages: {e}", exc_info=True)
             return []
@@ -210,7 +214,8 @@ class CodeAnalyzer:
         Requirements: 3A.6
         """
         try:
-            return infer_architecture(self.project_root, self.excluded_paths)
+            excluded_paths = self._get_excluded_paths_for_analyzers()
+            return infer_architecture(self.project_root, excluded_paths)
         except Exception as e:
             logger.error(f"Error inferring architecture: {e}", exc_info=True)
             from ..models import ArchitectureInfo
@@ -226,10 +231,11 @@ class CodeAnalyzer:
         Requirements: 3A.7, 3A.11
         """
         try:
+            excluded_paths = self._get_excluded_paths_for_analyzers()
             # Extract raw conventions
             raw_conventions = extract_conventions(
                 self.project_root,
-                self.excluded_paths,
+                excluded_paths,
                 sample_size=100
             )
             
@@ -279,12 +285,406 @@ class CodeAnalyzer:
             logger.error(f"Error generating summary: {e}", exc_info=True)
             return "Error generating code analysis summary"
     
+    def extract_public_api(self):
+        """
+        Extract MCP tools, CLI commands, and public classes from codebase.
+        
+        Scans Python files for:
+        - @mcp.tool() decorated functions
+        - @command() or @click.command() decorated functions
+        - Non-private classes with docstrings
+        
+        Returns:
+            PublicAPIInfo with all extracted API elements
+            
+        Requirements: P1-1
+        """
+        from ..models import PublicAPIInfo, MCPToolInfo, CLICommandInfo
+        import ast
+        
+        mcp_tools = []
+        cli_commands = []
+        public_classes = []
+        
+        # Scan Python files (max 50 to avoid timeout)
+        python_files = []
+        for file_path in self.project_root.rglob('*.py'):
+            if self._should_exclude_path(file_path):
+                continue
+            python_files.append(file_path)
+            if len(python_files) >= 50:
+                break
+        
+        logger.info(f"Scanning {len(python_files)} Python files for public API")
+        
+        for file_path in python_files:
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                tree = ast.parse(content)
+                
+                # Extract MCP tools
+                mcp_tools.extend(self._scan_for_mcp_tools(tree))
+                
+                # Extract CLI commands
+                cli_commands.extend(self._scan_for_cli_commands(tree))
+                
+                # Extract public classes
+                public_classes.extend(self._extract_public_classes(tree))
+            
+            except SyntaxError:
+                logger.debug(f"Syntax error in {file_path}, skipping")
+                continue
+            except Exception as e:
+                logger.debug(f"Error parsing {file_path}: {e}")
+                continue
+        
+        logger.info(
+            f"Extracted {len(mcp_tools)} MCP tools, "
+            f"{len(cli_commands)} CLI commands, "
+            f"{len(public_classes)} public classes"
+        )
+        
+        return PublicAPIInfo(
+            mcp_tools=mcp_tools,
+            cli_commands=cli_commands,
+            public_classes=public_classes
+        )
+    
+    def _scan_for_mcp_tools(self, tree: ast.AST) -> List:
+        """
+        Extract @mcp.tool() decorated functions from AST.
+        
+        Args:
+            tree: AST tree to scan
+            
+        Returns:
+            List of MCPToolInfo objects
+        """
+        from ..models import MCPToolInfo
+        
+        tools = []
+        
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            
+            # Check for @mcp.tool() decorator
+            has_mcp_decorator = any(
+                (isinstance(dec, ast.Attribute) and
+                 dec.attr == 'tool' and
+                 isinstance(dec.value, ast.Name) and
+                 dec.value.id == 'mcp')
+                or
+                (isinstance(dec, ast.Call) and
+                 isinstance(dec.func, ast.Attribute) and
+                 dec.func.attr == 'tool' and
+                 isinstance(dec.func.value, ast.Name) and
+                 dec.func.value.id == 'mcp')
+                for dec in node.decorator_list
+            )
+            
+            if not has_mcp_decorator:
+                continue
+            
+            # Extract docstring (first line only, max 120 chars)
+            docstring = ast.get_docstring(node) or ""
+            docstring = docstring.split('\n')[0][:120]
+            
+            # Extract parameters (exclude self, ctx)
+            parameters = [
+                arg.arg for arg in node.args.args
+                if arg.arg not in ('self', 'ctx')
+            ]
+            
+            tools.append(MCPToolInfo(
+                name=node.name,
+                docstring=docstring,
+                parameters=parameters
+            ))
+        
+        return tools
+    
+    def _scan_for_cli_commands(self, tree: ast.AST) -> List:
+        """
+        Extract @command() or @click.command() decorated functions from AST.
+        
+        Args:
+            tree: AST tree to scan
+            
+        Returns:
+            List of CLICommandInfo objects
+        """
+        from ..models import CLICommandInfo
+        
+        commands = []
+        
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            
+            # Check for @command() or @click.command() decorator
+            has_command_decorator = any(
+                (isinstance(dec, ast.Name) and dec.id == 'command')
+                or
+                (isinstance(dec, ast.Call) and
+                 isinstance(dec.func, ast.Name) and
+                 dec.func.id == 'command')
+                or
+                (isinstance(dec, ast.Attribute) and
+                 dec.attr == 'command')
+                or
+                (isinstance(dec, ast.Call) and
+                 isinstance(dec.func, ast.Attribute) and
+                 dec.func.attr == 'command')
+                for dec in node.decorator_list
+            )
+            
+            if not has_command_decorator:
+                continue
+            
+            # Extract docstring (first line only, max 120 chars)
+            docstring = ast.get_docstring(node) or ""
+            help_text = docstring.split('\n')[0][:120]
+            
+            # Extract parameters (exclude self, ctx)
+            parameters = [
+                arg.arg for arg in node.args.args
+                if arg.arg not in ('self', 'ctx')
+            ]
+            
+            commands.append(CLICommandInfo(
+                name=node.name,
+                help_text=help_text,
+                parameters=parameters
+            ))
+        
+        return commands
+    
+    def _extract_public_classes(self, tree: ast.AST) -> List[str]:
+        """
+        Extract non-private classes with docstrings from AST.
+        
+        Args:
+            tree: AST tree to scan
+            
+        Returns:
+            List of class names
+        """
+        classes = []
+        
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            
+            # Skip private classes
+            if node.name.startswith('_'):
+                continue
+            
+            # Only include if has docstring
+            if ast.get_docstring(node):
+                classes.append(node.name)
+        
+        return classes
+    
+    def _heuristic_classify(self, languages: List) -> Dict[str, any]:
+        """
+        Classify project type using heuristics.
+        
+        This method detects project type (CLI tool, MCP server, web app, library)
+        based on directory structure and decorators. Does NOT call self.analyze()
+        to avoid recursion.
+        
+        Args:
+            languages: List of detected languages
+            
+        Returns:
+            Dict with keys: project_type, has_frontend, has_database,
+            has_rest_api, primary_language, one_line_description,
+            key_capabilities
+            
+        Requirements: P1-2
+        """
+        logger.info("Classifying project type using heuristics")
+        
+        # Extract public API (for MCP/CLI detection)
+        public_api = self.extract_public_api()
+        
+        # Detect project type
+        project_type = self._detect_project_type(public_api, languages)
+        
+        # Detect features
+        has_frontend = self._detect_frontend()
+        has_database = self._detect_database()
+        has_rest_api = self._detect_rest_api()
+        
+        # Determine primary language
+        primary_language = languages[0].name if languages else "Unknown"
+        
+        logger.info(
+            f"Classification: type={project_type}, "
+            f"frontend={has_frontend}, db={has_database}, api={has_rest_api}"
+        )
+        
+        return {
+            'project_type': project_type,
+            'has_frontend': has_frontend,
+            'has_database': has_database,
+            'has_rest_api': has_rest_api,
+            'primary_language': primary_language,
+            'one_line_description': '[INFERRED: project description]',
+            'key_capabilities': [
+                '[INFERRED: capability 1]',
+                '[INFERRED: capability 2]',
+                '[INFERRED: capability 3]'
+            ]
+        }
+    
+    def _detect_project_type(self, public_api, languages: List) -> str:
+        """
+        Detect project type from code patterns.
+        
+        Args:
+            public_api: PublicAPIInfo with extracted API elements
+            languages: List of detected languages
+            
+        Returns:
+            Project type string: mcp_server, cli_and_mcp, cli_tool, web_app, or library
+        """
+        # Check for MCP server
+        if self._detect_mcp(public_api):
+            if self._detect_cli(public_api):
+                return "cli_and_mcp"
+            return "mcp_server"
+        
+        # Check for CLI tool
+        if self._detect_cli(public_api):
+            return "cli_tool"
+        
+        # Check for web app
+        if self._detect_frontend():
+            return "web_app"
+        
+        # Default to library
+        return "library"
+    
+    def _detect_mcp(self, public_api) -> bool:
+        """
+        Check if project is MCP server.
+        
+        Args:
+            public_api: PublicAPIInfo with extracted API elements
+            
+        Returns:
+            True if project has MCP tools, False otherwise
+        """
+        # Check for mcp_server directory
+        if (self.project_root / 'mcp_server').exists():
+            logger.debug("Found mcp_server/ directory")
+            return True
+        
+        # Check for @mcp.tool() decorators
+        if len(public_api.mcp_tools) > 0:
+            logger.debug(f"Found {len(public_api.mcp_tools)} MCP tools")
+            return True
+        
+        return False
+    
+    def _detect_cli(self, public_api) -> bool:
+        """
+        Check if project has CLI commands.
+        
+        Args:
+            public_api: PublicAPIInfo with extracted API elements
+            
+        Returns:
+            True if project has CLI commands, False otherwise
+        """
+        if len(public_api.cli_commands) > 0:
+            logger.debug(f"Found {len(public_api.cli_commands)} CLI commands")
+            return True
+        
+        return False
+    
+    def _detect_frontend(self) -> bool:
+        """
+        Check if project has frontend.
+        
+        Returns:
+            True if project has frontend indicators, False otherwise
+        """
+        frontend_indicators = [
+            'src/components',
+            'src/pages',
+            'src/ui',
+            'app/components',
+        ]
+        
+        for indicator in frontend_indicators:
+            if (self.project_root / indicator).exists():
+                logger.debug(f"Found frontend indicator: {indicator}")
+                return True
+        
+        # Check for .tsx files
+        tsx_files = list(self.project_root.rglob('*.tsx'))
+        if len(tsx_files) > 0:
+            logger.debug(f"Found {len(tsx_files)} .tsx files")
+            return True
+        
+        return False
+    
+    def _detect_database(self) -> bool:
+        """
+        Check if project has database (project root only).
+        
+        Returns:
+            True if project has database indicators, False otherwise
+        """
+        db_indicators = [
+            'migrations',
+            'prisma',
+            'alembic.ini',
+        ]
+        
+        for indicator in db_indicators:
+            if (self.project_root / indicator).exists():
+                logger.debug(f"Found database indicator: {indicator}")
+                return True
+        
+        # Check for models.py at project root only
+        if (self.project_root / 'models.py').exists():
+            logger.debug("Found models.py at project root")
+            return True
+        
+        return False
+    
+    def _detect_rest_api(self) -> bool:
+        """
+        Check if project has REST API.
+        
+        Returns:
+            True if project has REST API indicators, False otherwise
+        """
+        api_indicators = [
+            'src/api',
+            'routes',
+            'endpoints',
+        ]
+        
+        for indicator in api_indicators:
+            if (self.project_root / indicator).exists():
+                logger.debug(f"Found REST API indicator: {indicator}")
+                return True
+        
+        return False
+    
     def _load_gitignore(self) -> None:
         """
-        Load .gitignore file and build exclusion list.
+        Load .gitignore file and build pathspec matcher.
         
-        Uses pathspec library to parse .gitignore patterns and build
-        a set of paths to exclude from analysis.
+        Uses pathspec library to parse .gitignore patterns for efficient
+        matching during directory traversal.
         
         Requirements: 3A.2, 3B.5
         """
@@ -303,41 +703,96 @@ class CodeAnalyzer:
         
         try:
             with open(gitignore_path, 'r', encoding='utf-8') as f:
-                spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
+                self.gitignore_spec = pathspec.PathSpec.from_lines('gitwildmatch', f)
             
-            # Build exclusion set by checking all paths
-            for path in self.project_root.rglob('*'):
-                try:
-                    relative_path = path.relative_to(self.project_root)
-                    if spec.match_file(str(relative_path)):
-                        self.excluded_paths.add(relative_path)
-                except (ValueError, OSError):
-                    continue
-            
-            logger.info(f"Loaded .gitignore: {len(self.excluded_paths)} paths excluded")
+            logger.info("Loaded .gitignore patterns")
         
         except Exception as e:
             logger.warning(f"Error parsing .gitignore: {e}")
             # Continue without exclusions rather than failing
     
+    def _should_exclude_path(self, path: Path) -> bool:
+        """
+        Check if a path should be excluded based on .gitignore patterns.
+        
+        Args:
+            path: Path to check (relative to project root)
+            
+        Returns:
+            True if path should be excluded, False otherwise
+        """
+        if self.gitignore_spec is None:
+            return False
+        
+        try:
+            relative_path = path.relative_to(self.project_root)
+            return self.gitignore_spec.match_file(str(relative_path))
+        except (ValueError, OSError):
+            return False
+    
+    def _get_excluded_paths_for_analyzers(self) -> Set[Path]:
+        """
+        Build excluded paths set for analyzer functions that need it.
+        This is a compatibility layer - ideally analyzers should use gitignore_spec directly.
+        
+        Returns:
+            Set of excluded paths (empty if no gitignore)
+        """
+        if self.gitignore_spec is None:
+            return set()
+        
+        excluded = set()
+        # Only scan files we need to analyze, not everything
+        for root, dirs, files in os.walk(self.project_root):
+            root_path = Path(root)
+            
+            # Prune excluded directories
+            dirs[:] = [d for d in dirs if not self._should_exclude_path(root_path / d)]
+            
+            # Check files
+            for file in files:
+                file_path = root_path / file
+                if self._should_exclude_path(file_path):
+                    try:
+                        excluded.add(file_path.relative_to(self.project_root))
+                    except ValueError:
+                        pass
+        
+        return excluded
+    
     def _count_files(self) -> int:
         """
         Count total files in the codebase (excluding ignored paths).
+        Uses efficient directory traversal with early pruning.
         
         Returns:
             Total number of files
         """
         count = 0
+        dirs_checked = 0
         
         try:
-            for path in self.project_root.rglob('*'):
-                if path.is_file():
-                    try:
-                        relative_path = path.relative_to(self.project_root)
-                        if relative_path not in self.excluded_paths:
-                            count += 1
-                    except (ValueError, OSError):
-                        continue
+            # Use os.walk for efficient traversal with directory pruning
+            for root, dirs, files in os.walk(self.project_root):
+                root_path = Path(root)
+                
+                # Skip excluded directories (modifies dirs in-place to prune traversal)
+                dirs[:] = [
+                    d for d in dirs 
+                    if not self._should_exclude_path(root_path / d)
+                ]
+                
+                # Count non-excluded files
+                for file in files:
+                    file_path = root_path / file
+                    if not self._should_exclude_path(file_path):
+                        count += 1
+                
+                # Progress indicator every 100 directories
+                dirs_checked += 1
+                if dirs_checked % 100 == 0:
+                    logger.info(f"   Scanned {dirs_checked} directories, found {count} files...")
+        
         except Exception as e:
             logger.error(f"Error counting files: {e}")
         
@@ -353,9 +808,10 @@ class CodeAnalyzer:
         Requirements: 3A.8
         """
         try:
+            excluded_paths = self._get_excluded_paths_for_analyzers()
             return parse_codebase_documentation(
                 self.project_root,
-                self.excluded_paths,
+                excluded_paths,
                 include_inline_comments=False  # Skip inline comments for performance
             )
         except Exception as e:
@@ -524,6 +980,199 @@ class CodeAnalyzer:
         except Exception as e:
             logger.warning(f"Error saving cache: {e}")
             # Don't fail if caching fails
+
+
+    def _heuristic_classify(self, languages: List) -> Dict[str, any]:
+        """
+        Classify project type using heuristics.
+
+        This method detects project type (CLI tool, MCP server, web app, library)
+        based on directory structure and decorators. Does NOT call self.analyze()
+        to avoid recursion.
+
+        Args:
+            languages: List of detected languages
+
+        Returns:
+            Dict with keys: project_type, has_frontend, has_database,
+            has_rest_api, primary_language, one_line_description,
+            key_capabilities
+
+        Requirements: P1-2
+        """
+        logger.info("Classifying project type using heuristics")
+
+        # Extract public API (for MCP/CLI detection)
+        public_api = self.extract_public_api()
+
+        # Detect project type
+        project_type = self._detect_project_type(public_api, languages)
+
+        # Detect features
+        has_frontend = self._detect_frontend()
+        has_database = self._detect_database()
+        has_rest_api = self._detect_rest_api()
+
+        # Determine primary language
+        primary_language = languages[0].name if languages else "Unknown"
+
+        logger.info(
+            f"Classification: type={project_type}, "
+            f"frontend={has_frontend}, db={has_database}, api={has_rest_api}"
+        )
+
+        return {
+            'project_type': project_type,
+            'has_frontend': has_frontend,
+            'has_database': has_database,
+            'has_rest_api': has_rest_api,
+            'primary_language': primary_language,
+            'one_line_description': '[INFERRED: project description]',
+            'key_capabilities': [
+                '[INFERRED: capability 1]',
+                '[INFERRED: capability 2]',
+                '[INFERRED: capability 3]'
+            ]
+        }
+
+    def _detect_project_type(self, public_api, languages: List) -> str:
+        """
+        Detect project type from code patterns.
+
+        Args:
+            public_api: PublicAPIInfo with extracted API elements
+            languages: List of detected languages
+
+        Returns:
+            Project type string: mcp_server, cli_and_mcp, cli_tool, web_app, or library
+        """
+        # Check for MCP server
+        if self._detect_mcp(public_api):
+            if self._detect_cli(public_api):
+                return "cli_and_mcp"
+            return "mcp_server"
+
+        # Check for CLI tool
+        if self._detect_cli(public_api):
+            return "cli_tool"
+
+        # Check for web app
+        if self._detect_frontend():
+            return "web_app"
+
+        # Default to library
+        return "library"
+
+    def _detect_mcp(self, public_api) -> bool:
+        """
+        Check if project is MCP server.
+
+        Args:
+            public_api: PublicAPIInfo with extracted API elements
+
+        Returns:
+            True if project has MCP tools, False otherwise
+        """
+        # Check for mcp_server directory
+        if (self.project_root / 'mcp_server').exists():
+            logger.debug("Found mcp_server/ directory")
+            return True
+
+        # Check for @mcp.tool() decorators
+        if len(public_api.mcp_tools) > 0:
+            logger.debug(f"Found {len(public_api.mcp_tools)} MCP tools")
+            return True
+
+        return False
+
+    def _detect_cli(self, public_api) -> bool:
+        """
+        Check if project has CLI commands.
+
+        Args:
+            public_api: PublicAPIInfo with extracted API elements
+
+        Returns:
+            True if project has CLI commands, False otherwise
+        """
+        if len(public_api.cli_commands) > 0:
+            logger.debug(f"Found {len(public_api.cli_commands)} CLI commands")
+            return True
+
+        return False
+
+    def _detect_frontend(self) -> bool:
+        """
+        Check if project has frontend.
+
+        Returns:
+            True if project has frontend indicators, False otherwise
+        """
+        frontend_indicators = [
+            'src/components',
+            'src/pages',
+            'src/ui',
+            'app/components',
+        ]
+
+        for indicator in frontend_indicators:
+            if (self.project_root / indicator).exists():
+                logger.debug(f"Found frontend indicator: {indicator}")
+                return True
+
+        # Check for .tsx files
+        tsx_files = list(self.project_root.rglob('*.tsx'))
+        if len(tsx_files) > 0:
+            logger.debug(f"Found {len(tsx_files)} .tsx files")
+            return True
+
+        return False
+
+    def _detect_database(self) -> bool:
+        """
+        Check if project has database (project root only).
+
+        Returns:
+            True if project has database indicators, False otherwise
+        """
+        db_indicators = [
+            'migrations',
+            'prisma',
+            'alembic.ini',
+        ]
+
+        for indicator in db_indicators:
+            if (self.project_root / indicator).exists():
+                logger.debug(f"Found database indicator: {indicator}")
+                return True
+
+        # Check for models.py at project root only
+        if (self.project_root / 'models.py').exists():
+            logger.debug("Found models.py at project root")
+            return True
+
+        return False
+
+    def _detect_rest_api(self) -> bool:
+        """
+        Check if project has REST API.
+
+        Returns:
+            True if project has REST API indicators, False otherwise
+        """
+        api_indicators = [
+            'src/api',
+            'routes',
+            'endpoints',
+        ]
+
+        for indicator in api_indicators:
+            if (self.project_root / indicator).exists():
+                logger.debug(f"Found REST API indicator: {indicator}")
+                return True
+
+        return False
+
 
 
 def analyze_codebase(project_root: Path) -> CodeAnalysisResult:

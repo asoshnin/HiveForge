@@ -10,16 +10,20 @@ Key Features:
 - Response caching to avoid redundant API calls
 - Optional web research functionality
 - Interactive and non-interactive modes
+- LLM-based steering file generation with fallback to [INFERRED] markers
 
-Requirements: 7.1-7.8, 12.1-12.5
+Requirements: 7.1-7.8, 12.1-12.5, P0-2
 """
 
 import logging
+import re
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 from ..knowledge_base import KnowledgeBase
 from ..models import GapAnalysisResult, Question
 from ..response_cache import ResponseCache
+from ..llm.provider import LLMProvider
 
 logger = logging.getLogger(__name__)
 
@@ -96,14 +100,20 @@ class SteeringAssistant:
     batching questions for efficiency, limiting token usage, and optionally
     performing web research to fill gaps in knowledge.
     
+    Also provides LLM-based steering file generation with automatic fallback
+    to [INFERRED] markers when LLM is unavailable.
+    
     Attributes:
         knowledge_base: KnowledgeBase with parsed documents and code analysis
         gap_analysis: GapAnalysisResult identifying missing information
         research_enabled: Whether web research is enabled
         interactive: Whether to ask user questions (vs non-interactive mode)
         response_cache: Optional cache for LLM responses
+        project_root: Path to project root directory
+        llm_provider: LLMProvider for LLM calls
+        generated_files: List of recently generated file contents (for context)
         
-    Requirements: 7.1-7.8, 12.1-12.5
+    Requirements: 7.1-7.8, 12.1-12.5, P0-2
     """
     
     def __init__(
@@ -112,7 +122,9 @@ class SteeringAssistant:
         gap_analysis: GapAnalysisResult,
         research_enabled: bool = False,
         interactive: bool = True,
-        response_cache: Optional[ResponseCache] = None
+        response_cache: Optional[ResponseCache] = None,
+        project_root: Optional[Path] = None,
+        llm_provider: Optional[LLMProvider] = None
     ):
         """
         Initialize the steering assistant.
@@ -123,20 +135,27 @@ class SteeringAssistant:
             research_enabled: Whether to enable web research (default: False)
             interactive: Whether to ask user questions (default: True)
             response_cache: Optional ResponseCache for caching LLM responses
+            project_root: Path to project root (for template loading)
+            llm_provider: Optional LLMProvider for LLM calls
             
-        Requirements: 7.6, 7.8, 12.4
+        Requirements: 7.6, 7.8, 12.4, P0-2
         """
         self.knowledge_base = knowledge_base
         self.gap_analysis = gap_analysis
         self.research_enabled = research_enabled
         self.interactive = interactive
         self.response_cache = response_cache or ResponseCache()
+        self.project_root = project_root or Path.cwd()
+        self.llm_provider = llm_provider
         
         # Track gathered information
         self.gathered_info: Dict[str, Any] = {}
         
         # Track research results
         self.research_results: List[ResearchResult] = []
+        
+        # Track generated files for context (last 3 files)
+        self.generated_files: List[str] = []
     
     def conduct_conversation(
         self,
@@ -569,3 +588,330 @@ class SteeringAssistant:
             sources=sources,
             approved=approved
         )
+
+    # ========================================================================
+    # LLM-Based File Generation Methods (P0-2)
+    # ========================================================================
+    
+    async def generate_file(
+        self,
+        filename: str,
+        context: Dict[str, Any]
+    ) -> str:
+        """
+        Generate steering file content using LLM synthesis.
+        
+        This method loads the template, strips frontmatter, sends to LLM
+        with context, and returns populated markdown. Falls back to
+        [INFERRED] markers if LLM is unavailable.
+        
+        Args:
+            filename: Name of steering file (e.g., 'tech-stack.md')
+            context: Knowledge base context including code analysis
+        
+        Returns:
+            Populated markdown string (never empty)
+        
+        Raises:
+            FileNotFoundError: If template not found
+            
+        Requirements: P0-2
+        """
+        try:
+            # Step 1: Load raw template with frontmatter
+            raw_template = self._get_raw_template(filename)
+            
+            # Step 2: Strip YAML frontmatter
+            template_content = self._strip_frontmatter(raw_template)
+            
+            # Step 3: Check if LLM is available
+            if self.llm_provider and self.llm_provider.is_available():
+                # Step 4: Build LLM prompt
+                system_prompt = self._get_system_prompt()
+                user_prompt = self._build_llm_prompt(
+                    filename,
+                    template_content,
+                    context
+                )
+                
+                # Step 5: Call LLM
+                response = await self.llm_provider.complete(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    max_tokens=2000,
+                    temperature=0.1,
+                    json_mode=False
+                )
+                
+                if response:
+                    logger.info(
+                        f"Generated {filename}: {len(response)} chars"
+                    )
+                    self._track_generated_file(response)
+                    return response
+            
+            # Step 6: Fallback to [INFERRED] markers
+            logger.warning(
+                f"LLM unavailable for {filename}, using [INFERRED] markers"
+            )
+            fallback_content = self._apply_inferred_markers(template_content)
+            return fallback_content
+            
+        except Exception as e:
+            logger.error(
+                f"Error generating {filename}: {type(e).__name__}: {e}"
+            )
+            # Return template with [INFERRED] markers as last resort
+            try:
+                raw_template = self._get_raw_template(filename)
+                template_content = self._strip_frontmatter(raw_template)
+                return self._apply_inferred_markers(template_content)
+            except Exception as fallback_error:
+                logger.error(f"Fallback also failed: {fallback_error}")
+                return f"[GENERATION FAILED — please fill manually]\n\nFile: {filename}"
+    
+    def _get_raw_template(self, template_name: str) -> str:
+        """
+        Load raw template content including frontmatter.
+        
+        Args:
+            template_name: Template filename (e.g., 'tech-stack.md')
+        
+        Returns:
+            Complete template file content as string
+        
+        Raises:
+            FileNotFoundError: If template not found
+            ValueError: If template_name is invalid
+            
+        Requirements: P0-2a
+        """
+        if not template_name:
+            raise ValueError("template_name cannot be empty")
+        
+        template_path = self._resolve_template_path(template_name)
+        
+        if not template_path.exists():
+            available = self._list_available_templates()
+            raise FileNotFoundError(
+                f"Template {template_name} not found at {template_path}. "
+                f"Available: {', '.join(available)}"
+            )
+        
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            raise FileNotFoundError(
+                f"Cannot read template {template_path}: {e}"
+            )
+    
+    def _strip_frontmatter(self, content: str) -> str:
+        """
+        Remove YAML frontmatter from template.
+        
+        Frontmatter is between first and second '---' delimiters.
+        
+        Args:
+            content: Template content with frontmatter
+            
+        Returns:
+            Content without frontmatter
+            
+        Requirements: P0-2
+        """
+        lines = content.split('\n')
+        
+        if not lines or lines[0].strip() != '---':
+            return content  # No frontmatter
+        
+        # Find closing ---
+        for i in range(1, len(lines)):
+            if lines[i].strip() == '---':
+                return '\n'.join(lines[i+1:])
+        
+        return content  # Malformed frontmatter, return as-is
+    
+    def _build_llm_prompt(
+        self,
+        filename: str,
+        template_content: str,
+        context: Dict[str, Any]
+    ) -> str:
+        """
+        Build comprehensive LLM prompt with context.
+        
+        Includes:
+        - Template with placeholders
+        - Code analysis summary
+        - Last 3 generated files (for consistency)
+        
+        Args:
+            filename: Name of file being generated
+            template_content: Template content without frontmatter
+            context: Project context dictionary
+            
+        Returns:
+            Formatted prompt string
+            
+        Requirements: P0-2
+        """
+        recent_files = '\n\n'.join(self.generated_files[-3:])
+        
+        prompt = f"""# Task: Generate Steering File
+
+## File: {filename}
+
+## Template (replace all {{placeholders}} with real content):
+{template_content}
+
+## Project Context:
+{self._format_context(context)}
+
+## Previously Generated Files (for consistency):
+{recent_files if recent_files else '(none yet)'}
+
+## Instructions:
+1. Replace ALL {{placeholder}} text with real, specific content
+2. Use the project context to make accurate, detailed entries
+3. Maintain consistency with previously generated files
+4. Output ONLY the final Markdown (no explanations)
+5. Never leave {{placeholder}} text in your output
+"""
+        return prompt
+    
+    def _format_context(self, context: Dict[str, Any]) -> str:
+        """
+        Format code analysis context for LLM.
+        
+        Args:
+            context: Project context dictionary
+            
+        Returns:
+            Formatted context string
+            
+        Requirements: P0-2
+        """
+        parts = []
+        
+        if 'languages' in context:
+            parts.append(f"Languages: {', '.join(context['languages'])}")
+        
+        if 'dependencies' in context:
+            deps = context['dependencies'][:10]  # Limit to 10
+            parts.append(f"Key Dependencies: {', '.join(deps)}")
+        
+        if 'architecture' in context:
+            parts.append(f"Architecture: {context['architecture']}")
+        
+        if 'mcp_tools' in context:
+            tools = context['mcp_tools'][:5]  # Limit to 5
+            parts.append(f"MCP Tools: {', '.join(tools)}")
+        
+        if 'project_type' in context:
+            parts.append(f"Project Type: {context['project_type']}")
+        
+        return '\n'.join(parts)
+    
+    def _get_system_prompt(self) -> str:
+        """
+        System prompt for LLM.
+        
+        Returns:
+            System prompt string
+            
+        Requirements: P0-2
+        """
+        return (
+            "You are a technical documentation expert generating a KIRO "
+            "steering file. Your task is to populate templates with "
+            "accurate, project-specific content. Replace ALL {placeholder} "
+            "text with real content. Output ONLY the final Markdown. "
+            "Never leave {placeholder} text in your output."
+        )
+    
+    def _apply_inferred_markers(self, template_content: str) -> str:
+        """
+        Replace placeholders with [INFERRED] markers.
+        
+        Pattern: {placeholder} → [INFERRED: placeholder]
+        
+        Args:
+            template_content: Template content with placeholders
+            
+        Returns:
+            Content with [INFERRED] markers
+            
+        Requirements: P0-2
+        """
+        def replace_placeholder(match):
+            placeholder = match.group(1)
+            return f"[INFERRED: {placeholder}]"
+        
+        return re.sub(r'\{([^}]+)\}', replace_placeholder, template_content)
+    
+    def _track_generated_file(self, content: str) -> None:
+        """
+        Track generated file for context in subsequent files.
+        
+        Keeps last 3 files for context to prevent token blowup.
+        
+        Args:
+            content: Generated file content
+            
+        Requirements: P0-2
+        """
+        # Keep last 3 files for context (first 500 chars each)
+        self.generated_files.append(content[:500])
+        if len(self.generated_files) > 3:
+            self.generated_files.pop(0)
+    
+    def _resolve_template_path(self, template_name: str) -> Path:
+        """
+        Resolve template path (handles variants).
+        
+        Tries project-type-specific variant first, then falls back
+        to generic template.
+        
+        Args:
+            template_name: Template filename
+            
+        Returns:
+            Path to template file
+            
+        Requirements: P0-2
+        """
+        # Try to get project type from knowledge base
+        project_type = None
+        if hasattr(self.knowledge_base, 'code_analysis'):
+            project_type = getattr(self.knowledge_base.code_analysis, 'project_type', None)
+        
+        # Try project-type-specific variant first
+        if project_type:
+            variant_path = (
+                self.project_root / 'hiveforge' / 'templates' / 'steering' /
+                f"{template_name.replace('.md', '')}.{project_type}.md"
+            )
+            if variant_path.exists():
+                return variant_path
+        
+        # Fall back to generic template
+        generic_path = (
+            self.project_root / 'hiveforge' / 'templates' / 'steering' / template_name
+        )
+        return generic_path
+    
+    def _list_available_templates(self) -> List[str]:
+        """
+        List available template files.
+        
+        Returns:
+            List of template filenames
+            
+        Requirements: P0-2
+        """
+        template_dir = self.project_root / 'hiveforge' / 'templates' / 'steering'
+        if not template_dir.exists():
+            return []
+        
+        return [f.name for f in template_dir.glob('*.md')]

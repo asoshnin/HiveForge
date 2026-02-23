@@ -56,6 +56,11 @@ def steering_init(
         "--analyze-code",
         help="Analyze existing codebase to extract project information"
     ),
+    source_docs_path: Optional[str] = typer.Option(
+        None,
+        "--source-docs-path",
+        help="Path to source documents folder (relative to project root). When provided, restricts document discovery to that path. Examples: 'docs', '_DEVELOPMENT', 'documentation/specs'"
+    ),
     use_autonomous_generation: bool = typer.Option(
         False,
         "--use-autonomous-generation",
@@ -109,7 +114,7 @@ def steering_init(
     
     Creates all 8 steering files by:
     1. Optionally analyzing existing codebase (with --analyze-code)
-    2. Parsing artifacts from .kiro/onboarding/
+    2. Parsing artifacts from .kiro/onboarding/ or custom path (with --source-docs-path)
     3. Conducting conversation to gather missing information
     4. Generating steering files in .kiro/steering/
     5. Validating generated files (unless --skip-validation)
@@ -120,6 +125,12 @@ def steering_init(
         
         # Import existing codebase
         hiveforge steering init --analyze-code
+        
+        # Use custom source documents path
+        hiveforge steering init --source-docs-path=docs
+        
+        # Use documents from _DEVELOPMENT folder
+        hiveforge steering init --source-docs-path=_DEVELOPMENT
         
         # Non-interactive mode (use only artifacts)
         hiveforge steering init --no-interactive
@@ -133,6 +144,7 @@ def steering_init(
         # Create shared workflow adapter
         workflow = SharedInitWorkflow(
             project_root=Path.cwd(),
+            source_docs_path=source_docs_path,
             auto_discover=analyze_code,
             autonomous=use_autonomous_generation,
             confidence_threshold=confidence_threshold,

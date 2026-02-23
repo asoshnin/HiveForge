@@ -1,11 +1,11 @@
 {
   "architecture.md": {
-    "hash": "5d1c6f268244001f8074c19d83ef124af71a71794c3b76bf4f4b662eed939fe9",
+    "hash": "027008bb467aef1976d62aa1137299abff6c29e4307c16383d7cc3d4ab0d9f67",
     "issues": [
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 39,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {Component 1}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -13,7 +13,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 40,
+        "line_number": 20,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {What it does}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -21,7 +21,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 41,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {How others talk to it}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -29,7 +29,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 42,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {What it needs}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -37,7 +37,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 44,
+        "line_number": 24,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {Component 2}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -45,7 +45,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 45,
+        "line_number": 25,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {What it does}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -53,7 +53,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 46,
+        "line_number": 26,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {How others talk to it}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -61,7 +61,7 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 47,
+        "line_number": 27,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Responsibilities' contains unreplaced placeholder: {What it needs}",
         "suggestion": "Replace the placeholder with actual content for Component Responsibilities"
@@ -69,7 +69,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 52,
+        "line_number": 30,
         "issue_type": "incomplete_section",
         "message": "Section 'Data Flow' contains unreplaced placeholder: {Step 1}",
         "suggestion": "Replace the placeholder with actual content for Data Flow"
@@ -77,7 +77,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 53,
+        "line_number": 31,
         "issue_type": "incomplete_section",
         "message": "Section 'Data Flow' contains unreplaced placeholder: {Step 2}",
         "suggestion": "Replace the placeholder with actual content for Data Flow"
@@ -85,7 +85,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 54,
+        "line_number": 32,
         "issue_type": "incomplete_section",
         "message": "Section 'Data Flow' contains unreplaced placeholder: {Step 3}",
         "suggestion": "Replace the placeholder with actual content for Data Flow"
@@ -93,7 +93,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 60,
+        "line_number": 38,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Decisions' contains unreplaced placeholder: {Decision}",
         "suggestion": "Replace the placeholder with actual content for Key Decisions"
@@ -101,7 +101,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 60,
+        "line_number": 38,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Decisions' contains unreplaced placeholder: {Why}",
         "suggestion": "Replace the placeholder with actual content for Key Decisions"
@@ -109,7 +109,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 60,
+        "line_number": 38,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Decisions' contains unreplaced placeholder: {What we gave up}",
         "suggestion": "Replace the placeholder with actual content for Key Decisions"
@@ -117,7 +117,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 63,
+        "line_number": 41,
         "issue_type": "incomplete_section",
         "message": "Section 'Scalability Considerations' contains unreplaced placeholder: {How we handle growth}",
         "suggestion": "Replace the placeholder with actual content for Scalability Considerations"
@@ -125,7 +125,7 @@
       {
         "severity": "warning",
         "file_name": "architecture.md",
-        "line_number": 64,
+        "line_number": 42,
         "issue_type": "incomplete_section",
         "message": "Section 'Scalability Considerations' contains unreplaced placeholder: {Bottlenecks to watch}",
         "suggestion": "Replace the placeholder with actual content for Scalability Considerations"
@@ -133,28 +133,20 @@
       {
         "severity": "critical",
         "file_name": "architecture.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "architecture.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 2' to frontmatter"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "api-standards.md": {
-    "hash": "233e24d85abe561ba7fbd439839ddafa4bdbe8d32fcd879a366f7fb03cb20bf0",
+    "hash": "1b54847e3fbe0f93821e63a4a9047e8a6c59e1d809b0db4faedc29d0a78c350b",
     "issues": [
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'API Design Principles' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for API Design Principles"
@@ -162,7 +154,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'API Design Principles' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for API Design Principles"
@@ -170,7 +162,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'API Design Principles' contains unreplaced placeholder: {}",
         "suggestion": "Replace the placeholder with actual content for API Design Principles"
@@ -178,7 +170,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'API Design Principles' contains unreplaced placeholder: {\"page\": 1, \"total\": 100}",
         "suggestion": "Replace the placeholder with actual content for API Design Principles"
@@ -186,7 +178,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 76,
+        "line_number": 63,
         "issue_type": "incomplete_section",
         "message": "Section 'API Design Principles' contains unreplaced placeholder: {token}",
         "suggestion": "Replace the placeholder with actual content for API Design Principles"
@@ -194,7 +186,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Error Handling' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for Error Handling"
@@ -202,7 +194,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Error Handling' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for Error Handling"
@@ -210,7 +202,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Error Handling' contains unreplaced placeholder: {}",
         "suggestion": "Replace the placeholder with actual content for Error Handling"
@@ -218,7 +210,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Error Handling' contains unreplaced placeholder: {\"page\": 1, \"total\": 100}",
         "suggestion": "Replace the placeholder with actual content for Error Handling"
@@ -226,7 +218,7 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 76,
+        "line_number": 63,
         "issue_type": "incomplete_section",
         "message": "Section 'Error Handling' contains unreplaced placeholder: {token}",
         "suggestion": "Replace the placeholder with actual content for Error Handling"
@@ -234,7 +226,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Authentication' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for Authentication"
@@ -242,7 +234,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Authentication' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for Authentication"
@@ -250,7 +242,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Authentication' contains unreplaced placeholder: {}",
         "suggestion": "Replace the placeholder with actual content for Authentication"
@@ -258,7 +250,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Authentication' contains unreplaced placeholder: {\"page\": 1, \"total\": 100}",
         "suggestion": "Replace the placeholder with actual content for Authentication"
@@ -266,7 +258,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 76,
+        "line_number": 63,
         "issue_type": "incomplete_section",
         "message": "Section 'Authentication' contains unreplaced placeholder: {token}",
         "suggestion": "Replace the placeholder with actual content for Authentication"
@@ -274,7 +266,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Versioning' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for Versioning"
@@ -282,7 +274,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Versioning' contains unreplaced placeholder: {id}",
         "suggestion": "Replace the placeholder with actual content for Versioning"
@@ -290,7 +282,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Versioning' contains unreplaced placeholder: {}",
         "suggestion": "Replace the placeholder with actual content for Versioning"
@@ -298,7 +290,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Versioning' contains unreplaced placeholder: {\"page\": 1, \"total\": 100}",
         "suggestion": "Replace the placeholder with actual content for Versioning"
@@ -306,7 +298,7 @@
       {
         "severity": "warning",
         "file_name": "api-standards.md",
-        "line_number": 76,
+        "line_number": 63,
         "issue_type": "incomplete_section",
         "message": "Section 'Versioning' contains unreplaced placeholder: {token}",
         "suggestion": "Replace the placeholder with actual content for Versioning"
@@ -314,65 +306,33 @@
       {
         "severity": "critical",
         "file_name": "api-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "api-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 3' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "api-standards.md",
-        "line_number": null,
-        "issue_type": "missing_required_section",
-        "message": "Required section 'API Design Principles' is missing",
-        "suggestion": "Add a section with heading '## API Design Principles'"
-      },
-      {
-        "severity": "critical",
-        "file_name": "api-standards.md",
-        "line_number": null,
-        "issue_type": "missing_required_section",
-        "message": "Required section 'Error Handling' is missing",
-        "suggestion": "Add a section with heading '## Error Handling'"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "conventions.md": {
-    "hash": "a7079803fcaa90f796c1749efa4a8c81c3ea47f9dfe64f2f6698d3bd7cb8f5d8",
+    "hash": "fdaa332e570984a820c799a3fd52e0b898ce5da127de395c460f0ee1fef2c7e6",
     "issues": [
       {
         "severity": "critical",
         "file_name": "conventions.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "conventions.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 2' to frontmatter"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "qa-standards.md": {
-    "hash": "0617007d94c90bb3d609cb538c53672271e2a6050e6af3e35866fab36f8704e1",
+    "hash": "a2a9b2c3b62cc17cbb5a6e58594e79d5173480a5803e623611aaaadf4533b0fa",
     "issues": [
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Testing Strategy' contains unreplaced placeholder: {what}",
         "suggestion": "Replace the placeholder with actual content for Testing Strategy"
@@ -380,7 +340,7 @@
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Testing Strategy' contains unreplaced placeholder: {condition}",
         "suggestion": "Replace the placeholder with actual content for Testing Strategy"
@@ -388,7 +348,7 @@
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Testing Strategy' contains unreplaced placeholder: {expected_outcome}",
         "suggestion": "Replace the placeholder with actual content for Testing Strategy"
@@ -396,7 +356,7 @@
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Coverage Requirements' contains unreplaced placeholder: {what}",
         "suggestion": "Replace the placeholder with actual content for Coverage Requirements"
@@ -404,7 +364,7 @@
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Coverage Requirements' contains unreplaced placeholder: {condition}",
         "suggestion": "Replace the placeholder with actual content for Coverage Requirements"
@@ -412,7 +372,7 @@
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Coverage Requirements' contains unreplaced placeholder: {expected_outcome}",
         "suggestion": "Replace the placeholder with actual content for Coverage Requirements"
@@ -420,7 +380,7 @@
       {
         "severity": "warning",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Test Types' contains unreplaced placeholder: {what}",
         "suggestion": "Replace the placeholder with actual content for Test Types"
@@ -428,7 +388,7 @@
       {
         "severity": "warning",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Test Types' contains unreplaced placeholder: {condition}",
         "suggestion": "Replace the placeholder with actual content for Test Types"
@@ -436,7 +396,7 @@
       {
         "severity": "warning",
         "file_name": "qa-standards.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Test Types' contains unreplaced placeholder: {expected_outcome}",
         "suggestion": "Replace the placeholder with actual content for Test Types"
@@ -444,36 +404,20 @@
       {
         "severity": "critical",
         "file_name": "qa-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "qa-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 3' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "qa-standards.md",
-        "line_number": null,
-        "issue_type": "missing_required_section",
-        "message": "Required section 'Testing Strategy' is missing",
-        "suggestion": "Add a section with heading '## Testing Strategy'"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "tech-stack.md": {
-    "hash": "a63ddb15feb4a72474e3f76524cf53f69aa62d540d2fcb8da4646601ba9a86a0",
+    "hash": "0eceb10b74e2d163263c729dd7a2a1379fadc256ea7e527bd8e68d8f3aaaae4c",
     "issues": [
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: {Python",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -481,7 +425,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: Node.js",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -489,7 +433,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: Go",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -497,7 +441,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -505,7 +449,79 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 25,
+        "line_number": 12,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 13,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 16,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 17,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 18,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 21,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: go",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 21,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 22,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 23,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Backend' contains unreplaced placeholder: go",
+        "suggestion": "Replace the placeholder with actual content for Backend"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 23,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -521,7 +537,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 27,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -529,79 +545,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 30,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 31,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 34,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: go",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 34,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 35,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 36,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: go",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 36,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 39,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 40,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Backend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Backend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 41,
+        "line_number": 28,
         "issue_type": "incomplete_section",
         "message": "Section 'Backend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Backend"
@@ -609,7 +553,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -617,7 +561,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -625,7 +569,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 26,
+        "line_number": 13,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -633,7 +577,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: {React",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -641,7 +585,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: Vue",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -649,7 +593,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: Svelte",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -657,7 +601,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -665,7 +609,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 30,
+        "line_number": 17,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -673,7 +617,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -681,7 +625,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -689,7 +633,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
@@ -697,63 +641,39 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 36,
+        "line_number": 23,
         "issue_type": "incomplete_section",
         "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Frontend"
       },
       {
         "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 39,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Frontend"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 40,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Frontend"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 41,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Frontend"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 24,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Database' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Database"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 25,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Database' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Database"
-      },
-      {
-        "severity": "critical",
         "file_name": "tech-stack.md",
         "line_number": 26,
         "issue_type": "incomplete_section",
-        "message": "Section 'Database' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Database"
+        "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Frontend"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 27,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Frontend"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 28,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Frontend' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Frontend"
       },
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -761,7 +681,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 30,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -769,7 +689,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 31,
+        "line_number": 13,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -777,7 +697,31 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 34,
+        "line_number": 16,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Database' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Database"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 17,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Database' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Database"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 18,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Database' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Database"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: {PostgreSQL",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -785,7 +729,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: MongoDB",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -793,7 +737,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 34,
+        "line_number": 21,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -801,7 +745,7 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Database"
@@ -809,63 +753,39 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 36,
+        "line_number": 23,
         "issue_type": "incomplete_section",
         "message": "Section 'Database' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Database"
       },
       {
         "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 39,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Database' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Database"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 40,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Database' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Database"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 41,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Database' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Database"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 24,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Cache' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Cache"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 25,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Cache' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Cache"
-      },
-      {
-        "severity": "warning",
         "file_name": "tech-stack.md",
         "line_number": 26,
         "issue_type": "incomplete_section",
-        "message": "Section 'Cache' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Cache"
+        "message": "Section 'Database' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Database"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 27,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Database' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Database"
+      },
+      {
+        "severity": "critical",
+        "file_name": "tech-stack.md",
+        "line_number": 28,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Database' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Database"
       },
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 29,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -873,7 +793,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 30,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -881,7 +801,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 31,
+        "line_number": 13,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -889,7 +809,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 34,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -897,7 +817,31 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 35,
+        "line_number": 17,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Cache' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Cache"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 18,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Cache' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Cache"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 21,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Cache' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Cache"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: {Redis",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -905,7 +849,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -913,7 +857,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 36,
+        "line_number": 23,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -921,7 +865,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 39,
+        "line_number": 26,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -929,7 +873,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 40,
+        "line_number": 27,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -937,7 +881,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 41,
+        "line_number": 28,
         "issue_type": "incomplete_section",
         "message": "Section 'Cache' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Cache"
@@ -945,7 +889,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 24,
+        "line_number": 11,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -953,9 +897,73 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 13,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 16,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 17,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 18,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 21,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 22,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 23,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
+        "suggestion": "Replace the placeholder with actual content for Infrastructure"
+      },
+      {
+        "severity": "warning",
+        "file_name": "tech-stack.md",
+        "line_number": 26,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Infrastructure' contains unreplaced placeholder: {Docker",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
       },
       {
@@ -969,71 +977,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 29,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 30,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 31,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 34,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 35,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 36,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 39,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: {Docker",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 39,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
-        "suggestion": "Replace the placeholder with actual content for Infrastructure"
-      },
-      {
-        "severity": "warning",
-        "file_name": "tech-stack.md",
-        "line_number": 40,
+        "line_number": 27,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: K8s",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -1041,7 +985,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 40,
+        "line_number": 27,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -1049,7 +993,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 41,
+        "line_number": 28,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: AWS",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -1057,7 +1001,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 41,
+        "line_number": 28,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: GCP",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -1065,7 +1009,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 41,
+        "line_number": 28,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: Azure",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -1073,7 +1017,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 41,
+        "line_number": 28,
         "issue_type": "incomplete_section",
         "message": "Section 'Infrastructure' contains unreplaced placeholder: ...}",
         "suggestion": "Replace the placeholder with actual content for Infrastructure"
@@ -1081,7 +1025,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Dependencies' contains unreplaced placeholder: {library}",
         "suggestion": "Replace the placeholder with actual content for Key Dependencies"
@@ -1089,7 +1033,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Dependencies' contains unreplaced placeholder: {version}",
         "suggestion": "Replace the placeholder with actual content for Key Dependencies"
@@ -1097,7 +1041,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 46,
+        "line_number": 33,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Dependencies' contains unreplaced placeholder: {why}",
         "suggestion": "Replace the placeholder with actual content for Key Dependencies"
@@ -1105,7 +1049,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 47,
+        "line_number": 34,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Dependencies' contains unreplaced placeholder: {library}",
         "suggestion": "Replace the placeholder with actual content for Key Dependencies"
@@ -1113,7 +1057,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 47,
+        "line_number": 34,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Dependencies' contains unreplaced placeholder: {version}",
         "suggestion": "Replace the placeholder with actual content for Key Dependencies"
@@ -1121,7 +1065,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 47,
+        "line_number": 34,
         "issue_type": "incomplete_section",
         "message": "Section 'Key Dependencies' contains unreplaced placeholder: {why}",
         "suggestion": "Replace the placeholder with actual content for Key Dependencies"
@@ -1129,7 +1073,7 @@
       {
         "severity": "warning",
         "file_name": "tech-stack.md",
-        "line_number": 50,
+        "line_number": 37,
         "issue_type": "incomplete_section",
         "message": "Section 'Rationale' contains unreplaced placeholder: {Why this stack? Trade-offs considered?}",
         "suggestion": "Replace the placeholder with actual content for Rationale"
@@ -1137,28 +1081,20 @@
       {
         "severity": "critical",
         "file_name": "tech-stack.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "tech-stack.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 1' to frontmatter"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "ui-standards.md": {
-    "hash": "69da23dc21e7fca1b25343c83bc58a1e5850db0e708f8725d70d32c83d6ec264",
+    "hash": "6ad561f9245ea9e682e537981ae707c5904e9de234cc2f4cdf5bb8a2ce0adc36",
     "issues": [
       {
         "severity": "critical",
         "file_name": "ui-standards.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Patterns' contains unreplaced placeholder: {Component}",
         "suggestion": "Replace the placeholder with actual content for Component Patterns"
@@ -1166,7 +1102,7 @@
       {
         "severity": "critical",
         "file_name": "ui-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Component Patterns' contains unreplaced placeholder: {Event}",
         "suggestion": "Replace the placeholder with actual content for Component Patterns"
@@ -1174,7 +1110,7 @@
       {
         "severity": "warning",
         "file_name": "ui-standards.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Styling Guidelines' contains unreplaced placeholder: {Component}",
         "suggestion": "Replace the placeholder with actual content for Styling Guidelines"
@@ -1182,7 +1118,7 @@
       {
         "severity": "warning",
         "file_name": "ui-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Styling Guidelines' contains unreplaced placeholder: {Event}",
         "suggestion": "Replace the placeholder with actual content for Styling Guidelines"
@@ -1190,7 +1126,7 @@
       {
         "severity": "warning",
         "file_name": "ui-standards.md",
-        "line_number": 29,
+        "line_number": 16,
         "issue_type": "incomplete_section",
         "message": "Section 'Accessibility' contains unreplaced placeholder: {Component}",
         "suggestion": "Replace the placeholder with actual content for Accessibility"
@@ -1198,7 +1134,7 @@
       {
         "severity": "warning",
         "file_name": "ui-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Accessibility' contains unreplaced placeholder: {Event}",
         "suggestion": "Replace the placeholder with actual content for Accessibility"
@@ -1206,36 +1142,20 @@
       {
         "severity": "critical",
         "file_name": "ui-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "ui-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 3' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "ui-standards.md",
-        "line_number": null,
-        "issue_type": "missing_required_section",
-        "message": "Required section 'Component Patterns' is missing",
-        "suggestion": "Add a section with heading '## Component Patterns'"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "db-standards.md": {
-    "hash": "c0ed2c13eda0f8f77e62804e4bf08490829175fc657e62253d7ca20535cd2368",
+    "hash": "a3d3f341d0599a6dc0a780948826f8f6094db66396f371462185ffff8761962f",
     "issues": [
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Schema Design' contains unreplaced placeholder: {table}",
         "suggestion": "Replace the placeholder with actual content for Schema Design"
@@ -1243,7 +1163,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Schema Design' contains unreplaced placeholder: {columns}",
         "suggestion": "Replace the placeholder with actual content for Schema Design"
@@ -1251,7 +1171,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 32,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Schema Design' contains unreplaced placeholder: {table}",
         "suggestion": "Replace the placeholder with actual content for Schema Design"
@@ -1259,7 +1179,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 32,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Schema Design' contains unreplaced placeholder: {ref_table}",
         "suggestion": "Replace the placeholder with actual content for Schema Design"
@@ -1267,7 +1187,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Migration Strategy' contains unreplaced placeholder: {table}",
         "suggestion": "Replace the placeholder with actual content for Migration Strategy"
@@ -1275,7 +1195,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Migration Strategy' contains unreplaced placeholder: {columns}",
         "suggestion": "Replace the placeholder with actual content for Migration Strategy"
@@ -1283,7 +1203,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 32,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Migration Strategy' contains unreplaced placeholder: {table}",
         "suggestion": "Replace the placeholder with actual content for Migration Strategy"
@@ -1291,7 +1211,7 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 32,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Migration Strategy' contains unreplaced placeholder: {ref_table}",
         "suggestion": "Replace the placeholder with actual content for Migration Strategy"
@@ -1299,7 +1219,7 @@
       {
         "severity": "warning",
         "file_name": "db-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Query Patterns' contains unreplaced placeholder: {table}",
         "suggestion": "Replace the placeholder with actual content for Query Patterns"
@@ -1307,7 +1227,7 @@
       {
         "severity": "warning",
         "file_name": "db-standards.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Query Patterns' contains unreplaced placeholder: {columns}",
         "suggestion": "Replace the placeholder with actual content for Query Patterns"
@@ -1315,7 +1235,7 @@
       {
         "severity": "warning",
         "file_name": "db-standards.md",
-        "line_number": 32,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Query Patterns' contains unreplaced placeholder: {table}",
         "suggestion": "Replace the placeholder with actual content for Query Patterns"
@@ -1323,7 +1243,7 @@
       {
         "severity": "warning",
         "file_name": "db-standards.md",
-        "line_number": 32,
+        "line_number": 19,
         "issue_type": "incomplete_section",
         "message": "Section 'Query Patterns' contains unreplaced placeholder: {ref_table}",
         "suggestion": "Replace the placeholder with actual content for Query Patterns"
@@ -1331,36 +1251,20 @@
       {
         "severity": "critical",
         "file_name": "db-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "db-standards.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 3' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "db-standards.md",
-        "line_number": null,
-        "issue_type": "missing_required_section",
-        "message": "Required section 'Migration Strategy' is missing",
-        "suggestion": "Add a section with heading '## Migration Strategy'"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   },
   "project-vision.md": {
-    "hash": "875776a6a09b4b6c1f29cb94debc727040266afc334563d6dfefbbf0a511986d",
+    "hash": "5d14d5ad18bfa9b406c95f7b0e265e5407635c46b74da5b6fd6db3bdc0b1af45",
     "issues": [
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 22,
+        "line_number": 9,
         "issue_type": "incomplete_section",
         "message": "Section 'Elevator Pitch' contains unreplaced placeholder: {One sentence description of what this does and for whom}",
         "suggestion": "Replace the placeholder with actual content for Elevator Pitch"
@@ -1368,7 +1272,7 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 25,
+        "line_number": 12,
         "issue_type": "incomplete_section",
         "message": "Section 'Problem Statement' contains unreplaced placeholder: {What pain does this solve? Be specific.}",
         "suggestion": "Replace the placeholder with actual content for Problem Statement"
@@ -1376,7 +1280,7 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 28,
+        "line_number": 15,
         "issue_type": "incomplete_section",
         "message": "Section 'Solution Overview' contains unreplaced placeholder: {How do we solve it? High-level approach.}",
         "suggestion": "Replace the placeholder with actual content for Solution Overview"
@@ -1384,7 +1288,7 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 31,
+        "line_number": 18,
         "issue_type": "incomplete_section",
         "message": "Section 'Target Users' contains unreplaced placeholder: {Who benefits most}",
         "suggestion": "Replace the placeholder with actual content for Target Users"
@@ -1392,7 +1296,7 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 35,
+        "line_number": 22,
         "issue_type": "incomplete_section",
         "message": "Section 'Success Metrics' contains unreplaced placeholder: {The one number that matters}",
         "suggestion": "Replace the placeholder with actual content for Success Metrics"
@@ -1400,7 +1304,7 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 36,
+        "line_number": 23,
         "issue_type": "incomplete_section",
         "message": "Section 'Success Metrics' contains unreplaced placeholder: {Value}",
         "suggestion": "Replace the placeholder with actual content for Success Metrics"
@@ -1408,6 +1312,22 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
+        "line_number": 23,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Success Metrics' contains unreplaced placeholder: {Date}",
+        "suggestion": "Replace the placeholder with actual content for Success Metrics"
+      },
+      {
+        "severity": "critical",
+        "file_name": "project-vision.md",
+        "line_number": 35,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Success Metrics' contains unreplaced placeholder: {Date}",
+        "suggestion": "Replace the placeholder with actual content for Success Metrics"
+      },
+      {
+        "severity": "critical",
+        "file_name": "project-vision.md",
         "line_number": 36,
         "issue_type": "incomplete_section",
         "message": "Section 'Success Metrics' contains unreplaced placeholder: {Date}",
@@ -1416,23 +1336,7 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 48,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Success Metrics' contains unreplaced placeholder: {Date}",
-        "suggestion": "Replace the placeholder with actual content for Success Metrics"
-      },
-      {
-        "severity": "critical",
-        "file_name": "project-vision.md",
-        "line_number": 49,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Success Metrics' contains unreplaced placeholder: {Date}",
-        "suggestion": "Replace the placeholder with actual content for Success Metrics"
-      },
-      {
-        "severity": "critical",
-        "file_name": "project-vision.md",
-        "line_number": 50,
+        "line_number": 37,
         "issue_type": "incomplete_section",
         "message": "Section 'Success Metrics' contains unreplaced placeholder: {Date}",
         "suggestion": "Replace the placeholder with actual content for Success Metrics"
@@ -1440,7 +1344,7 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 39,
+        "line_number": 26,
         "issue_type": "incomplete_section",
         "message": "Section 'Non-Goals' contains unreplaced placeholder: {Out of scope feature 1}",
         "suggestion": "Replace the placeholder with actual content for Non-Goals"
@@ -1448,7 +1352,7 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 40,
+        "line_number": 27,
         "issue_type": "incomplete_section",
         "message": "Section 'Non-Goals' contains unreplaced placeholder: {Out of scope feature 2}",
         "suggestion": "Replace the placeholder with actual content for Non-Goals"
@@ -1456,7 +1360,7 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 43,
+        "line_number": 30,
         "issue_type": "incomplete_section",
         "message": "Section 'Constraints & Assumptions' contains unreplaced placeholder: {Business constraint}",
         "suggestion": "Replace the placeholder with actual content for Constraints & Assumptions"
@@ -1464,7 +1368,7 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 44,
+        "line_number": 31,
         "issue_type": "incomplete_section",
         "message": "Section 'Constraints & Assumptions' contains unreplaced placeholder: {Technical constraint}",
         "suggestion": "Replace the placeholder with actual content for Constraints & Assumptions"
@@ -1472,10 +1376,26 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 45,
+        "line_number": 32,
         "issue_type": "incomplete_section",
         "message": "Section 'Constraints & Assumptions' contains unreplaced placeholder: {Key assumption that if wrong, invalidates project}",
         "suggestion": "Replace the placeholder with actual content for Constraints & Assumptions"
+      },
+      {
+        "severity": "warning",
+        "file_name": "project-vision.md",
+        "line_number": 23,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Timeline' contains unreplaced placeholder: {Date}",
+        "suggestion": "Replace the placeholder with actual content for Timeline"
+      },
+      {
+        "severity": "warning",
+        "file_name": "project-vision.md",
+        "line_number": 35,
+        "issue_type": "incomplete_section",
+        "message": "Section 'Timeline' contains unreplaced placeholder: {Date}",
+        "suggestion": "Replace the placeholder with actual content for Timeline"
       },
       {
         "severity": "warning",
@@ -1488,7 +1408,7 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 48,
+        "line_number": 37,
         "issue_type": "incomplete_section",
         "message": "Section 'Timeline' contains unreplaced placeholder: {Date}",
         "suggestion": "Replace the placeholder with actual content for Timeline"
@@ -1496,23 +1416,7 @@
       {
         "severity": "warning",
         "file_name": "project-vision.md",
-        "line_number": 49,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Timeline' contains unreplaced placeholder: {Date}",
-        "suggestion": "Replace the placeholder with actual content for Timeline"
-      },
-      {
-        "severity": "warning",
-        "file_name": "project-vision.md",
-        "line_number": 50,
-        "issue_type": "incomplete_section",
-        "message": "Section 'Timeline' contains unreplaced placeholder: {Date}",
-        "suggestion": "Replace the placeholder with actual content for Timeline"
-      },
-      {
-        "severity": "warning",
-        "file_name": "project-vision.md",
-        "line_number": 19,
+        "line_number": 6,
         "issue_type": "unreplaced_placeholder",
         "message": "Unreplaced placeholder found: {PROJECT_NAME}",
         "suggestion": "Replace this placeholder with actual content"
@@ -1520,18 +1424,10 @@
       {
         "severity": "critical",
         "file_name": "project-vision.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: inclusion",
-        "suggestion": "Add 'inclusion: auto' to frontmatter"
-      },
-      {
-        "severity": "critical",
-        "file_name": "project-vision.md",
-        "line_number": 2,
-        "issue_type": "missing_frontmatter_field",
-        "message": "Frontmatter is missing required field: priority",
-        "suggestion": "Add 'priority: 1' to frontmatter"
+        "line_number": 1,
+        "issue_type": "missing_frontmatter",
+        "message": "File is missing frontmatter (YAML between --- markers)",
+        "suggestion": "Add frontmatter at the beginning of the file with 'inclusion' and 'priority' fields"
       }
     ]
   }

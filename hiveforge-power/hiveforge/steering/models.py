@@ -118,6 +118,33 @@ class ConventionsInfo:
 
 
 @dataclass
+class MCPToolInfo:
+    """Information about an MCP tool."""
+    
+    name: str
+    docstring: str
+    parameters: List[str] = field(default_factory=list)
+
+
+@dataclass
+class CLICommandInfo:
+    """Information about a CLI command."""
+    
+    name: str
+    help_text: str
+    parameters: List[str] = field(default_factory=list)
+
+
+@dataclass
+class PublicAPIInfo:
+    """Extracted public API information from codebase."""
+    
+    mcp_tools: List[MCPToolInfo] = field(default_factory=list)
+    cli_commands: List[CLICommandInfo] = field(default_factory=list)
+    public_classes: List[str] = field(default_factory=list)
+
+
+@dataclass
 class CodeAnalysisResult:
     """Complete result of code analysis for a project."""
     
@@ -299,6 +326,51 @@ class ValidationReport:
 
 
 # ============================================================================
+# Draft Models
+# ============================================================================
+
+@dataclass
+class DraftFile:
+    """Single file in draft state awaiting review."""
+    
+    filename: str
+    content: str
+    confidence: float
+    placeholder_count: int
+    preview: str  # First 300 chars
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dict for JSON serialization."""
+        return {
+            'filename': self.filename,
+            'confidence': self.confidence,
+            'placeholder_count': self.placeholder_count,
+            'preview': self.preview,
+        }
+
+
+@dataclass
+class DraftState:
+    """State of generated files awaiting review."""
+    
+    files: List[DraftFile]
+    created_at: Any = field(default_factory=lambda: None)  # datetime, avoid import
+    is_approved: bool = False
+    
+    def summary(self) -> str:
+        """Generate summary for display."""
+        lines = ["# Draft Summary\n"]
+        
+        for file in self.files:
+            lines.append(f"## {file.filename}")
+            lines.append(f"- Confidence: {file.confidence:.1%}")
+            lines.append(f"- Placeholders: {file.placeholder_count}")
+            lines.append(f"- Preview: {file.preview}...\n")
+        
+        return '\n'.join(lines)
+
+
+# ============================================================================
 # Workflow Models
 # ============================================================================
 
@@ -316,6 +388,7 @@ class WorkflowState:
     gathered_info: Dict[str, Any] = field(default_factory=dict)
     conflicts: List[Conflict] = field(default_factory=list)
     validation_report: Optional[ValidationReport] = None
+    draft: Optional[DraftState] = None  # NEW: stores draft for MCP mode review
 
 
 @dataclass
@@ -346,6 +419,44 @@ class CachedResponse:
     response: str
     timestamp: float
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+# ============================================================================
+# Drift Detection Models
+# ============================================================================
+
+class DriftCategory(Enum):
+    """Categories of drift between steering files and codebase."""
+    LANGUAGE_VERSION = "language_version"
+    NEW_DEPENDENCY = "new_dependency"
+    ARCHITECTURE_PATTERN = "architecture_pattern"
+    CONVENTION_MISMATCH = "convention_mismatch"
+
+
+@dataclass
+class DriftItem:
+    """Single drift detection result."""
+    
+    category: DriftCategory
+    description: str
+    confidence: float  # 0.0-1.0
+    suggested_action: str
+
+
+@dataclass
+class DriftReport:
+    """Report of all detected drift."""
+    
+    items: List[DriftItem] = field(default_factory=list)
+    detected_at: Any = field(default_factory=lambda: None)  # datetime, avoid import
+    
+    def has_drift(self) -> bool:
+        """Check if any drift detected."""
+        return len(self.items) > 0
+    
+    def by_severity(self) -> List[DriftItem]:
+        """Return items sorted by confidence (highest first)."""
+        return sorted(self.items, key=lambda x: x.confidence, reverse=True)
 
 
 # ============================================================================

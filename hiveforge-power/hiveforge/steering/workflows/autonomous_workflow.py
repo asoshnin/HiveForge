@@ -113,10 +113,37 @@ class AutonomousWorkflow(InitWorkflow):
         """
         Execute the autonomous generation workflow.
         
+        Workflow Steps:
+        1. Create staging directory
+        2. Check for existing steering files
+        3. Analyze codebase (if enabled)
+        4. Parse artifacts from staging folder
+        5. Build knowledge base
+        6. Run gap analysis
+        7. Generate files autonomously
+        7.5. Review draft (P1-3):
+             - CLI mode: Prompt user for approval
+             - MCP mode: Store draft in self.state.draft for IDE review
+        8. Write files (only if approved in CLI or after MCP approval)
+        9. Run validation (if not skipped)
+        
+        Draft Review Integration (P1-3):
+        - _step_review_draft() is called after file generation (step 7)
+        - In CLI mode (interactive=True):
+          * Prints draft summary with confidence scores
+          * Prompts user to approve/reject
+          * Returns True if approved (proceed to write files)
+          * Returns False if rejected (abort workflow)
+        - In MCP mode (interactive=False):
+          * Stores draft in self.state.draft
+          * Returns False (don't write files yet)
+          * Caller must include draft in WorkflowResult.metadata
+          * User calls update_steering(apply_draft=True) to write files
+        
         Returns:
             True if workflow completed successfully, False otherwise
             
-        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7
+        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7, P1-3
         """
         logger.info("="*70)
         logger.info("STARTING AUTONOMOUS GENERATION WORKFLOW")
@@ -147,7 +174,21 @@ class AutonomousWorkflow(InitWorkflow):
             # Step 7: Generate files autonomously
             self._step_generate_files_autonomously()
             
-            # Step 8: Write files
+            # Step 7.5: Review draft (NEW - P1-3)
+            if not self._step_review_draft():
+                # Draft not approved or in MCP mode - don't write files
+                logger.info("Draft review: files not written")
+                if not self.config.interactive:
+                    # MCP mode: return success with draft stored
+                    logger.info("MCP mode: draft stored for later review")
+                    self._display_draft_stored_message()
+                    return True
+                else:
+                    # CLI mode: user rejected
+                    logger.info("CLI mode: user rejected draft")
+                    return False
+            
+            # Step 8: Write files (only if approved in CLI or skipped review)
             self._step_write_files()
             
             # Step 9: Run validation
@@ -166,14 +207,14 @@ class AutonomousWorkflow(InitWorkflow):
             self._display_error_message(str(e))
             return False
     
-    def _step_generate_files_autonomously(self) -> None:
+    async def _step_generate_files_autonomously(self) -> None:
         """
         Step 7: Generate steering files autonomously with confidence scoring.
         
         Generates files sequentially, passing previously generated files as
         context to maintain consistency across files.
         
-        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7
+        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7, P0-3
         """
         logger.info("Step 7: Generating files autonomously")
         print("\n📝 Generating steering files autonomously...")
@@ -192,8 +233,8 @@ class AutonomousWorkflow(InitWorkflow):
                     if k in self.GENERATION_ORDER[:self.GENERATION_ORDER.index(filename)]
                 }
                 
-                # Generate file content
-                content, confidence = self._generate_single_file(
+                # Generate file content with fallback handling (P0-3)
+                content, confidence = await self._generate_file_with_fallback(
                     filename=filename,
                     previous_files=previous_files,
                     questions=questions,
@@ -217,21 +258,64 @@ class AutonomousWorkflow(InitWorkflow):
                 logger.error(f"Failed to generate {filename}: {e}", exc_info=True)
                 print(f"✗ Error: {e}")
                 
-                # Handle partial failure - continue with remaining files
-                if self.feature_flag_config.interactive:
-                    # In interactive mode, fallback to question workflow
-                    self.fallback_triggered = True
-                    self.fallback_reasons.append(f"{filename}: generation error")
-                else:
-                    # In autonomous mode, continue with remaining files
-                    self.generated_files[filename] = ""
-                    self.confidence_scores[filename] = ConfidenceScore(
-                        value=0.0,
-                        level=None,  # Will be set to LOW in __post_init__
-                        evidence=[],
-                    )
+                # Apply fallback with [INFERRED] markers (P0-3)
+                content, confidence = self._apply_fallback(filename, str(e))
+                self.generated_files[filename] = content
+                self.confidence_scores[filename] = confidence
+        
+        # Verify no empty files (P0-3)
+        for filename, content in self.generated_files.items():
+            if not content or not content.strip():
+                logger.error(f"Generated empty file: {filename}")
+                self.generated_files[filename] = (
+                    f"[GENERATION FAILED — please fill manually]\n\n"
+                    f"File: {filename}"
+                )
+                self.confidence_scores[filename] = ConfidenceScore(
+                    value=0.0,
+                    level=None,  # Will be set to LOW in __post_init__
+                    evidence=[],
+                )
     
-    def _generate_single_file(
+    async def _generate_file_with_fallback(
+        self,
+        filename: str,
+        previous_files: Dict[str, str],
+        questions: List[dict],
+    ) -> tuple[str, ConfidenceScore]:
+        """
+        Generate file with automatic fallback on failure.
+        
+        Args:
+            filename: Name of the file to generate
+            previous_files: Previously generated files for context
+            questions: Gap analysis questions
+            
+        Returns:
+            Tuple of (content, confidence score)
+            
+        Requirements: P0-3
+        """
+        try:
+            content, confidence = await self._generate_single_file(
+                filename=filename,
+                previous_files=previous_files,
+                questions=questions,
+            )
+            
+            # Verify content is not empty
+            if not content or not content.strip():
+                raise ValueError("LLM returned empty content")
+            
+            return (content, confidence)
+        
+        except Exception as e:
+            logger.warning(
+                f"Generation failed for {filename}: {type(e).__name__}: {e}"
+            )
+            return self._apply_fallback(filename, str(e))
+    
+    async def _generate_single_file(
         self,
         filename: str,
         previous_files: Dict[str, str],
@@ -259,10 +343,12 @@ class AutonomousWorkflow(InitWorkflow):
             gap_analysis=self.state.gap_analysis,
             research_enabled=self.config.research_enabled,
             interactive=False,  # Autonomous mode
+            project_root=self.project_root,
+            llm_provider=None,  # Will be set when LLMProvider is implemented
         )
         
-        # Generate content
-        content = assistant.generate_file(
+        # Generate content (async call)
+        content = await assistant.generate_file(
             filename=filename,
             context=context,
         )
@@ -275,6 +361,83 @@ class AutonomousWorkflow(InitWorkflow):
         )
         
         return content, confidence
+    
+    def _apply_fallback(
+        self,
+        filename: str,
+        error_reason: str
+    ) -> tuple[str, ConfidenceScore]:
+        """
+        Apply [INFERRED] marker fallback when generation fails.
+        
+        Args:
+            filename: Name of the file that failed to generate
+            error_reason: Reason for the failure
+            
+        Returns:
+            Tuple of (fallback_content, confidence_score)
+            
+        Requirements: P0-3
+        """
+        try:
+            # Import SteeringAssistant to access template methods
+            from ..agents.steering_assistant import SteeringAssistant
+            
+            # Create temporary assistant to access template methods
+            assistant = SteeringAssistant(
+                knowledge_base=self.state.knowledge_base,
+                gap_analysis=self.state.gap_analysis,
+                research_enabled=False,
+                interactive=False,
+                project_root=self.project_root,
+            )
+            
+            # Get raw template
+            raw_template = assistant._get_raw_template(filename)
+            
+            # Strip frontmatter
+            template_content = assistant._strip_frontmatter(raw_template)
+            
+            # Apply [INFERRED] markers
+            fallback_content = assistant._apply_inferred_markers(template_content)
+            
+            # Track fallback reason
+            reason = f"{filename}: {error_reason}"
+            self.fallback_reasons.append(reason)
+            
+            logger.info(
+                f"Applied [INFERRED] fallback for {filename}"
+            )
+            
+            # Return with very low confidence (0.1)
+            return (fallback_content, ConfidenceScore(
+                value=0.1,
+                level=None,  # Will be set to LOW in __post_init__
+                evidence=[],
+            ))
+        
+        except Exception as e:
+            # Last resort: return error message
+            logger.error(
+                f"Fallback failed for {filename}: {type(e).__name__}: {e}"
+            )
+            
+            error_content = (
+                f"[GENERATION FAILED — please fill manually]\n\n"
+                f"File: {filename}\n"
+                f"Error: {error_reason}\n"
+                f"Fallback Error: {str(e)}"
+            )
+            
+            self.fallback_reasons.append(
+                f"{filename}: {error_reason} (fallback also failed)"
+            )
+            
+            return (error_content, ConfidenceScore(
+                value=0.0,
+                level=None,  # Will be set to LOW in __post_init__
+                evidence=[],
+            ))
     
     def _build_generation_context(
         self,
@@ -362,6 +525,103 @@ class AutonomousWorkflow(InitWorkflow):
             level=None,  # Will be set in __post_init__
             evidence=evidence,
         )
+    
+    def _step_review_draft(self) -> bool:
+        """
+        Review generated files before writing to disk.
+        
+        In CLI mode (interactive=True): Prints draft summary and prompts user for approval.
+        In MCP mode (interactive=False): Stores draft in self.state.draft for IDE review.
+        
+        MCP Mode Metadata Population (P1-3):
+        The draft is stored in self.state.draft, which should be accessed by the
+        MCP tool wrapper (e.g., init_steering.py) to populate WorkflowResult.metadata:
+        
+        Example MCP tool wrapper code:
+        ```python
+        @mcp.tool()
+        async def init_steering(ctx: Context, ...) -> dict:
+            workflow = AutonomousWorkflow(...)
+            success = workflow.execute()
+            
+            # Populate metadata with draft summary for IDE display
+            metadata = {}
+            if workflow.state.draft:
+                metadata['draft_summary'] = workflow.state.draft.summary()
+                metadata['draft_files'] = [f.to_dict() for f in workflow.state.draft.files]
+            
+            return {
+                'status': 'draft_ready' if workflow.state.draft else 'success',
+                'metadata': metadata
+            }
+        ```
+        
+        Returns:
+            True if files should be written (CLI mode approved), False otherwise
+            
+        Requirements: P1-3
+        """
+        import re
+        from datetime import datetime
+        from ..models import DraftState, DraftFile
+        
+        logger.info("Reviewing draft files")
+        
+        # Create draft files with metadata
+        draft_files = []
+        for filename, content in self.generated_files.items():
+            # Calculate placeholder count using regex {[^}]+}
+            placeholder_count = len(re.findall(r'\{[^}]+\}', content))
+            
+            # Calculate confidence: 1.0 - (placeholder_count * 0.1), capped at 0.0
+            confidence = max(0.0, 1.0 - (placeholder_count * 0.1))
+            
+            # Get preview (first 300 chars, replace newlines with spaces)
+            preview = content[:300].replace('\n', ' ')
+            
+            draft_files.append(DraftFile(
+                filename=filename,
+                content=content,
+                confidence=confidence,
+                placeholder_count=placeholder_count,
+                preview=preview
+            ))
+        
+        # Create draft state
+        draft = DraftState(
+            files=draft_files,
+            created_at=datetime.now(),
+            is_approved=False
+        )
+        
+        if self.config.interactive:
+            # CLI mode: print summary and prompt user
+            print("\n" + "="*70)
+            print("📋 DRAFT REVIEW")
+            print("="*70)
+            print(draft.summary())
+            print("="*70)
+            
+            response = input("\nApprove and write files? (y/n): ").strip().lower()
+            
+            if response == 'y':
+                draft.is_approved = True
+                logger.info("User approved draft")
+                return True
+            else:
+                logger.info("User rejected draft")
+                print("\n   ℹ Draft rejected. Files not written.")
+                return False
+        else:
+            # MCP mode: store draft for IDE review
+            self.state.draft = draft
+            logger.info("Draft stored for IDE review (non-interactive mode)")
+            
+            # Note: In MCP mode, the caller should include draft summary in
+            # WorkflowResult.metadata["draft_summary"] for IDE display
+            # This will be handled by the MCP tool wrapper
+            
+            return False  # Don't write files in MCP mode
     
     def _step_write_files(self) -> None:
         """
@@ -487,3 +747,94 @@ class AutonomousWorkflow(InitWorkflow):
             logger.error(f"Validation failed: {e}", exc_info=True)
             print(f"   ⚠️  Validation failed: {e}")
             print("   Steering files were created but validation could not be completed")
+
+    def _display_draft_stored_message(self) -> None:
+        """Display message when draft is stored in MCP mode."""
+        print("\n" + "="*70)
+        print("📋 DRAFT READY FOR REVIEW")
+        print("="*70)
+        print(f"\n✓ Generated {len(self.generated_files)} steering file(s)")
+        print("\n📝 Draft stored for IDE review")
+        print("   Files have NOT been written to disk yet.")
+        print("   Review the draft in your IDE and approve to write files.")
+        print("\n💡 Next steps:")
+        print("   1. Review the draft summary in your IDE")
+        print("   2. Call update_steering(apply_draft=True) to write files")
+        print("   3. Or regenerate with different settings")
+        print()
+
+    def write_draft_to_disk(self) -> bool:
+        """
+        Write draft files to disk (called when user approves draft in MCP mode).
+        
+        This method is called by update_steering(apply_draft=True) in MCP mode:
+        
+        MCP Tool Flow (P1-3):
+        1. User calls init_steering() in KIRO IDE
+        2. Workflow generates files and stores draft in self.state.draft
+        3. IDE displays draft summary from WorkflowResult.metadata
+        4. User reviews draft in IDE
+        5. User calls update_steering(apply_draft=True) to approve
+        6. update_steering() retrieves stored workflow instance
+        7. update_steering() calls workflow.write_draft_to_disk()
+        8. Files are written to .kiro/steering/
+        
+        Example update_steering implementation:
+        ```python
+        @mcp.tool()
+        async def update_steering(
+            ctx: Context,
+            apply_draft: bool = False
+        ) -> dict:
+            if apply_draft:
+                # Retrieve stored workflow instance
+                workflow = get_stored_workflow()  # Implementation-specific
+                
+                if not workflow or not workflow.state.draft:
+                    return {'status': 'error', 'message': 'No draft available'}
+                
+                # Write draft files to disk
+                success = workflow.write_draft_to_disk()
+                
+                if success:
+                    return {
+                        'status': 'success',
+                        'message': f'Applied draft: {len(workflow.state.draft.files)} files written'
+                    }
+                else:
+                    return {'status': 'error', 'message': 'Failed to write draft files'}
+            
+            # Otherwise run normal update workflow
+            # ...
+        ```
+        
+        Returns:
+            True if files written successfully, False otherwise
+            
+        Requirements: P1-3
+        """
+        if not self.state.draft:
+            logger.error("No draft available to write")
+            return False
+        
+        try:
+            # Ensure steering directory exists
+            self.state.steering_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Write each file from draft
+            written_files = []
+            for draft_file in self.state.draft.files:
+                file_path = self.state.steering_dir / draft_file.filename
+                file_path.write_text(draft_file.content, encoding='utf-8')
+                written_files.append(draft_file.filename)
+                logger.info(f"Wrote: {draft_file.filename}")
+            
+            # Mark draft as approved
+            self.state.draft.is_approved = True
+            
+            logger.info(f"Successfully wrote {len(written_files)} files from draft")
+            return True
+        
+        except Exception as e:
+            logger.error(f"Failed to write draft files: {e}", exc_info=True)
+            return False

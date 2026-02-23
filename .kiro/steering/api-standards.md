@@ -1,8 +1,14 @@
 ---
 inclusion: fileMatch
-patterns: ["src/api/**", "tests/api/**", "src/**/api.py", "src/**/routes/**"]
+patterns:
+  - "src/ui/**"
+  - "src/components/**"
+  - "src/pages/**"
+  - "src/app/**"
+  - "**/*.tsx"
+  - "**/*.jsx"
 priority: 2
-description: "API naming, versioning, error handling. Only loaded when working on API code."
+description: "UI component design rules. Only loaded when working on frontend code."
 ---
 
 # API Standards & Conventions

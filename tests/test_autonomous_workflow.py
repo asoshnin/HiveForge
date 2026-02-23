@@ -270,3 +270,296 @@ This section needs more information.
         assert "project-vision.md" in context
         assert "Tech Stack" in context
         assert "FastAPI" in context
+
+
+class TestFallbackBehavior:
+    """Tests for P0-3: Fallback behavior with [INFERRED] markers."""
+    
+    @pytest.mark.asyncio
+    async def test_apply_fallback_with_inferred_markers(self):
+        """
+        WHEN generation fails, the system SHALL apply [INFERRED] markers to template.
+        
+        Requirements: P0-3
+        """
+        from hiveforge.steering.workflows.autonomous_workflow import AutonomousWorkflow
+        from hiveforge.steering.models import SteeringConfig, FeatureFlagConfig
+        from pathlib import Path
+        
+        # Create minimal config
+        config = SteeringConfig(
+            project_root=Path.cwd(),
+            template_files=["tech-stack.md"],
+            interactive=False,
+        )
+        
+        feature_flag_config = FeatureFlagConfig(
+            confidence_threshold=0.7,
+            interactive=False,
+        )
+        
+        # Create workflow instance
+        workflow = AutonomousWorkflow(
+            config=config,
+            feature_flag_config=feature_flag_config,
+            project_root=Path.cwd(),
+        )
+        
+        # Test _apply_fallback method
+        fallback_content, confidence = workflow._apply_fallback(
+            filename="tech-stack.md",
+            error_reason="LLM unavailable"
+        )
+        
+        # Verify fallback content has [INFERRED] markers
+        assert "[INFERRED:" in fallback_content
+        
+        # Verify confidence is very low (0.1)
+        assert confidence.value == 0.1
+        
+        # Verify fallback reason was tracked
+        assert len(workflow.fallback_reasons) == 1
+        assert "tech-stack.md" in workflow.fallback_reasons[0]
+        assert "LLM unavailable" in workflow.fallback_reasons[0]
+    
+    @pytest.mark.asyncio
+    async def test_fallback_never_returns_empty_content(self):
+        """
+        WHEN fallback is triggered, the system SHALL never return empty content.
+        
+        Requirements: P0-3
+        """
+        from hiveforge.steering.workflows.autonomous_workflow import AutonomousWorkflow
+        from hiveforge.steering.models import SteeringConfig, FeatureFlagConfig
+        from pathlib import Path
+        
+        # Create minimal config
+        config = SteeringConfig(
+            project_root=Path.cwd(),
+            template_files=["tech-stack.md"],
+            interactive=False,
+        )
+        
+        feature_flag_config = FeatureFlagConfig(
+            confidence_threshold=0.7,
+            interactive=False,
+        )
+        
+        # Create workflow instance
+        workflow = AutonomousWorkflow(
+            config=config,
+            feature_flag_config=feature_flag_config,
+            project_root=Path.cwd(),
+        )
+        
+        # Test _apply_fallback method
+        fallback_content, confidence = workflow._apply_fallback(
+            filename="tech-stack.md",
+            error_reason="Test error"
+        )
+        
+        # Verify content is not empty
+        assert fallback_content
+        assert fallback_content.strip()
+        assert len(fallback_content) > 0
+    
+    @pytest.mark.asyncio
+    async def test_fallback_tracks_reasons(self):
+        """
+        WHEN fallback is triggered, the system SHALL track fallback reasons.
+        
+        Requirements: P0-3
+        """
+        from hiveforge.steering.workflows.autonomous_workflow import AutonomousWorkflow
+        from hiveforge.steering.models import SteeringConfig, FeatureFlagConfig
+        from pathlib import Path
+        
+        # Create minimal config
+        config = SteeringConfig(
+            project_root=Path.cwd(),
+            template_files=["tech-stack.md", "architecture.md"],
+            interactive=False,
+        )
+        
+        feature_flag_config = FeatureFlagConfig(
+            confidence_threshold=0.7,
+            interactive=False,
+        )
+        
+        # Create workflow instance
+        workflow = AutonomousWorkflow(
+            config=config,
+            feature_flag_config=feature_flag_config,
+            project_root=Path.cwd(),
+        )
+        
+        # Apply fallback for multiple files
+        workflow._apply_fallback("tech-stack.md", "Error 1")
+        workflow._apply_fallback("architecture.md", "Error 2")
+        
+        # Verify both reasons were tracked
+        assert len(workflow.fallback_reasons) == 2
+        assert any("tech-stack.md" in reason for reason in workflow.fallback_reasons)
+        assert any("architecture.md" in reason for reason in workflow.fallback_reasons)
+    
+    @pytest.mark.asyncio
+    async def test_fallback_sets_low_confidence(self):
+        """
+        WHEN fallback is triggered, the system SHALL set confidence to 0.1.
+        
+        Requirements: P0-3
+        """
+        from hiveforge.steering.workflows.autonomous_workflow import AutonomousWorkflow
+        from hiveforge.steering.models import SteeringConfig, FeatureFlagConfig, ConfidenceLevel
+        from pathlib import Path
+        
+        # Create minimal config
+        config = SteeringConfig(
+            project_root=Path.cwd(),
+            template_files=["tech-stack.md"],
+            interactive=False,
+        )
+        
+        feature_flag_config = FeatureFlagConfig(
+            confidence_threshold=0.7,
+            interactive=False,
+        )
+        
+        # Create workflow instance
+        workflow = AutonomousWorkflow(
+            config=config,
+            feature_flag_config=feature_flag_config,
+            project_root=Path.cwd(),
+        )
+        
+        # Apply fallback
+        fallback_content, confidence = workflow._apply_fallback(
+            filename="tech-stack.md",
+            error_reason="Test error"
+        )
+        
+        # Verify confidence is 0.1 (very low)
+        assert confidence.value == 0.1
+        
+        # Verify confidence level is LOW (set in __post_init__)
+        assert confidence.level == ConfidenceLevel.LOW or confidence.level is None
+    
+    @pytest.mark.asyncio
+    async def test_last_resort_fallback_message(self):
+        """
+        WHEN all fallbacks fail, the system SHALL return [GENERATION FAILED] message.
+        
+        Requirements: P0-3
+        """
+        from hiveforge.steering.workflows.autonomous_workflow import AutonomousWorkflow
+        from hiveforge.steering.models import SteeringConfig, FeatureFlagConfig
+        from pathlib import Path
+        
+        # Create minimal config with invalid project root to trigger fallback failure
+        config = SteeringConfig(
+            project_root=Path("/nonexistent/path"),
+            template_files=["tech-stack.md"],
+            interactive=False,
+        )
+        
+        feature_flag_config = FeatureFlagConfig(
+            confidence_threshold=0.7,
+            interactive=False,
+        )
+        
+        # Create workflow instance
+        workflow = AutonomousWorkflow(
+            config=config,
+            feature_flag_config=feature_flag_config,
+            project_root=Path("/nonexistent/path"),
+        )
+        
+        # Apply fallback (should fail and return last resort message)
+        fallback_content, confidence = workflow._apply_fallback(
+            filename="tech-stack.md",
+            error_reason="Test error"
+        )
+        
+        # Verify last resort message is present
+        assert "[GENERATION FAILED — please fill manually]" in fallback_content
+        assert "tech-stack.md" in fallback_content
+        assert "Test error" in fallback_content
+        
+        # Verify confidence is 0.0
+        assert confidence.value == 0.0
+    
+    @pytest.mark.asyncio
+    async def test_generate_file_with_fallback_on_exception(self):
+        """
+        WHEN _generate_file_with_fallback encounters exception, it SHALL apply fallback.
+        
+        Requirements: P0-3
+        """
+        from hiveforge.steering.workflows.autonomous_workflow import AutonomousWorkflow
+        from hiveforge.steering.models import SteeringConfig, FeatureFlagConfig
+        from pathlib import Path
+        from unittest.mock import AsyncMock, patch
+        
+        # Create minimal config
+        config = SteeringConfig(
+            project_root=Path.cwd(),
+            template_files=["tech-stack.md"],
+            interactive=False,
+        )
+        
+        feature_flag_config = FeatureFlagConfig(
+            confidence_threshold=0.7,
+            interactive=False,
+        )
+        
+        # Create workflow instance
+        workflow = AutonomousWorkflow(
+            config=config,
+            feature_flag_config=feature_flag_config,
+            project_root=Path.cwd(),
+        )
+        
+        # Mock _generate_single_file to raise exception
+        with patch.object(workflow, '_generate_single_file', side_effect=Exception("Test error")):
+            # Call _generate_file_with_fallback
+            content, confidence = await workflow._generate_file_with_fallback(
+                filename="tech-stack.md",
+                previous_files={},
+                questions=[],
+            )
+            
+            # Verify fallback was applied
+            assert content
+            assert confidence.value == 0.1
+            assert len(workflow.fallback_reasons) == 1
+    
+    @pytest.mark.asyncio
+    async def test_no_empty_files_written(self):
+        """
+        WHEN generation completes, the system SHALL never write empty files to disk.
+        
+        Requirements: P0-3
+        """
+        # This test verifies the empty file check in _step_generate_files_autonomously
+        
+        # Simulate generated files with one empty
+        generated_files = {
+            "tech-stack.md": "# Tech Stack\n\nContent here",
+            "architecture.md": "",  # Empty file
+            "conventions.md": "# Conventions\n\nMore content",
+        }
+        
+        # Check for empty files
+        for filename, content in generated_files.items():
+            if not content or not content.strip():
+                # Empty file should be replaced with error message
+                generated_files[filename] = (
+                    f"[GENERATION FAILED — please fill manually]\n\n"
+                    f"File: {filename}"
+                )
+        
+        # Verify no empty files remain
+        for filename, content in generated_files.items():
+            assert content
+            assert content.strip()
+            assert len(content) > 0

@@ -243,15 +243,22 @@ def validate_parameter(name: str, value: Any, context: SecurityContext) -> Any:
     # Type-specific validation
     if name == "project_root":
         return validate_project_root(value)
+    elif name == "source_docs_path":
+        return validate_source_docs_path(value)
     elif name in ("files", "target_files"):
         return validate_file_list(value)
     elif name == "confidence_threshold":
         return validate_confidence_threshold(value)
     elif name in ("auto_discover", "autonomous", "preserve_customizations", 
-                  "incremental", "strict", "use_llm", "include_git_history", "confirm"):
+                  "incremental", "strict", "use_llm", "include_git_history", "confirm",
+                  "dry_run", "copy_files"):
         return validate_boolean(value, name)
     elif name == "file":
         return validate_single_file(value)
+    elif name in ("max_discovery_files", "max_file_size_mb"):
+        return validate_positive_integer(value, name)
+    elif name == "file_types":
+        return validate_file_types(value)
     else:
         # Unknown parameter - log warning
         context.add_warning(f"Unknown parameter: {name}")
@@ -410,6 +417,100 @@ def validate_boolean(value: Any, name: str) -> bool:
     )
 
 
+def validate_source_docs_path(value: Any) -> Optional[str]:
+    """Validate source_docs_path parameter."""
+    if value is None:
+        return None
+    
+    if not isinstance(value, str):
+        raise InputValidationError(
+            f"source_docs_path must be a string, got {type(value).__name__}",
+            field="source_docs_path",
+            value=value,
+            constraints={"type": "string"}
+        )
+    
+    if len(value) > 4096:
+        raise InputValidationError(
+            f"source_docs_path exceeds maximum length",
+            field="source_docs_path",
+            value=value[:100] + "...",
+            constraints={"max_length": 4096}
+        )
+    
+    # Check for null bytes
+    if "\x00" in value:
+        raise InputValidationError(
+            "source_docs_path contains null bytes",
+            field="source_docs_path",
+            value=value,
+            constraints={"forbidden_chars": ["\x00"]}
+        )
+    
+    return value
+
+
+def validate_positive_integer(value: Any, name: str) -> int:
+    """Validate positive integer parameter."""
+    if value is None:
+        return 0
+    
+    try:
+        int_value = int(value)
+    except (TypeError, ValueError):
+        raise InputValidationError(
+            f"{name} must be an integer, got {type(value).__name__}",
+            field=name,
+            value=value,
+            constraints={"type": "integer"}
+        )
+    
+    if int_value < 0:
+        raise InputValidationError(
+            f"{name} must be positive, got {int_value}",
+            field=name,
+            value=int_value,
+            constraints={"min": 0}
+        )
+    
+    return int_value
+
+
+def validate_file_types(value: Any) -> Optional[list]:
+    """Validate file_types parameter."""
+    if value is None:
+        return None
+    
+    if not isinstance(value, list):
+        raise InputValidationError(
+            f"file_types must be a list, got {type(value).__name__}",
+            field="file_types",
+            value=value,
+            constraints={"type": "list"}
+        )
+    
+    if len(value) > 50:
+        raise InputValidationError(
+            f"file_types list exceeds maximum length",
+            field="file_types",
+            value=f"list of {len(value)} items",
+            constraints={"max_items": 50}
+        )
+    
+    validated = []
+    for i, item in enumerate(value):
+        if not isinstance(item, str):
+            raise InputValidationError(
+                f"file_types[{i}] must be a string, got {type(item).__name__}",
+                field=f"file_types[{i}]",
+                value=item,
+                constraints={"type": "string"}
+            )
+        validated.append(item)
+    
+    return validated
+
+
 # ============================================================================
 # Path Sanitization
 # ============================================================================
@@ -423,7 +524,10 @@ def sanitize_paths(
     sanitized = {}
     
     for key, value in kwargs.items():
-        if key in ("project_root", "file", "files", "target_files"):
+        # source_docs_path should remain relative, not be converted to absolute
+        if key == "source_docs_path":
+            sanitized[key] = value
+        elif key in ("project_root", "file", "files", "target_files"):
             if isinstance(value, str):
                 sanitized[key] = sanitize_path(value, allowed_directories, context)
             elif isinstance(value, list):

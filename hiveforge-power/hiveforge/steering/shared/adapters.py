@@ -23,9 +23,13 @@ class SharedInitWorkflow(SharedWorkflowBase):
     def __init__(
         self,
         project_root: str | Path = ".",
+        source_docs_path: Optional[str] = None,
         auto_discover: bool = True,
         autonomous: bool = True,
         confidence_threshold: float = 0.7,
+        dry_run: bool = False,
+        copy_files: bool = False,
+        ctx: Optional[Any] = None,
         config: Optional[dict[str, Any]] = None,
         telemetry_collector: Optional[TelemetryCollector] = None,
         interface_type: InterfaceType = InterfaceType.CLI
@@ -34,17 +38,25 @@ class SharedInitWorkflow(SharedWorkflowBase):
         
         Args:
             project_root: Path to project root directory
+            source_docs_path: Optional path to source documents folder
             auto_discover: Enable automatic discovery of existing docs
             autonomous: Enable autonomous generation mode
             confidence_threshold: Minimum confidence for autonomous decisions
+            dry_run: Preview what would be created without writing files
+            copy_files: If True, copy source files to staging. If False, use symlinks
+            ctx: Optional KIRO context (for MCP mode)
             config: Optional configuration dictionary
             telemetry_collector: Optional telemetry collector
             interface_type: Interface type (CLI or Power)
         """
         super().__init__(project_root, config)
+        self.source_docs_path = source_docs_path
         self.auto_discover = auto_discover
         self.autonomous = autonomous
         self.confidence_threshold = confidence_threshold
+        self.dry_run = dry_run
+        self.copy_files = copy_files
+        self.ctx = ctx
         self.telemetry_collector = telemetry_collector
         self.interface_type = interface_type
     
@@ -72,18 +84,29 @@ class SharedInitWorkflow(SharedWorkflowBase):
                         interactive=False
                     )
                 
+                # Determine interactive mode based on ctx and autonomous flag
+                # When ctx is not None (MCP mode), default to non-interactive
+                # When ctx is None (CLI mode), use autonomous flag
+                if self.ctx is not None:
+                    interactive = False
+                else:
+                    interactive = not self.autonomous
+                
                 # Create v02 config
                 v02_config = SteeringConfig(
                     analyze_code=self.auto_discover,
                     feature_flags=feature_flags,
                     skip_validation=False,
-                    interactive=not self.autonomous
+                    interactive=interactive
                 )
                 
                 # Create and execute v02 workflow
                 v02_workflow = InitWorkflow(
                     config=v02_config,
-                    project_root=self.project_root
+                    project_root=self.project_root,
+                    source_docs_path=self.source_docs_path,
+                    dry_run=self.dry_run,
+                    copy_files=self.copy_files
                 )
                 
                 success = v02_workflow.execute()
@@ -121,6 +144,9 @@ class SharedInitWorkflow(SharedWorkflowBase):
                     "autonomous": self.autonomous,
                     "auto_discover": self.auto_discover,
                     "confidence_threshold": self.confidence_threshold,
+                    "source_docs_path": self.source_docs_path,
+                    "dry_run": self.dry_run,
+                    "copy_files": self.copy_files,
                     "files_count": len(files_created),
                     "rollback_enabled": self.enable_rollback
                 }
@@ -135,7 +161,10 @@ class SharedInitWorkflow(SharedWorkflowBase):
                     parameters={
                         "auto_discover": self.auto_discover,
                         "autonomous": self.autonomous,
-                        "confidence_threshold": self.confidence_threshold
+                        "confidence_threshold": self.confidence_threshold,
+                        "source_docs_path": self.source_docs_path,
+                        "dry_run": self.dry_run,
+                        "copy_files": self.copy_files
                     },
                     result_status="success",
                     execution_time=execution_time,
@@ -155,7 +184,10 @@ class SharedInitWorkflow(SharedWorkflowBase):
                     parameters={
                         "auto_discover": self.auto_discover,
                         "autonomous": self.autonomous,
-                        "confidence_threshold": self.confidence_threshold
+                        "confidence_threshold": self.confidence_threshold,
+                        "source_docs_path": self.source_docs_path,
+                        "dry_run": self.dry_run,
+                        "copy_files": self.copy_files
                     },
                     result_status="failed",
                     execution_time=execution_time,

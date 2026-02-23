@@ -74,7 +74,10 @@ class InitWorkflow:
     def __init__(
         self,
         config: SteeringConfig,
-        project_root: Optional[Path] = None
+        project_root: Optional[Path] = None,
+        source_docs_path: Optional[str] = None,
+        dry_run: bool = False,
+        copy_files: bool = False
     ):
         """
         Initialize the init workflow.
@@ -82,18 +85,34 @@ class InitWorkflow:
         Args:
             config: SteeringConfig with workflow settings
             project_root: Root directory of the project (defaults to current directory)
+            source_docs_path: Optional path to source documents folder (relative to project_root)
+            dry_run: If True, preview what would be created without writing files
+            copy_files: If True, copy source files to staging. If False, use symlinks
         """
         self.config = config
         self.project_root = project_root or Path.cwd()
+        self.source_docs_path = source_docs_path
+        self.dry_run = dry_run
+        self.copy_files = copy_files
+        
+        # Determine staging directory based on source_docs_path
+        if source_docs_path:
+            # Use custom source path
+            staging_dir = self.project_root / source_docs_path
+        else:
+            # Use default .kiro/onboarding
+            staging_dir = self.project_root / ".kiro" / "onboarding"
         
         # Initialize workflow state
         self.state = WorkflowState(
             workflow_type="init",
-            staging_dir=self.project_root / ".kiro" / "onboarding",
+            staging_dir=staging_dir,
             steering_dir=self.project_root / ".kiro" / "steering",
         )
         
         logger.info(f"Initialized InitWorkflow for project: {self.project_root}")
+        if source_docs_path:
+            logger.info(f"Using custom source documents path: {source_docs_path}")
     
     def execute(self) -> bool:
         """
@@ -208,6 +227,22 @@ class InitWorkflow:
         
         # Existing files found - warn user (Req 4.1, 13.1)
         logger.warning(f"Found {len(existing_files)} existing steering file(s)")
+        
+        # Check if running in non-interactive mode
+        if not self.config.interactive:
+            # Non-interactive mode: auto-backup and proceed
+            logger.info("Non-interactive mode: auto-backing up existing files and proceeding")
+            print("\n⚠️  Existing steering files detected (non-interactive mode)")
+            print(f"   Found {len(existing_files)} file(s) in {self.state.steering_dir}")
+            print("   Auto-backing up and proceeding...")
+            
+            if self._create_backup(existing_files):
+                return True
+            else:
+                logger.error("Backup failed in non-interactive mode")
+                return False
+        
+        # Interactive mode: prompt user
         print("\n⚠️  WARNING: Existing steering files detected!")
         print(f"   Found {len(existing_files)} file(s) in {self.state.steering_dir}")
         print("   Files:")

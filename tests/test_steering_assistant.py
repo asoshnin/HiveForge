@@ -846,3 +846,545 @@ class TestConfidenceIntegration:
                 break
         
         assert has_sources, "Result should include source tracking"
+
+
+# ============================================================================
+# Tests for LLM-Based File Generation (P0-2)
+# ============================================================================
+
+class TestGenerateFileMethod:
+    """Test generate_file() method and its helpers (P0-2)."""
+    
+    @pytest.fixture
+    def mock_llm_provider(self):
+        """Create a mock LLM provider."""
+        provider = Mock()
+        provider.is_available.return_value = True
+        
+        # Make complete() async
+        async def mock_complete(*args, **kwargs):
+            return "# Generated Content\n\nThis is generated."
+        
+        provider.complete = mock_complete
+        return provider
+    
+    @pytest.fixture
+    def assistant_with_llm(self, sample_knowledge_base, sample_gap_analysis, mock_llm_provider, tmp_path):
+        """Create assistant with LLM provider."""
+        # Create template directory structure
+        template_dir = tmp_path / "hiveforge" / "templates" / "steering"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create a sample template
+        template_content = """---
+inclusion: always
+priority: 1
+description: "Test template"
+---
+
+# Test Template
+
+## Section 1
+{placeholder1}
+
+## Section 2
+{placeholder2}
+"""
+        (template_dir / "test-template.md").write_text(template_content)
+        
+        return SteeringAssistant(
+            knowledge_base=sample_knowledge_base,
+            gap_analysis=sample_gap_analysis,
+            project_root=tmp_path,
+            llm_provider=mock_llm_provider
+        )
+    
+    @pytest.mark.asyncio
+    async def test_generate_file_with_llm_success(self, assistant_with_llm):
+        """Test successful file generation with LLM."""
+        context = {
+            'languages': ['Python'],
+            'dependencies': ['fastapi', 'sqlalchemy'],
+            'architecture': 'monolith',
+            'project_type': 'web_app'
+        }
+        
+        result = await assistant_with_llm.generate_file('test-template.md', context)
+        
+        # Should return LLM response
+        assert result == "# Generated Content\n\nThis is generated."
+        
+        # Should track generated file
+        assert len(assistant_with_llm.generated_files) == 1
+    
+    @pytest.mark.asyncio
+    async def test_generate_file_llm_unavailable(self, assistant_with_llm, mock_llm_provider):
+        """Test file generation when LLM is unavailable."""
+        mock_llm_provider.is_available.return_value = False
+        
+        context = {'languages': ['Python']}
+        
+        result = await assistant_with_llm.generate_file('test-template.md', context)
+        
+        # Should return template with [INFERRED] markers
+        assert '[INFERRED: placeholder1]' in result
+        assert '[INFERRED: placeholder2]' in result
+        assert '---' not in result  # Frontmatter should be stripped
+    
+    @pytest.mark.asyncio
+    async def test_generate_file_llm_returns_none(self, assistant_with_llm, mock_llm_provider):
+        """Test file generation when LLM returns None."""
+        async def mock_complete_none(*args, **kwargs):
+            return None
+        
+        mock_llm_provider.complete = mock_complete_none
+        
+        context = {'languages': ['Python']}
+        
+        result = await assistant_with_llm.generate_file('test-template.md', context)
+        
+        # Should fallback to [INFERRED] markers
+        assert '[INFERRED: placeholder1]' in result
+        assert '[INFERRED: placeholder2]' in result
+    
+    @pytest.mark.asyncio
+    async def test_generate_file_template_not_found(self, assistant_with_llm):
+        """Test file generation with non-existent template."""
+        context = {'languages': ['Python']}
+        
+        # Should return fallback message instead of raising
+        result = await assistant_with_llm.generate_file('nonexistent.md', context)
+        
+        assert '[GENERATION FAILED' in result
+        assert 'nonexistent.md' in result
+    
+    @pytest.mark.asyncio
+    async def test_generate_file_tracks_context(self, assistant_with_llm):
+        """Test that generated files are tracked for context."""
+        context = {'languages': ['Python']}
+        
+        # Generate multiple files
+        await assistant_with_llm.generate_file('test-template.md', context)
+        await assistant_with_llm.generate_file('test-template.md', context)
+        await assistant_with_llm.generate_file('test-template.md', context)
+        await assistant_with_llm.generate_file('test-template.md', context)
+        
+        # Should only keep last 3
+        assert len(assistant_with_llm.generated_files) == 3
+
+
+class TestGetRawTemplate:
+    """Test _get_raw_template() method (P0-2a)."""
+    
+    def test_get_raw_template_success(self, tmp_path):
+        """Test loading raw template with frontmatter."""
+        # Create template
+        template_dir = tmp_path / "hiveforge" / "templates" / "steering"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        
+        template_content = """---
+inclusion: always
+priority: 1
+---
+
+# Content
+"""
+        (template_dir / "test.md").write_text(template_content)
+        
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        result = assistant._get_raw_template('test.md')
+        
+        assert result == template_content
+        assert '---' in result  # Frontmatter included
+    
+    def test_get_raw_template_not_found(self, tmp_path):
+        """Test loading non-existent template."""
+        template_dir = tmp_path / "hiveforge" / "templates" / "steering"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        with pytest.raises(FileNotFoundError) as exc_info:
+            assistant._get_raw_template('nonexistent.md')
+        
+        assert 'nonexistent.md' in str(exc_info.value)
+    
+    def test_get_raw_template_empty_name(self, tmp_path):
+        """Test loading template with empty name."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        with pytest.raises(ValueError):
+            assistant._get_raw_template('')
+
+
+class TestStripFrontmatter:
+    """Test _strip_frontmatter() method (P0-2)."""
+    
+    def test_strip_frontmatter_valid(self):
+        """Test stripping valid YAML frontmatter."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = """---
+inclusion: always
+priority: 1
+---
+
+# Content
+Here is the content.
+"""
+        
+        result = assistant._strip_frontmatter(content)
+        
+        assert '---' not in result
+        assert '# Content' in result
+        assert 'Here is the content.' in result
+        assert 'inclusion' not in result
+    
+    def test_strip_frontmatter_no_frontmatter(self):
+        """Test stripping content without frontmatter."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = """# Content
+No frontmatter here.
+"""
+        
+        result = assistant._strip_frontmatter(content)
+        
+        assert result == content
+    
+    def test_strip_frontmatter_malformed(self):
+        """Test stripping malformed frontmatter."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = """---
+inclusion: always
+# Missing closing ---
+
+# Content
+"""
+        
+        result = assistant._strip_frontmatter(content)
+        
+        # Should return as-is if malformed
+        assert result == content
+
+
+class TestBuildLLMPrompt:
+    """Test _build_llm_prompt() method (P0-2)."""
+    
+    def test_build_llm_prompt_with_context(self):
+        """Test building LLM prompt with context."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        context = {
+            'languages': ['Python', 'JavaScript'],
+            'dependencies': ['fastapi', 'sqlalchemy'],
+            'architecture': 'microservices',
+            'mcp_tools': ['tool1', 'tool2'],
+            'project_type': 'web_app'
+        }
+        
+        template_content = "# Template\n{placeholder}"
+        
+        result = assistant._build_llm_prompt('test.md', template_content, context)
+        
+        assert 'test.md' in result
+        assert 'Template' in result
+        assert '{placeholder}' in result
+        assert 'Python' in result
+        assert 'JavaScript' in result
+        assert 'fastapi' in result
+        assert 'microservices' in result
+    
+    def test_build_llm_prompt_with_previous_files(self):
+        """Test that prompt includes previous generated files."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        # Add some generated files
+        assistant.generated_files = [
+            "# File 1\nContent 1",
+            "# File 2\nContent 2"
+        ]
+        
+        context = {'languages': ['Python']}
+        template_content = "# Template"
+        
+        result = assistant._build_llm_prompt('test.md', template_content, context)
+        
+        assert 'File 1' in result
+        assert 'File 2' in result
+        assert 'Previously Generated Files' in result
+
+
+class TestApplyInferredMarkers:
+    """Test _apply_inferred_markers() method (P0-2)."""
+    
+    def test_apply_inferred_markers_single_placeholder(self):
+        """Test applying [INFERRED] markers to single placeholder."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = "Language: {Python 3.11}"
+        
+        result = assistant._apply_inferred_markers(content)
+        
+        assert result == "Language: [INFERRED: Python 3.11]"
+    
+    def test_apply_inferred_markers_multiple_placeholders(self):
+        """Test applying [INFERRED] markers to multiple placeholders."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = """
+Language: {Python 3.11}
+Framework: {FastAPI}
+Database: {PostgreSQL}
+"""
+        
+        result = assistant._apply_inferred_markers(content)
+        
+        assert '[INFERRED: Python 3.11]' in result
+        assert '[INFERRED: FastAPI]' in result
+        assert '[INFERRED: PostgreSQL]' in result
+        assert '{' not in result
+        assert '}' not in result
+    
+    def test_apply_inferred_markers_no_placeholders(self):
+        """Test applying markers to content without placeholders."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = "No placeholders here."
+        
+        result = assistant._apply_inferred_markers(content)
+        
+        assert result == content
+
+
+class TestTrackGeneratedFile:
+    """Test _track_generated_file() method (P0-2)."""
+    
+    def test_track_generated_file_adds_to_list(self):
+        """Test that generated files are tracked."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        content = "# Generated File\n" + ("x" * 1000)
+        
+        assistant._track_generated_file(content)
+        
+        assert len(assistant.generated_files) == 1
+        # Should only keep first 500 chars
+        assert len(assistant.generated_files[0]) == 500
+    
+    def test_track_generated_file_limits_to_three(self):
+        """Test that only last 3 files are kept."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        for i in range(5):
+            assistant._track_generated_file(f"File {i}")
+        
+        assert len(assistant.generated_files) == 3
+        # Should have files 2, 3, 4 (last 3)
+        assert 'File 2' in assistant.generated_files[0]
+        assert 'File 3' in assistant.generated_files[1]
+        assert 'File 4' in assistant.generated_files[2]
+
+
+class TestFormatContext:
+    """Test _format_context() method (P0-2)."""
+    
+    def test_format_context_all_fields(self):
+        """Test formatting context with all fields."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        context = {
+            'languages': ['Python', 'JavaScript'],
+            'dependencies': ['fastapi', 'sqlalchemy', 'pytest'],
+            'architecture': 'microservices',
+            'mcp_tools': ['tool1', 'tool2'],
+            'project_type': 'web_app'
+        }
+        
+        result = assistant._format_context(context)
+        
+        assert 'Languages: Python, JavaScript' in result
+        assert 'Key Dependencies:' in result
+        assert 'fastapi' in result
+        assert 'Architecture: microservices' in result
+        assert 'MCP Tools: tool1, tool2' in result
+        assert 'Project Type: web_app' in result
+    
+    def test_format_context_limits_dependencies(self):
+        """Test that dependencies are limited to 10."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        context = {
+            'dependencies': [f'dep{i}' for i in range(20)]
+        }
+        
+        result = assistant._format_context(context)
+        
+        # Should only include first 10
+        assert 'dep0' in result
+        assert 'dep9' in result
+        assert 'dep10' not in result
+    
+    def test_format_context_partial_fields(self):
+        """Test formatting context with only some fields."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        context = {
+            'languages': ['Python']
+        }
+        
+        result = assistant._format_context(context)
+        
+        assert 'Languages: Python' in result
+        assert 'Dependencies' not in result
+
+
+class TestGetSystemPrompt:
+    """Test _get_system_prompt() method (P0-2)."""
+    
+    def test_get_system_prompt_returns_string(self):
+        """Test that system prompt is returned."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock()
+        )
+        
+        result = assistant._get_system_prompt()
+        
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert 'steering file' in result.lower()
+        assert 'placeholder' in result.lower()
+
+
+class TestResolveTemplatePath:
+    """Test _resolve_template_path() method (P0-2)."""
+    
+    def test_resolve_template_path_generic(self, tmp_path):
+        """Test resolving generic template path."""
+        template_dir = tmp_path / "hiveforge" / "templates" / "steering"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        (template_dir / "test.md").write_text("content")
+        
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        result = assistant._resolve_template_path('test.md')
+        
+        assert result == template_dir / 'test.md'
+    
+    def test_resolve_template_path_variant(self, tmp_path):
+        """Test resolving project-type-specific variant."""
+        template_dir = tmp_path / "hiveforge" / "templates" / "steering"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        (template_dir / "test.md").write_text("generic")
+        (template_dir / "test.web_app.md").write_text("variant")
+        
+        # Mock knowledge base with project type
+        kb = Mock()
+        kb.code_analysis = Mock()
+        kb.code_analysis.project_type = 'web_app'
+        
+        assistant = SteeringAssistant(
+            knowledge_base=kb,
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        result = assistant._resolve_template_path('test.md')
+        
+        # Should prefer variant
+        assert result == template_dir / 'test.web_app.md'
+
+
+class TestListAvailableTemplates:
+    """Test _list_available_templates() method (P0-2)."""
+    
+    def test_list_available_templates(self, tmp_path):
+        """Test listing available templates."""
+        template_dir = tmp_path / "hiveforge" / "templates" / "steering"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        (template_dir / "test1.md").write_text("content")
+        (template_dir / "test2.md").write_text("content")
+        (template_dir / "test3.md").write_text("content")
+        
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        result = assistant._list_available_templates()
+        
+        assert len(result) == 3
+        assert 'test1.md' in result
+        assert 'test2.md' in result
+        assert 'test3.md' in result
+    
+    def test_list_available_templates_empty_dir(self, tmp_path):
+        """Test listing templates when directory doesn't exist."""
+        assistant = SteeringAssistant(
+            knowledge_base=Mock(),
+            gap_analysis=Mock(),
+            project_root=tmp_path
+        )
+        
+        result = assistant._list_available_templates()
+        
+        assert result == []
