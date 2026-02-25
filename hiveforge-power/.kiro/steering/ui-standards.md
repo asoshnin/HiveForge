@@ -13,9 +13,9 @@ description: "UI component design rules. Only loaded when working on frontend co
 
 ## Naming Conventions
 - Components: PascalCase (`UserProfile.tsx`)
-- Props interfaces: `**В руководстве по UI-стандартам (`ui-standards.md`) закреплены следующие паттерны:** создание одного функционального компонента на файл со строгим порядком (пропсы, хуки, обработчики, рендер), использование PascalCase для компонентов и типов пропсов, префиксов `use` для хуков и `handle` для обработчиков событий, управление локальным состоянием через `useState`, глобальным через Redux/Zustand, а серверным через React Query/SWR, стилизация с помощью CSS Modules или Tailwind без использования инлайн-стилей, обязательное обеспечение доступности (наличие `aria-label` и минимальный контраст WCAG AA), оптимизация (ленивая загрузка, `useMemo`, debounce), а также обязательное тестирование поведения компонентов с помощью Jest и React Testing Library.Props` (`UserProfileProps`)
+- Props interfaces: `{Component}Props` (`UserProfileProps`)
 - Hooks: use prefix (`useAuth`, `useFetch`)
-- Event handlers: `handle**В руководстве по UI-стандартам (`ui-standards.md`) закреплены следующие паттерны:** создание одного функционального компонента на файл со строгим порядком (пропсы, хуки, обработчики, рендер), использование PascalCase для компонентов и типов пропсов, префиксов `use` для хуков и `handle` для обработчиков событий, управление локальным состоянием через `useState`, глобальным через Redux/Zustand, а серверным через React Query/SWR, стилизация с помощью CSS Modules или Tailwind без использования инлайн-стилей, обязательное обеспечение доступности (наличие `aria-label` и минимальный контраст WCAG AA), оптимизация (ленивая загрузка, `useMemo`, debounce), а также обязательное тестирование поведения компонентов с помощью Jest и React Testing Library.` (`handleClick`, `handleSubmit`)
+- Event handlers: `handle{Event}` (`handleClick`, `handleSubmit`)
 
 ## State Management
 - Local state: `useState` for component-specific

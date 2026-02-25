@@ -19,6 +19,139 @@ from .image import parse_image
 logger = logging.getLogger(__name__)
 
 
+class SourceFolderError(Exception):
+    """
+    Raised when DocumentParser is asked to read outside its designated source folder.
+    
+    Requirements: 3.1, 3.2
+    """
+    pass
+
+
+class DocumentParser:
+    """
+    Bounded document parser that reads exclusively from a designated source folder.
+    
+    This class enforces strict source folder boundaries to prevent accidental
+    reading of files outside the intended scope. It raises SourceFolderError
+    if asked to parse files outside the source folder.
+    
+    Requirements: 3.1, 3.2
+    """
+    
+    def __init__(self, source_folder: Path):
+        """
+        Initialize DocumentParser with a bounded source folder.
+        
+        Args:
+            source_folder: Path to the folder containing source documents.
+                          All parsing operations are restricted to this folder.
+        
+        Raises:
+            ValueError: If source_folder does not exist or is not a directory
+        """
+        self._source_folder = Path(source_folder).resolve()
+        
+        if not self._source_folder.exists():
+            raise ValueError(f"Source folder does not exist: {source_folder}")
+        
+        if not self._source_folder.is_dir():
+            raise ValueError(f"Source folder is not a directory: {source_folder}")
+        
+        logger.info(f"Initialized DocumentParser with source folder: {self._source_folder}")
+    
+    def parse_all(self, show_progress: bool = True) -> List[ParsedDocument]:
+        """
+        Parse all supported files in the source folder.
+        
+        This method discovers and parses all supported files (markdown, PDF, images)
+        within the source folder. It enforces boundary checking to ensure no files
+        outside the source folder are accessed.
+        
+        Args:
+            show_progress: Whether to display progress messages (default: True)
+        
+        Returns:
+            List of ParsedDocument objects for all files in source folder
+        
+        Raises:
+            SourceFolderError: If any file path resolves outside source folder
+        
+        Requirements: 3.1, 3.2
+        """
+        logger.info(f"Parsing all documents from: {self._source_folder}")
+        
+        # Use the existing parse_directory function but verify boundaries
+        parsed_docs = parse_directory(self._source_folder, show_progress=show_progress)
+        
+        # Verify all parsed documents are within source folder boundaries
+        for doc in parsed_docs:
+            self._verify_path_in_bounds(doc.file_path)
+        
+        return parsed_docs
+    
+    def parse_file(self, file_path: Path) -> ParsedDocument:
+        """
+        Parse a single file from the source folder.
+        
+        Args:
+            file_path: Path to the file to parse (must be within source folder)
+        
+        Returns:
+            ParsedDocument for the specified file
+        
+        Raises:
+            SourceFolderError: If file_path is outside source folder
+            FileNotFoundError: If file does not exist
+        
+        Requirements: 3.1, 3.2
+        """
+        resolved_path = Path(file_path).resolve()
+        
+        # Verify path is within source folder
+        self._verify_path_in_bounds(resolved_path)
+        
+        # Parse the file using appropriate parser
+        file_type = get_file_type(resolved_path)
+        
+        if file_type == "markdown":
+            return parse_markdown(resolved_path)
+        elif file_type == "pdf":
+            return parse_pdf(resolved_path)
+        elif file_type == "image":
+            return parse_image(resolved_path)
+        else:
+            return ParsedDocument(
+                file_path=resolved_path,
+                content="",
+                metadata={"file_type": "unknown"},
+                parse_errors=[f"Unsupported file type: {resolved_path.suffix}"]
+            )
+    
+    def _verify_path_in_bounds(self, path: Path) -> None:
+        """
+        Verify that a path is within the source folder boundaries.
+        
+        Args:
+            path: Path to verify
+        
+        Raises:
+            SourceFolderError: If path is outside source folder
+        
+        Requirements: 3.1, 3.2
+        """
+        resolved_path = Path(path).resolve()
+        
+        try:
+            # Check if path is relative to source folder
+            resolved_path.relative_to(self._source_folder)
+        except ValueError:
+            # Path is outside source folder
+            raise SourceFolderError(
+                f"Path '{path}' is outside source folder '{self._source_folder}'"
+            )
+
+
 def parse_directory(staging_dir: Path, show_progress: bool = True) -> List[ParsedDocument]:
     """
     Parse all supported files in the staging directory.

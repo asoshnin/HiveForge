@@ -48,4 +48,5 @@ HiveForge provides:
 - **MVP:** Completed (v1.0.0 - CLI scaffolding)
 - **V2.0:** Completed (Steering Assistant with code analysis)
 - **V2.2.0:** Completed (Custom source paths, confidence scoring, dry-run mode)
-- **V3.0:** Planned Q2 2026 (Custom templates, plugin system)
+- **V3.0.0:** Completed Q1 2026 (LLM-Primary Synthesis Pipeline)
+- **V3.1:** Planned Q2 2026 (Custom templates, plugin system)

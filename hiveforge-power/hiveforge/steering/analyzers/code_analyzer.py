@@ -178,6 +178,114 @@ class CodeAnalyzer:
         
         return result
     
+    def to_facts(self) -> "CodeAnalysisFacts":
+        """
+        Convert analysis results to structured CodeAnalysisFacts dataclass.
+        
+        This method replaces to_summary() as the primary output format for
+        LLM-primary steering synthesis. It returns a JSON-serializable
+        dataclass that can be injected into LLM prompts.
+        
+        The output is guaranteed to serialize to ≤2,000 tokens when converted
+        to JSON via to_json_dict().
+        
+        Returns:
+            CodeAnalysisFacts with structured analysis data
+            
+        Requirements: 2.1, 2.2, 2.3, 2.5
+        """
+        from ..models import CodeAnalysisFacts, NamingConventions, Dependency
+        
+        # Run analysis if not already done
+        result = self.analyze()
+        
+        # Extract primary language
+        primary_language = "unknown"
+        if result.languages:
+            primary_language = result.languages[0].name
+            if result.languages[0].version:
+                primary_language += f" {result.languages[0].version}"
+        
+        # Extract frameworks
+        frameworks = []
+        if result.tech_stack.backend_framework:
+            frameworks.append(result.tech_stack.backend_framework)
+        if result.tech_stack.frontend_framework:
+            frameworks.append(result.tech_stack.frontend_framework)
+        
+        # Convert dependencies to list of Dependency objects
+        dependencies = result.tech_stack.dependencies if result.tech_stack.dependencies else []
+        
+        # Determine architecture pattern
+        architecture_pattern = result.architecture.pattern if result.architecture else "custom"
+        
+        # Detect if tests exist
+        has_tests = False
+        test_framework = None
+        if result.conventions and result.conventions.test_framework:
+            has_tests = True
+            test_framework = result.conventions.test_framework
+        
+        # Determine API type
+        api_type = None
+        if result.classification:
+            project_type = result.classification.get("project_type", "")
+            if "mcp" in project_type.lower():
+                api_type = "MCP"
+            elif "cli" in project_type.lower():
+                api_type = "CLI"
+            elif self._detect_rest_api():
+                api_type = "REST"
+        
+        # Extract database
+        database = result.tech_stack.database if result.tech_stack else None
+        
+        # Extract entry points (from public API or main files)
+        entry_points = []
+        try:
+            public_api = self.extract_public_api()
+            if public_api.mcp_tools:
+                entry_points.extend([f"MCP: {tool.name}" for tool in public_api.mcp_tools[:3]])
+            if public_api.cli_commands:
+                entry_points.extend([f"CLI: {cmd.name}" for cmd in public_api.cli_commands[:3]])
+        except Exception as e:
+            logger.debug(f"Could not extract public API: {e}")
+        
+        # Extract naming conventions
+        naming_conventions = NamingConventions()
+        if result.conventions and result.conventions.naming_style:
+            naming_conventions = NamingConventions(
+                variables=result.conventions.naming_style.get("variables", ""),
+                classes=result.conventions.naming_style.get("classes", ""),
+                constants=result.conventions.naming_style.get("constants", ""),
+                functions=result.conventions.naming_style.get("functions", ""),
+            )
+        
+        # Build compact directory structure (top-level only to save tokens)
+        directory_structure = ""
+        try:
+            top_level_dirs = [
+                d.name for d in self.project_root.iterdir()
+                if d.is_dir() and not d.name.startswith(".") and d.name not in ("node_modules", "venv", "__pycache__")
+            ]
+            directory_structure = ", ".join(sorted(top_level_dirs[:10]))
+        except Exception as e:
+            logger.debug(f"Could not build directory structure: {e}")
+        
+        return CodeAnalysisFacts(
+            primary_language=primary_language,
+            frameworks=frameworks,
+            dependencies=dependencies,
+            architecture_pattern=architecture_pattern,
+            has_tests=has_tests,
+            test_framework=test_framework,
+            api_type=api_type,
+            database=database,
+            entry_points=entry_points,
+            naming_conventions=naming_conventions,
+            directory_structure=directory_structure,
+        )
+    
     def detect_languages(self) -> List:
         """
         Detect programming languages using file extensions and line counting.

@@ -12,18 +12,19 @@ from typing import Dict, List, Optional
 
 from ..models import (
     SteeringConfig,
-    WorkflowState,
-    CodeAnalysisResult,
-    ValidationReport,
     FeatureFlagConfig,
     ConfidenceScore,
+    LLMUnavailableError,
 )
 from ..feature_flags import FeatureFlagManager
 from ..confidence_scorer import ConfidenceScorer
 from ..validators.steering_validator import SteeringValidator
 from ..validators.validation_rules_loader import ValidationRulesLoader
-from ..validators.tech_stack_validator import TechStackValidator
-from ..validators.contradiction_detector import ContradictionDetector
+from ..context_assembler import ContextAssembler
+from ..delta_analyzer import DeltaAnalyzer
+from ..input_resolver import InputResolver
+from ..prompt_builder import PromptBuilder
+from ..steering_file_generator import SteeringFileGenerator
 from .init_workflow import InitWorkflow
 
 logger = logging.getLogger(__name__)
@@ -209,325 +210,144 @@ class AutonomousWorkflow(InitWorkflow):
     
     async def _step_generate_files_autonomously(self) -> None:
         """
-        Step 7: Generate steering files autonomously with confidence scoring.
-        
-        Generates files sequentially, passing previously generated files as
-        context to maintain consistency across files.
-        
-        Requirements: 3.1-3.10, 16.8-16.11, 25.1-25.7, P0-3, P2-1
+        Step 7: Generate all 8 steering files via the LLM-primary pipeline.
+
+        Wires: InputResolver → CodeAnalyzer.to_facts() → DocumentParser (bounded)
+               → DeltaAnalyzer → ContextAssembler → PromptBuilder
+               → SteeringFileGenerator
+
+        Removes all calls to TemplatePopulator and SteeringAssistant.generate_file().
+        Propagates LLMUnavailableError to the caller.
+
+        Requirements: 1.1, 1.2, 3.3, 8.3, 9.1, 9.2, 9.3, 9.4
         """
-        logger.info("Step 7: Generating files autonomously")
-        print("\n📝 Generating steering files autonomously...")
-        
-        # Get gap analysis questions
-        questions = self.state.gap_analysis.questions if self.state.gap_analysis else []
-        
-        # Filter templates based on project type (P2-1)
-        files_to_generate = self._filter_files_for_project_type(self.GENERATION_ORDER)
-        
-        # Generate each file in order
-        for filename in files_to_generate:
-            print(f"\n   Generating {filename}...", end=" ")
-            
-            try:
-                # Get context from previously generated files
-                previous_files = {
-                    k: v for k, v in self.generated_files.items()
-                    if k in files_to_generate[:files_to_generate.index(filename)]
-                }
-                
-                # Generate file content with fallback handling (P0-3)
-                content, confidence = await self._generate_file_with_fallback(
-                    filename=filename,
-                    previous_files=previous_files,
-                    questions=questions,
-                )
-                
-                # Store generated file
-                self.generated_files[filename] = content
-                self.confidence_scores[filename] = confidence
-                
-                # Check if fallback should be triggered
-                if self.feature_flag_manager.should_fallback(confidence.value):
-                    self.fallback_triggered = True
-                    self.fallback_reasons.append(
-                        f"{filename}: confidence {confidence.value:.2f} < threshold {self.feature_flag_config.confidence_threshold}"
-                    )
-                    print(f"⚠️  Low confidence ({confidence.value:.2f}), will fallback")
-                else:
-                    print(f"✓ (confidence: {confidence.value:.2f})")
-            
-            except Exception as e:
-                logger.error(f"Failed to generate {filename}: {e}", exc_info=True)
-                print(f"✗ Error: {e}")
-                
-                # Apply fallback with [INFERRED] markers (P0-3)
-                content, confidence = self._apply_fallback(filename, str(e))
-                self.generated_files[filename] = content
-                self.confidence_scores[filename] = confidence
-        
-        # Verify no empty files (P0-3)
-        for filename, content in self.generated_files.items():
-            if not content or not content.strip():
-                logger.error(f"Generated empty file: {filename}")
-                self.generated_files[filename] = (
-                    f"[GENERATION FAILED — please fill manually]\n\n"
-                    f"File: {filename}"
-                )
-                self.confidence_scores[filename] = ConfidenceScore(
-                    value=0.0,
-                    level=None,  # Will be set to LOW in __post_init__
-                    evidence=[],
-                )
-    
-    async def _generate_file_with_fallback(
-        self,
-        filename: str,
-        previous_files: Dict[str, str],
-        questions: List[dict],
-    ) -> tuple[str, ConfidenceScore]:
-        """
-        Generate file with automatic fallback on failure.
-        
-        Args:
-            filename: Name of the file to generate
-            previous_files: Previously generated files for context
-            questions: Gap analysis questions
-            
-        Returns:
-            Tuple of (content, confidence score)
-            
-        Requirements: P0-3
-        """
-        try:
-            content, confidence = await self._generate_single_file(
-                filename=filename,
-                previous_files=previous_files,
-                questions=questions,
-            )
-            
-            # Verify content is not empty
-            if not content or not content.strip():
-                raise ValueError("LLM returned empty content")
-            
-            return (content, confidence)
-        
-        except Exception as e:
-            logger.warning(
-                f"Generation failed for {filename}: {type(e).__name__}: {e}"
-            )
-            return self._apply_fallback(filename, str(e))
-    
-    async def _generate_single_file(
-        self,
-        filename: str,
-        previous_files: Dict[str, str],
-        questions: List[dict],
-    ) -> tuple[str, ConfidenceScore]:
-        """
-        Generate a single steering file with confidence scoring.
-        
-        Args:
-            filename: Name of the file to generate
-            previous_files: Previously generated files for context
-            questions: Gap analysis questions
-            
-        Returns:
-            Tuple of (content, confidence score)
-        """
-        from ..agents.steering_assistant import SteeringAssistant
-        
-        # Build context with previous files
-        context = self._build_generation_context(previous_files, questions)
-        
-        # Create assistant for generation
-        assistant = SteeringAssistant(
-            knowledge_base=self.state.knowledge_base,
-            gap_analysis=self.state.gap_analysis,
-            research_enabled=self.config.research_enabled,
-            interactive=False,  # Autonomous mode
+        logger.info("Step 7: Generating files via LLM-primary pipeline")
+        print("\n📝 Generating steering files...")
+
+        # --- Resolve use case and source folder ---
+        resolver = InputResolver()
+        steering_dir = self.state.steering_dir
+        source_folder = getattr(self.config, "source_docs_path", None)
+        if source_folder:
+            source_folder = Path(source_folder)
+
+        use_case, resolved_source = resolver.resolve(
+            source_folder=source_folder,
             project_root=self.project_root,
-            llm_provider=None,  # Will be set when LLMProvider is implemented
+            steering_dir=steering_dir,
         )
-        
-        # Generate content (async call)
-        content = await assistant.generate_file(
-            filename=filename,
-            context=context,
-        )
-        
-        # Calculate confidence score
-        confidence = self._calculate_file_confidence(
-            filename=filename,
-            content=content,
-            context=context,
-        )
-        
-        return content, confidence
-    
-    def _apply_fallback(
-        self,
-        filename: str,
-        error_reason: str
-    ) -> tuple[str, ConfidenceScore]:
-        """
-        Apply [INFERRED] marker fallback when generation fails.
-        
-        Args:
-            filename: Name of the file that failed to generate
-            error_reason: Reason for the failure
-            
-        Returns:
-            Tuple of (fallback_content, confidence_score)
-            
-        Requirements: P0-3
-        """
+        logger.info("Use case: %s, source folder: %s", use_case, resolved_source)
+
+        # --- Gather code facts ---
+        code_facts = None
+        if self.state.code_analysis is not None:
+            from ..analyzers.code_analyzer import CodeAnalyzer
+            analyzer = CodeAnalyzer(self.project_root)
+            try:
+                code_facts = analyzer.to_facts()
+            except Exception as e:
+                logger.warning("to_facts() failed (%s), using empty facts", e)
+
+        if code_facts is None:
+            from ..models import CodeAnalysisFacts, NamingConventions
+            code_facts = CodeAnalysisFacts(
+                primary_language="unknown",
+                frameworks=[],
+                dependencies=[],
+                architecture_pattern="custom",
+                has_tests=False,
+                test_framework=None,
+                api_type=None,
+                database=None,
+                entry_points=[],
+                naming_conventions=NamingConventions(),
+                directory_structure="",
+            )
+
+        # --- Parse source documents (bounded) ---
+        from ..parsers.orchestrator import DocumentParser
+        source_docs = []
+        if resolved_source:
+            parser = DocumentParser(resolved_source)
+            source_docs = parser.parse_all(show_progress=False)
+        logger.info("Source docs: %d", len(source_docs))
+
+        # --- Load existing steering files ---
+        existing_steering: dict[str, str] = {}
+        if steering_dir.exists():
+            for f in steering_dir.glob("*.md"):
+                try:
+                    existing_steering[f.name] = f.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+
+        # --- Delta analysis (for drift_correction / update) ---
+        delta = None
+        if use_case in ("drift_correction", "update") and existing_steering:
+            delta_analyzer = DeltaAnalyzer()
+            delta = delta_analyzer.analyze(source_docs, code_facts, existing_steering)
+
+        # --- User intent ---
+        user_intent: str | None = None
+        if resolved_source:
+            from ..input_resolver import _INTENT_FILENAMES
+            for f in resolved_source.iterdir():
+                if f.is_file() and f.name.lower() in _INTENT_FILENAMES:
+                    try:
+                        user_intent = f.read_text(encoding="utf-8")
+                    except Exception:
+                        pass
+                    break
+
+        # --- Build pipeline components ---
+        llm_provider = self._get_llm_provider()
+
         try:
-            # Import SteeringAssistant to access template methods
-            from ..agents.steering_assistant import SteeringAssistant
-            
-            # Create temporary assistant to access template methods
-            assistant = SteeringAssistant(
-                knowledge_base=self.state.knowledge_base,
-                gap_analysis=self.state.gap_analysis,
-                research_enabled=False,
-                interactive=False,
-                project_root=self.project_root,
-            )
-            
-            # Get raw template
-            raw_template = assistant._get_raw_template(filename)
-            
-            # Strip frontmatter
-            template_content = assistant._strip_frontmatter(raw_template)
-            
-            # Apply [INFERRED] markers
-            fallback_content = assistant._apply_inferred_markers(template_content)
-            
-            # Track fallback reason
-            reason = f"{filename}: {error_reason}"
-            self.fallback_reasons.append(reason)
-            
-            logger.info(
-                f"Applied [INFERRED] fallback for {filename}"
-            )
-            
-            # Return with very low confidence (0.1)
-            return (fallback_content, ConfidenceScore(
-                value=0.1,
-                level=None,  # Will be set to LOW in __post_init__
-                evidence=[],
-            ))
-        
-        except Exception as e:
-            # Last resort: return error message
-            logger.error(
-                f"Fallback failed for {filename}: {type(e).__name__}: {e}"
-            )
-            
-            error_content = (
-                f"[GENERATION FAILED — please fill manually]\n\n"
-                f"File: {filename}\n"
-                f"Error: {error_reason}\n"
-                f"Fallback Error: {str(e)}"
-            )
-            
-            self.fallback_reasons.append(
-                f"{filename}: {error_reason} (fallback also failed)"
-            )
-            
-            return (error_content, ConfidenceScore(
-                value=0.0,
-                level=None,  # Will be set to LOW in __post_init__
-                evidence=[],
-            ))
-    
-    def _build_generation_context(
-        self,
-        previous_files: Dict[str, str],
-        questions: List[dict],
-    ) -> str:
-        """
-        Build context string for file generation.
-        
-        Args:
-            previous_files: Previously generated files
-            questions: Gap analysis questions
-            
-        Returns:
-            Context string for LLM
-        """
-        context_parts = []
-        
-        # Add previous files as context
-        if previous_files:
-            context_parts.append("PREVIOUSLY GENERATED FILES:")
-            for filename, content in previous_files.items():
-                context_parts.append(f"\n--- {filename} ---")
-                context_parts.append(content)
-        
-        # Add gap analysis questions
-        if questions:
-            context_parts.append("\nGAP ANALYSIS QUESTIONS:")
-            for question in questions[:5]:  # Limit to 5 questions
-                context_parts.append(f"- {question.get('question_text', 'Unknown')}")
-        
-        return "\n\n".join(context_parts)
-    
-    def _calculate_file_confidence(
-        self,
-        filename: str,
-        content: str,
-        context: str,
-    ) -> ConfidenceScore:
-        """
-        Calculate confidence score for generated file.
-        
-        Args:
-            filename: Name of the generated file
-            content: Generated content
-            context: Generation context
-            
-        Returns:
-            ConfidenceScore object
-        """
-        evidence = []
-        
-        # Evidence from code analysis
-        if self.state.code_analysis:
-            evidence.append(self.confidence_scorer.create_evidence(
-                source="CODE_ANALYSIS",
-                description=f"Code analysis provided context for {filename}",
-                strength=0.85,
-            ))
-        
-        # Evidence from artifacts
-        if self.state.parsed_documents:
-            evidence.append(self.confidence_scorer.create_evidence(
-                source="ARTIFACT",
-                description=f"Artifacts provided context for {filename}",
-                strength=0.80,
-            ))
-        
-        # Evidence from context
-        if context:
-            evidence.append(self.confidence_scorer.create_evidence(
-                source="INFERENCE",
-                description=f"Context from previous files used for {filename}",
-                strength=0.75,
-            ))
-        
-        # Calculate confidence
-        confidence_value = self.confidence_scorer.calculate_confidence(
-            content=content,
-            evidence=evidence,
+            generator = SteeringFileGenerator(llm_provider)
+        except LLMUnavailableError:
+            raise  # propagate to caller (Requirement 8.3)
+
+        context_assembler = ContextAssembler()
+        prompt_builder = PromptBuilder()
+
+        # --- Run transactional generation ---
+        result = await generator.generate_all_files(
+            context_assembler=context_assembler,
+            prompt_builder=prompt_builder,
+            output_dir=steering_dir,
+            use_case=use_case,
+            source_docs=source_docs,
+            code_facts=code_facts,
+            existing_steering=existing_steering,
+            delta=delta,
+            user_intent=user_intent,
         )
-        
-        return ConfidenceScore(
-            value=confidence_value,
-            level=None,  # Will be set in __post_init__
-            evidence=evidence,
-        )
+
+        if result.success:
+            # Populate generated_files for downstream steps (draft review, etc.)
+            for name in result.files_written:
+                path = steering_dir / name
+                try:
+                    self.generated_files[name] = path.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+            print(f"\n   ✓ Generated {len(result.files_written)} steering file(s)")
+        else:
+            errors = "; ".join(result.validation_errors[:3])
+            raise RuntimeError(
+                f"LLM-primary generation failed: {errors}"
+            )
+
+    def _get_llm_provider(self):
+        """Return the LLMProvider instance, initialising it if needed."""
+        # Reuse provider stored on state if available (set by MCP adapter)
+        provider = getattr(self.state, "llm_provider", None)
+        if provider is not None:
+            return provider
+
+        from ..llm.provider import LLMProvider
+        ctx = getattr(self, "_mcp_ctx", None)
+        return LLMProvider(ctx=ctx)
     
     def _step_review_draft(self) -> bool:
         """

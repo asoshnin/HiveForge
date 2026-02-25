@@ -214,6 +214,185 @@ class CodeAnalysisResult:
         return full_summary
 
 
+@dataclass
+class NamingConventions:
+    """
+    Naming convention patterns extracted from codebase.
+    
+    Requirements: 2.1
+    """
+    variables: str = ""       # e.g. "snake_case"
+    classes: str = ""         # e.g. "PascalCase"
+    constants: str = ""       # e.g. "UPPER_SNAKE_CASE"
+    functions: str = ""       # e.g. "snake_case"
+
+
+@dataclass
+class CodeAnalysisFacts:
+    """
+    JSON-serializable structured output of CodeAnalyzer.
+    Replaces to_summary() prose as the primary output format.
+    Serializes to ≤2,000 tokens when injected into an LLM prompt.
+    
+    Requirements: 2.1, 2.2, 2.5
+    """
+    primary_language: str
+    frameworks: List[str]
+    dependencies: List[Dependency]          # reuses existing Dependency model
+    architecture_pattern: str
+    has_tests: bool
+    test_framework: Optional[str]
+    api_type: Optional[str]                 # "REST", "MCP", "CLI", None
+    database: Optional[str]
+    entry_points: List[str]
+    naming_conventions: NamingConventions
+    directory_structure: str                # compact tree representation
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        """
+        Returns JSON-serializable dict for LLM injection.
+        
+        Guarantees output serializes to ≤2,000 tokens by truncating lists
+        if necessary. Truncation priority: dependencies → entry_points → frameworks.
+        
+        Returns:
+            Dictionary representation suitable for JSON serialization
+            
+        Requirements: 2.2, 2.5
+        """
+        import json
+        
+        # Helper to estimate tokens (1 token ≈ 4 characters)
+        def estimate_tokens(obj: Dict[str, Any]) -> int:
+            return len(json.dumps(obj)) // 4
+        
+        # Start with full data
+        result = {
+            "primary_language": self.primary_language,
+            "frameworks": self.frameworks[:],  # Copy to avoid modifying original
+            "dependencies": [
+                {"name": d.name, "version": d.version, "type": d.dependency_type}
+                for d in self.dependencies
+            ],
+            "architecture_pattern": self.architecture_pattern,
+            "has_tests": self.has_tests,
+            "test_framework": self.test_framework,
+            "api_type": self.api_type,
+            "database": self.database,
+            "entry_points": self.entry_points[:],  # Copy to avoid modifying original
+            "naming_conventions": {
+                "variables": self.naming_conventions.variables,
+                "classes": self.naming_conventions.classes,
+                "constants": self.naming_conventions.constants,
+                "functions": self.naming_conventions.functions,
+            },
+            "directory_structure": self.directory_structure,
+        }
+        
+        # Check if within budget
+        token_count = estimate_tokens(result)
+        if token_count <= 2000:
+            return result
+        
+        # Truncate dependencies first (most verbose)
+        if len(result["dependencies"]) > 20:
+            result["dependencies"] = result["dependencies"][:20]
+            token_count = estimate_tokens(result)
+            if token_count <= 2000:
+                return result
+        
+        if len(result["dependencies"]) > 10:
+            result["dependencies"] = result["dependencies"][:10]
+            token_count = estimate_tokens(result)
+            if token_count <= 2000:
+                return result
+        
+        # Truncate entry points
+        if len(result["entry_points"]) > 10:
+            result["entry_points"] = result["entry_points"][:10]
+            token_count = estimate_tokens(result)
+            if token_count <= 2000:
+                return result
+        
+        if len(result["entry_points"]) > 5:
+            result["entry_points"] = result["entry_points"][:5]
+            token_count = estimate_tokens(result)
+            if token_count <= 2000:
+                return result
+        
+        # Truncate frameworks
+        if len(result["frameworks"]) > 5:
+            result["frameworks"] = result["frameworks"][:5]
+            token_count = estimate_tokens(result)
+            if token_count <= 2000:
+                return result
+        
+        # Final fallback: truncate directory structure
+        if len(result["directory_structure"]) > 100:
+            result["directory_structure"] = result["directory_structure"][:100] + "..."
+        
+        return result
+
+
+# ============================================================================
+# LLM Generation Models
+# ============================================================================
+
+# Type alias for use case determination
+UseCase = Literal[
+    "new_from_docs",
+    "reverse_engineer",
+    "drift_correction",
+    "error_recovery",
+    "pivot",
+    "update",
+]
+
+
+@dataclass
+class GenerationContext:
+    """
+    Token-budgeted inputs for a single template's LLM prompt.
+    Produced by ContextAssembler.
+    
+    Requirements: 4.6
+    """
+    template_name: str
+    use_case: UseCase
+    source_docs: List[ParsedDocument]                   # filtered to template-relevant content
+    code_facts: "CodeAnalysisFacts"
+    existing_steering: Dict[str, str]                   # truncated to budget
+    previously_generated_summaries: Dict[str, str]      # rolling summaries
+    delta: Optional["DeltaReport"]
+    user_intent: Optional[str]
+
+
+@dataclass
+class DeltaReport:
+    """
+    Three-way structural diff produced by DeltaAnalyzer.
+    Structural drift only: technology mismatches, dependency changes.
+    
+    Requirements: 7.2
+    """
+    doc_vs_code: List[str]          # divergences between design docs and codebase
+    steering_vs_code: List[str]     # drifts between steering files and codebase
+    steering_vs_docs: List[str]     # conflicts between steering files and design docs
+    missing_in_all: List[str]       # gaps absent from all three sources
+
+
+@dataclass
+class GenerationResult:
+    """
+    Output of SteeringFileGenerator.generate_all_files().
+    
+    Requirements: 5.5
+    """
+    success: bool
+    files_written: List[str]        # empty on failure
+    validation_errors: List[str]    # populated on failure
+
+
 # ============================================================================
 # Gap Analysis Models
 # ============================================================================
@@ -585,3 +764,21 @@ class FeatureFlagConfig:
             True if threshold > 0.95
         """
         return self.confidence_threshold > 0.95
+
+
+# ============================================================================
+# Exception Models
+# ============================================================================
+
+class LLMUnavailableError(Exception):
+    """
+    Raised when LLM provider is not available or configured.
+    
+    This exception is raised when:
+    - No LLM provider is configured in CLI mode
+    - LLM API credentials are missing or invalid
+    - LLM service is unreachable after retries
+    
+    Requirements: 8.2, 8.3
+    """
+    pass

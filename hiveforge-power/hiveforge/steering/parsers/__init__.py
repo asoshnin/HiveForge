@@ -7,6 +7,7 @@ markdown, PDF, and images with OCR.
 
 from .markdown import parse_markdown, extract_headers, extract_code_blocks
 from .pdf import parse_pdf, extract_pdf_info
+from .orchestrator import DocumentParser, SourceFolderError
 
 __all__ = [
     'parse_markdown',
@@ -14,4 +15,6 @@ __all__ = [
     'extract_code_blocks',
     'parse_pdf',
     'extract_pdf_info',
+    'DocumentParser',
+    'SourceFolderError',
 ]

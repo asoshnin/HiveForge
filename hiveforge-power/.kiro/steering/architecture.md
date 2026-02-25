@@ -16,15 +16,23 @@ graph TD
 
 ## Component Responsibilities
 
-### {Component 1}
-- **Responsibility:** {What it does}
-- **Interface:** {How others talk to it}
-- **Dependencies:** {What it needs}
+### Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
+- **Responsibility:** Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
+- **Interface:** Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
+- **Dependencies:** Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
 
-### {Component 2}
-- **Responsibility:** {What it does}
-- **Interface:** {How others talk to it}
-- **Dependencies:** {What it needs}
+### Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
+- **Responsibility:** Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
+- **Interface:** Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
+- **Dependencies:** Architecture Pattern: custom
+Components: .Kiro, Docs, Hiveforge, Hiveforge Steering Mcp.Egg Info, Mcp Server, Scripts
 
 ## Data Flow
 1. {Step 1}

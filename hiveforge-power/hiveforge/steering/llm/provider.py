@@ -15,6 +15,14 @@ import logging
 import os
 from pathlib import Path
 
+from ..models import LLMUnavailableError  # re-export for callers
+
+__all__ = ["LLMProvider", "LLMConfig", "ProviderType", "LLMUnavailableError"]
+
+# Exponential backoff settings for transient API errors (Requirement 8.5)
+_RETRY_ATTEMPTS = 3
+_RETRY_BASE_DELAY = 1.0  # seconds
+
 
 class ProviderType(Enum):
     """Available LLM provider types"""
@@ -77,8 +85,13 @@ class LLMProvider:
             )
         
         # Check config file
-        config_path = Path.home() / ".hiveforge" / "llm_config.json"
-        if config_path.exists():
+        config_path = None
+        try:
+            config_path = Path.home() / ".hiveforge" / "llm_config.json"
+        except RuntimeError:
+            pass  # Home directory unavailable (e.g. CI environment)
+
+        if config_path and config_path.exists():
             try:
                 with open(config_path) as f:
                     config_dict = json.load(f)
@@ -125,30 +138,68 @@ class LLMProvider:
         json_mode: bool = False,
     ) -> Optional[str]:
         """
-        Call LLM with fallback chain.
-        
+        Call LLM with fallback chain and exponential backoff for transient errors.
+
+        Raises LLMUnavailableError in CLI mode when no provider is configured
+        rather than silently returning None (Requirement 8.2).
+
         Args:
             system_prompt: System instruction for the LLM
             user_prompt: User message/prompt
             max_tokens: Maximum tokens in response
             temperature: Sampling temperature (0.0-1.0)
             json_mode: Whether to request JSON response format
-        
+
         Returns:
             LLM response string, or None if all providers fail
+
+        Raises:
+            LLMUnavailableError: When running in CLI mode with no provider configured.
+
+        Requirements: 8.1, 8.2, 8.5
         """
-        try:
-            if self.primary_provider == ProviderType.KIRO_NATIVE:
-                return await self._call_kiro_native(system_prompt, user_prompt, max_tokens)
-            elif self.primary_provider == ProviderType.VERTEX_AI:
-                return await self._call_vertex_ai(system_prompt, user_prompt, max_tokens, temperature, json_mode)
-            elif self.primary_provider == ProviderType.OPENAI:
-                return await self._call_openai(system_prompt, user_prompt, max_tokens, temperature, json_mode)
-        except Exception as e:
-            self.logger.warning(f"LLM call failed with {self.primary_provider.value}: {e}")
-            return await self._fallback_chain(system_prompt, user_prompt, max_tokens, temperature, json_mode)
-        
-        return None
+        if self.primary_provider == ProviderType.NONE:
+            raise LLMUnavailableError(
+                "No LLM provider is configured. "
+                "Run `hiveforge config llm` to set one up, "
+                "or use KIRO MCP mode where ctx.sample() is available automatically."
+            )
+
+        last_error: Optional[Exception] = None
+
+        for attempt in range(_RETRY_ATTEMPTS):
+            try:
+                if self.primary_provider == ProviderType.KIRO_NATIVE:
+                    return await self._call_kiro_native(system_prompt, user_prompt, max_tokens)
+                elif self.primary_provider == ProviderType.VERTEX_AI:
+                    return await self._call_vertex_ai(
+                        system_prompt, user_prompt, max_tokens, temperature, json_mode
+                    )
+                elif self.primary_provider == ProviderType.OPENAI:
+                    return await self._call_openai(
+                        system_prompt, user_prompt, max_tokens, temperature, json_mode
+                    )
+            except Exception as e:
+                last_error = e
+                is_last_attempt = attempt == _RETRY_ATTEMPTS - 1
+                if is_last_attempt:
+                    self.logger.warning(
+                        f"LLM call failed after {_RETRY_ATTEMPTS} attempts "
+                        f"with {self.primary_provider.value}: {e}"
+                    )
+                    break
+                # Exponential backoff before retry (Requirement 8.5)
+                delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                self.logger.warning(
+                    f"LLM call attempt {attempt + 1} failed ({e}), "
+                    f"retrying in {delay:.1f}s..."
+                )
+                await asyncio.sleep(delay)
+
+        # Primary failed — try fallback chain
+        return await self._fallback_chain(
+            system_prompt, user_prompt, max_tokens, temperature, json_mode
+        )
     
     async def _call_kiro_native(
         self,
