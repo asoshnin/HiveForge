@@ -365,6 +365,7 @@ class GenerationContext:
     previously_generated_summaries: Dict[str, str]      # rolling summaries
     delta: Optional["DeltaReport"]
     user_intent: Optional[str]
+    debt_facts: Optional["DebtAnalysisResult"] = None   # NEW: structured debt analysis
 
 
 @dataclass
@@ -570,6 +571,7 @@ class WorkflowState:
     validation_report: Optional[ValidationReport] = None
     draft: Optional[DraftState] = None  # NEW: stores draft for MCP mode review
     last_backup_dir: Optional[Path] = None  # NEW: stores last backup directory for rollback
+    debt_analysis: Optional["DebtAnalysisResult"] = None  # NEW: debt detection results
 
 
 @dataclass
@@ -586,6 +588,7 @@ class SteeringConfig:
     feature_flags: Optional["FeatureFlagConfig"] = None
     incremental: bool = False
     preview: bool = False
+    skip_debt_detection: bool = False  # NEW: disable DebtDetector when True
 
 
 # ============================================================================
@@ -764,6 +767,161 @@ class FeatureFlagConfig:
             True if threshold > 0.95
         """
         return self.confidence_threshold > 0.95
+
+
+# ============================================================================
+# Technical Debt Models
+# ============================================================================
+
+class DebtCategory(Enum):
+    """Categories of technical debt items."""
+    ARCHITECTURE = "Architecture"
+    CODE_QUALITY = "Code Quality"
+    TESTS = "Tests"
+    PERFORMANCE = "Performance"
+
+
+class DebtPriority(Enum):
+    """Priority levels for technical debt items."""
+    CRITICAL = "Critical"
+    HIGH = "High"
+    MEDIUM = "Medium"
+    LOW = "Low"
+
+
+class DebtStatus(Enum):
+    """Status values for technical debt items."""
+    ACTIVE = "Active"
+    IN_PROGRESS = "In Progress"
+    RESOLVED = "Resolved"
+    DEFERRED = "Deferred"
+
+
+class DebtEffort(Enum):
+    """Effort estimates for resolving debt items."""
+    LOW = "L"
+    MEDIUM = "M"
+    HIGH = "H"
+
+
+class DebtRisk(Enum):
+    """Risk levels for technical debt items."""
+    LOW = "L"
+    MEDIUM = "M"
+    HIGH = "H"
+
+
+@dataclass
+class DebtRecommendation:
+    """One resolution option for a debt item."""
+
+    title: str           # e.g. "Extract shared helper"
+    description: str     # actionable steps
+    trade_offs: str      # risks / downsides
+    is_recommended: bool = False
+
+
+@dataclass
+class DebtItem:
+    """
+    A single tracked technical debt issue.
+
+    id is a stable hash of (category, file_path, line_number) so it
+    survives re-runs as long as the code location is unchanged.
+
+    Requirements: 2.7, 2.8, 3.1, 3.2, 3.4, 3.5, 4.1
+    """
+
+    id: str                                                   # sha256[:12] of (category + location)
+    category: DebtCategory
+    description: str
+    location: str                                             # "path/to/file.py:42" or "path/to/file.py"
+    priority: DebtPriority
+    effort: DebtEffort
+    risk: DebtRisk
+    status: DebtStatus
+    confidence: float                                         # 0.0–1.0
+    recommendations: List[DebtRecommendation] = field(default_factory=list)
+    detected_at: Optional[str] = None                        # ISO-8601 timestamp
+    resolved_at: Optional[str] = None                        # ISO-8601 timestamp
+
+
+@dataclass
+class DebtMetrics:
+    """Aggregate metrics for a debt analysis result.
+
+    Requirements: 3.1, 3.2, 10.1
+    """
+
+    total_active: int = 0
+    by_category: Dict[str, int] = field(default_factory=dict)   # DebtCategory.value → int
+    by_priority: Dict[str, int] = field(default_factory=dict)   # DebtPriority.value → int
+    last_updated: Optional[str] = None                          # ISO-8601 timestamp
+
+
+@dataclass
+class DebtAnalysisResult:
+    """Complete output of DebtDetector.detect().
+
+    Requirements: 2.5, 2.6, 3.3, 12.1, 12.2, 12.3, 12.4, 12.5
+    """
+
+    items: List[DebtItem] = field(default_factory=list)
+    metrics: DebtMetrics = field(default_factory=DebtMetrics)
+    sampled: bool = False          # True when sampling was applied (>10k files)
+    analysis_time_s: float = 0.0
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        """JSON-serializable dict for LLM context injection (≤1000 tokens).
+
+        Requirements: 2.5
+        """
+        import json
+
+        def _item_to_dict(item: DebtItem) -> Dict[str, Any]:
+            return {
+                "id": item.id,
+                "category": item.category.value,
+                "description": item.description[:120],   # truncate for token budget
+                "location": item.location,
+                "priority": item.priority.value,
+                "effort": item.effort.value,
+                "risk": item.risk.value,
+                "status": item.status.value,
+                "confidence": round(item.confidence, 2),
+            }
+
+        active = self.active_items()
+        # Limit to 20 items to stay within 1000-token budget
+        items_subset = active[:20]
+
+        result: Dict[str, Any] = {
+            "sampled": self.sampled,
+            "analysis_time_s": round(self.analysis_time_s, 2),
+            "metrics": {
+                "total_active": self.metrics.total_active,
+                "by_category": self.metrics.by_category,
+                "by_priority": self.metrics.by_priority,
+                "last_updated": self.metrics.last_updated,
+            },
+            "active_items": [_item_to_dict(i) for i in items_subset],
+        }
+
+        # Verify token budget (rough: 1 token ≈ 4 chars)
+        serialized = json.dumps(result)
+        if len(serialized) > 4000:  # ~1000 tokens
+            # Reduce items further
+            result["active_items"] = result["active_items"][:10]
+
+        return result
+
+    def active_items(self) -> List[DebtItem]:
+        """Return items that are not resolved."""
+        return [i for i in self.items if i.status != DebtStatus.RESOLVED]
+
+    def resolved_items(self) -> List[DebtItem]:
+        """Return items that have been resolved."""
+        return [i for i in self.items if i.status == DebtStatus.RESOLVED]
 
 
 # ============================================================================

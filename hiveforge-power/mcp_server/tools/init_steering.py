@@ -30,7 +30,8 @@ async def init_steering(
     autonomous: bool = True,
     confidence_threshold: float = 0.7,
     dry_run: bool = False,
-    copy_files: bool = False
+    copy_files: bool = False,
+    skip_debt_detection: bool = False,
 ) -> dict[str, Any]:
     """
     Initialize steering files for a project.
@@ -120,13 +121,28 @@ async def init_steering(
             autonomous=autonomous,
             confidence_threshold=confidence_threshold,
             dry_run=dry_run,
-            copy_files=copy_files
+            copy_files=copy_files,
+            config={"skip_debt_detection": skip_debt_detection},
         )
         
         result = workflow.execute()
-        
+        response = result.to_dict()
+
+        # Append debt_summary to metadata when debt analysis was performed
+        # (Requirements 6.2, 6.3)
+        debt_analysis = getattr(getattr(workflow, "_v02_workflow", None), "state", None)
+        if debt_analysis is None:
+            # Try inner workflow stored on adapter
+            inner = getattr(workflow, "_inner_workflow", None)
+            debt_analysis = getattr(getattr(inner, "state", None), "debt_analysis", None)
+        else:
+            debt_analysis = getattr(debt_analysis, "debt_analysis", None)
+
+        if debt_analysis is not None:
+            response.setdefault("metadata", {})["debt_summary"] = debt_analysis.metrics.__dict__
+
         # Return structured JSON response
-        return result.to_dict()
+        return response
     
     except Exception as e:
         return {

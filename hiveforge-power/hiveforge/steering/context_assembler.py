@@ -13,6 +13,7 @@ from typing import Dict, List, Optional
 
 from .models import (
     CodeAnalysisFacts,
+    DebtAnalysisResult,
     DeltaReport,
     GenerationContext,
     ParsedDocument,
@@ -81,6 +82,11 @@ class ContextAssembler:
             "coverage", "assertion", "mock", "fixture", "suite", "runner",
             "framework", "validation",
         ],
+        "technical-debt.md": [
+            "debt", "technical debt", "refactor", "smell", "violation", "dry",
+            "duplicate", "complexity", "coupling", "cohesion", "legacy",
+            "todo", "fixme", "hack", "workaround", "performance", "risk",
+        ],
     }
     
     def __init__(self):
@@ -98,6 +104,7 @@ class ContextAssembler:
         previously_generated: Dict[str, str],
         delta: Optional[DeltaReport],
         user_intent: Optional[str],
+        debt_facts: Optional[DebtAnalysisResult] = None,
     ) -> GenerationContext:
         """
         Assemble token-budgeted context for a single template.
@@ -140,12 +147,29 @@ class ContextAssembler:
         # Extract rolling summaries from previously generated files (Requirement 4.4)
         summaries = self._extract_rolling_summaries(previously_generated)
         
+        # For technical-debt.md: ensure cross-reference steering files are included
+        # (Requirements 9.1, 9.2, 9.3, 9.4)
+        if template_name == "technical-debt.md":
+            cross_ref_keys = {"conventions.md", "qa-standards.md", "architecture.md"}
+            # Merge cross-ref files into existing_steering view (don't mutate original)
+            enriched_steering: Dict[str, str] = {}
+            for key in cross_ref_keys:
+                if key in existing_steering:
+                    enriched_steering[key] = existing_steering[key]
+                elif key in previously_generated:
+                    enriched_steering[key] = previously_generated[key]
+            # Add remaining existing steering (may be truncated below)
+            for k, v in existing_steering.items():
+                enriched_steering.setdefault(k, v)
+        else:
+            enriched_steering = existing_steering
+
         # Truncate sections if budget exceeded (Requirement 4.5)
         truncated_summaries = self._truncate_text_dict(
             summaries, self.BUDGET_PREV_GENERATED
         )
         truncated_existing = self._truncate_text_dict(
-            existing_steering, self.BUDGET_EXISTING_STEERING
+            enriched_steering, self.BUDGET_EXISTING_STEERING
         )
         
         # Code facts are already constrained to ≤2,000 tokens by design
@@ -181,6 +205,7 @@ class ContextAssembler:
             previously_generated_summaries=truncated_summaries,
             delta=delta,
             user_intent=user_intent,
+            debt_facts=debt_facts,
         )
     
     def _filter_source_docs_by_relevance(

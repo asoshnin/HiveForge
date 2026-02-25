@@ -67,6 +67,7 @@ class AutonomousWorkflow(InitWorkflow):
         "db-standards.md",
         "qa-standards.md",
         "ui-standards.md",
+        "technical-debt.md",
     ]
     
     def __init__(
@@ -311,6 +312,31 @@ class AutonomousWorkflow(InitWorkflow):
         prompt_builder = PromptBuilder()
 
         # --- Run transactional generation ---
+        # --- Run DebtDetector (unless skip_debt_detection) ---
+        debt_facts = None
+        if not getattr(self.config, "skip_debt_detection", False):
+            try:
+                from ..detectors.debt_detector import DebtDetector
+                conventions_content = existing_steering.get("conventions.md", "")
+                detector = DebtDetector(
+                    project_root=self.project_root,
+                    conventions_content=conventions_content,
+                )
+                # For update workflow: reconcile with existing technical-debt.md
+                existing_debt_md = existing_steering.get("technical-debt.md")
+                if existing_debt_md:
+                    from ..detectors.debt_reconciler import DebtReconciler
+                    fresh = detector.detect()
+                    debt_facts = DebtReconciler().reconcile(existing_debt_md, fresh)
+                else:
+                    debt_facts = detector.detect()
+                self.state.debt_analysis = debt_facts
+                logger.info("DebtDetector completed: %d items", len(debt_facts.items))
+            except Exception as exc:
+                logger.warning("DebtDetector failed (%s) — continuing without debt facts", exc)
+                debt_facts = None
+                self.state.debt_analysis = None
+
         result = await generator.generate_all_files(
             context_assembler=context_assembler,
             prompt_builder=prompt_builder,
@@ -321,6 +347,7 @@ class AutonomousWorkflow(InitWorkflow):
             existing_steering=existing_steering,
             delta=delta,
             user_intent=user_intent,
+            debt_facts=debt_facts,
         )
 
         if result.success:

@@ -5,7 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/hiveforge.svg)](https://badge.fury.io/py/hiveforge)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-189%2B%20passed-brightgreen)](https://github.com/asoshnin/HiveForge)
+[![Tests](https://img.shields.io/badge/tests-257%2B%20passed-brightgreen)](https://github.com/asoshnin/HiveForge)
 [![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](https://github.com/asoshnin/HiveForge)
 
 **hiveforge** is a CLI tool that scaffolds [KIRO Methodology v05](https://kiro.ai) projects with a complete multi-agent architecture, steering files, and swarm state management—ready for use with Kiro IDE.
@@ -15,9 +15,10 @@
 ## ✨ Features
 
 - 🤖 **7 Specialized Agent Definitions** - Orchestrator, Data Architect, Backend Engineer, Frontend Engineer, QA Engineer, DevOps Engineer, Red Team
-- 📋 **8 Steering Files** - Project vision, tech stack, conventions, architecture, and standards
+- 📋 **9 Steering Files** - Project vision, tech stack, conventions, architecture, standards, and technical debt tracking
 - 🧭 **Steering Assistant** - AI-powered tool to create and maintain steering files throughout your project lifecycle
 - 🤖 **LLM-Primary Synthesis** - Direct LLM generation of steering files with hallucination detection (v3.0.0)
+- 🔍 **Technical Debt Detection** - Automatic detection of DRY violations, test gaps, architecture smells, and performance risks (v3.0.0)
 - 📂 **Custom Source Document Paths** - Specify where your design documents are located (v2.2.0)
 - 🎯 **Confidence Scoring** - Know which content is from documents vs. inferred (v2.2.0)
 - ⚠️ **Hallucination Guardrails** - Duplicate paragraph detection prevents LLM hallucinations (v3.0.0)
@@ -127,7 +128,8 @@ my-awesome-app/
 │       ├── db-standards.md          # 🗃️ Database patterns
 │       ├── api-standards.md         # 🔌 API design rules
 │       ├── ui-standards.md          # 🎨 UI/UX guidelines
-│       └── qa-standards.md          # ✅ Testing strategy
+│       ├── qa-standards.md          # ✅ Testing strategy
+│       └── technical-debt.md        # 🔍 Debt tracking
 ├── .swarm/
 │   ├── plan/                        # 📋 Task planning
 │   └── audit_logs/                  # 📊 Agent activity logs

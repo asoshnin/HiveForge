@@ -16,7 +16,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.0] - 2026-02-25
 
-### Added - LLM-Primary Steering Synthesis Pipeline
+### Added - LLM-Primary Steering Synthesis Pipeline & Technical Debt Detection
+
+#### Technical Debt Detection & Tracking
+- **9th Steering File**: `technical-debt.md` automatically generated during init/update
+- **DebtDetector**: Local static analysis for DRY violations, test gaps, architecture smells, performance risks
+- **DebtReconciler**: Merge existing + fresh analysis during updates, preserves manual edits
+- **Scalability**: Automatic sampling for large codebases (>10k files), caching, .gitignore respect
+- **Priority Escalation**: Based on conventions.md content (DRY preference, testing preference)
+- **CLI Flag**: `--skip-debt-detection` to skip analysis (faster init)
+- **MCP Metadata**: `debt_summary` field in init/update responses with metrics
+
+#### Debt Detection Features
+- **DRY Violations**: AST-based function body hashing (Python), line-hash fallback (other languages)
+- **Test Gaps**: File-to-test ratio analysis, untested public function detection
+- **Architecture Smells**: Circular import detection (Tarjan's SCC), god class detection (>500 lines)
+- **Performance Risks**: N+1 queries, unbounded loops, string concatenation, list allocation
+
+#### Data Models
+- **DebtItem**: ID, category, description, location, priority, effort, risk, status, confidence, recommendations
+- **DebtRecommendation**: At least 2 per item (recommended + alternative)
+- **DebtAnalysisResult**: Items, metrics, sampled flag, analysis time
+- **DebtMetrics**: Total active, by category, by priority, last updated
+
+#### Reconciliation (Update Workflow)
+- **User-edited items**: Preserve description/priority if manually changed
+- **Manually added items**: Preserve items with IDs absent from fresh analysis
+- **Auto-resolved items**: Move to RESOLVED if absent from fresh analysis
+- **New items**: Add with status=ACTIVE and detected_at timestamp
+- **Historical resolved items**: Preserve verbatim from Resolved section
+
+#### Testing
+- **68 New Tests**: Unit tests, property tests, integration tests
+- **Property-Based Testing**: 13 correctness properties validated
+- **100% Pass Rate**: All 68 tests passing
+- **Total Test Count**: 257+ tests (up from 189)
 
 #### Core Pipeline Architecture
 - **LLM-Primary Generation**: Steering files now generated directly by LLM synthesis instead of template population
@@ -69,18 +103,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Retry Overhead**: Minimal (single retry on failure, no retries on hallucinations)
 
 ### Testing
-- **20 New Tests**: Comprehensive coverage of new pipeline components
-- **Property-Based Tests**: 8 correctness properties validated
+- **88 New Tests**: 20 LLM synthesis tests + 68 technical debt tests
+- **Property-Based Tests**: 21 correctness properties validated (8 synthesis + 13 debt)
 - **Integration Tests**: End-to-end pipeline testing with real documents
 - **Token Budget Tests**: Verify all templates stay within budget
-- **All Tests Passing**: 189+ tests (up from 169)
+- **All Tests Passing**: 257+ tests (up from 169)
 
 ### Documentation
-- **LLM_PRIMARY_SYNTHESIS_IMPLEMENTATION.md**: Comprehensive implementation guide
-- **API_REFERENCE.md**: Updated with new APIs (generate_file, extract_public_api, etc.)
+- **TECHNICAL_DEBT_IMPLEMENTATION.md**: Comprehensive implementation guide for debt detection
+- **LLM_PRIMARY_SYNTHESIS_IMPLEMENTATION.md**: Comprehensive implementation guide for LLM synthesis
+- **API_REFERENCE.md**: Updated with new APIs (generate_file, extract_public_api, DebtDetector, DebtReconciler)
 - **MIGRATION.md**: v3.0.0 migration guide for users and developers
 - **Architecture.md**: Updated with new pipeline components
-- **README.md**: Updated test count and feature list
+- **README.md**: Updated test count (257+) and feature list (9 steering files)
 
 ### Breaking Changes
 None. All new features are internal implementation changes. External APIs remain compatible.

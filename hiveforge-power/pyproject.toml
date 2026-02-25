@@ -45,6 +45,7 @@ dev = [
     "black>=23.7.0",
     "ruff>=0.0.285",
     "mypy>=1.5.0",
+    "hypothesis>=6.100.0",
 ]
 vertex = [
     "google-cloud-aiplatform>=1.38.0",

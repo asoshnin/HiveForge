@@ -97,7 +97,8 @@ class SharedInitWorkflow(SharedWorkflowBase):
                     analyze_code=self.auto_discover,
                     feature_flags=feature_flags,
                     skip_validation=False,
-                    interactive=interactive
+                    interactive=interactive,
+                    skip_debt_detection=bool((self.config or {}).get("skip_debt_detection", False)),
                 )
                 
                 # Create and execute v02 workflow

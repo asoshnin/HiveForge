@@ -50,3 +50,9 @@ Thumbs.db
 
 # Project specific
 test-kiro-project/
+
+# Prevent large cache/backup files
+.kiro/.cache/
+.kiro/backups/
+hiveforge-power/.kiro/backups/
+hiveforge-power/.kiro/steering/

@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Tuple
 from .context_assembler import ContextAssembler, _rolling_summary
 from .models import (
     CodeAnalysisFacts,
+    DebtAnalysisResult,
     DeltaReport,
     GenerationContext,
     GenerationResult,
@@ -48,6 +49,7 @@ GENERATION_ORDER: List[str] = [
     "workflows.md",
     "security.md",
     "testing.md",
+    "technical-debt.md",
 ]
 
 
@@ -88,6 +90,7 @@ class SteeringFileGenerator:
         delta: Optional[DeltaReport] = None,
         user_intent: Optional[str] = None,
         template_contents: Optional[Dict[str, str]] = None,
+        debt_facts: Optional[DebtAnalysisResult] = None,
     ) -> GenerationResult:
         """
         Generate all 8 steering files in memory, validate, then write atomically.
@@ -110,6 +113,8 @@ class SteeringFileGenerator:
             user_intent:       Optional user intent string.
             template_contents: Optional dict of template_name → template Markdown.
                                When None, empty templates are used.
+            debt_facts:        Optional DebtAnalysisResult from DebtDetector.
+                               Passed to ContextAssembler when generating technical-debt.md.
 
         Returns:
             GenerationResult with success flag, files_written, validation_errors.
@@ -137,6 +142,7 @@ class SteeringFileGenerator:
                 previously_generated=previously_generated,
                 delta=delta,
                 user_intent=user_intent,
+                debt_facts=debt_facts if template_name == "technical-debt.md" else None,
             )
 
             # Generate draft via LLM (with one simplified retry on empty/malformed)
@@ -375,6 +381,10 @@ class SteeringFileGenerator:
             "testing.md": [
                 "Testing Strategy", "Unit Tests", "Integration Tests",
                 "Coverage Requirements",
+            ],
+            "technical-debt.md": [
+                "Overview", "Debt Categories", "Active Debt Items",
+                "Resolved Debt Items", "Debt Metrics",
             ],
         }
         return _schemas.get(template_name, [])

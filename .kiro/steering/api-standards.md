@@ -1,155 +1,117 @@
 ---
 inclusion: fileMatch
-patterns: ["hiveforge-power/**", "mcp_server/**", "src/**/shared/**"]
+patterns: ["src/api/**", "tests/api/**", "src/**/api.py", "src/**/routes/**"]
 priority: 2
-description: "MCP server tool design, response formats, error handling. Loaded when working on MCP/Power code."
----
+description: "API naming, versioning, error handling. Only loaded when working on API code."---
 
-# MCP Server Standards
+# API Standards & Conventions
 
-## MCP Tool Design Principles
+## Endpoint Naming
+- Use plural nouns: `/users`, `/orders`
+- Nested resources: `/users/## Error Handling
 
-### Tool Naming
-- Use descriptive, action-oriented names: `init_steering`, `update_steering`, `validate_steering`
-- Prefix with domain: `mcp_hiveforge_steering_*`
-- Use snake_case for consistency with Python backend
+The LLMProvider handles errors gracefully:
 
-### Tool Parameters
-- Use Pydantic models for validation
-- Provide sensible defaults (e.g., `project_root="."`)
-- Make parameters optional when possible
-- Use clear, descriptive parameter names
+- **KIRO native fails**: Falls back to Vertex AI → OpenAI → None
+- **Vertex AI fails**: Falls back to OpenAI → None
+- **OpenAI fails**: Returns None
+- **All fail**: Returns None, caller uses `[INFERRED]` markers
 
-### Response Format
-- Return structured JSON with consistent schema:
-  ```json
-  {
-    "status": "success|failed",
-    "message": "Human-readable description",
-    "files_created": [],
-    "files_modified": [],
-    "warnings": [],
-    "errors": [],
-    "metadata": {}
-  }
-  ```
+All failures are logged at WARNING level with details about the error.
+/orders`
+- Actions as POST: `/users/## Error Handling
 
-### Error Handling
-- Return structured errors, never raise exceptions to MCP client
-- Include `can_retry` flag for transient errors
-- Provide actionable error messages
-- Log errors to telemetry
+The LLMProvider handles errors gracefully:
 
-## Tool Catalog
+- **KIRO native fails**: Falls back to Vertex AI → OpenAI → None
+- **Vertex AI fails**: Falls back to OpenAI → None
+- **OpenAI fails**: Returns None
+- **All fail**: Returns None, caller uses `[INFERRED]` markers
 
-### Core Tools
-
-| Tool | Purpose | Parameters | Returns |
-|------|---------|------------|---------|
-| `init_steering` | Create steering files | project_root, source_docs_path, auto_discover, autonomous, dry_run | Files created, warnings, confidence scores |
-| `update_steering` | Update existing files | project_root, files_to_update, preserve_customizations | Files modified, conflicts resolved |
-| `validate_steering` | Validate completeness | project_root, strict, use_llm | Validation report, issues found |
-| `reset_steering` | Reset to templates | project_root, file, confirm | Files reset, backup location |
-| `discover_docs` | Find existing docs | project_root, source_docs_path, file_types, include_git_history | Files discovered, metadata |
-| `rollback_steering` | Restore from backup | project_root, backup_id | Files restored, success status |
-
-## Authentication
-
-### MCP Server Authentication
-- No authentication required (local execution)
-- Security enforced by KIRO IDE permissions
-- Tools run with user's file system permissions
-
-### API Key Management (for LLM calls)
-- OpenAI API key from environment variable: `OPENAI_API_KEY`
-- Anthropic API key from environment variable: `ANTHROPIC_API_KEY`
-- Keys never logged or transmitted
-- Fallback to cached responses if API unavailable
+All failures are logged at WARNING level with details about the error.
+/reset-password`
 
 ## Versioning
+- URL-based: `/api/v1/users`
+- Never break existing versions
 
-### MCP Protocol Version
-- Current: MCP 1.0
-- Backward compatibility maintained for tool schemas
-- Breaking changes require major version bump
+## Response Format
+```json
+## Error Handling
 
-### Tool Schema Versioning
-- Tool schemas defined in `mcp_server/server.py`
-- Changes to parameters require version bump
-- Deprecated parameters supported for 2 major versions
+The LLMProvider handles errors gracefully:
+
+- **KIRO native fails**: Falls back to Vertex AI → OpenAI → None
+- **Vertex AI fails**: Falls back to OpenAI → None
+- **OpenAI fails**: Returns None
+- **All fail**: Returns None, caller uses `[INFERRED]` markers
+
+All failures are logged at WARNING level with details about the error.
+,
+  "meta": ## Error Handling
+
+The LLMProvider handles errors gracefully:
+
+- **KIRO native fails**: Falls back to Vertex AI → OpenAI → None
+- **Vertex AI fails**: Falls back to OpenAI → None
+- **OpenAI fails**: Returns None
+- **All fail**: Returns None, caller uses `[INFERRED]` markers
+
+All failures are logged at WARNING level with details about the error.
+,
+  "errors": []
+}
+```
+
+## HTTP Methods
+- GET: Retrieve resource(s)
+- POST: Create resource
+- PUT: Replace resource (full update)
+- PATCH: Partial update
+- DELETE: Remove resource
+
+## Status Codes
+- 200: OK (GET, PATCH, PUT success)
+- 201: Created (POST success)
+- 204: No Content (DELETE success)
+- 400: Bad Request (client error)
+- 401: Unauthorized (not authenticated)
+- 403: Forbidden (not authorized)
+- 404: Not Found
+- 422: Unprocessable Entity (validation error)
+- 500: Internal Server Error
+
+## Error Responses
+```json
+## Error Handling
+
+The LLMProvider handles errors gracefully:
+
+- **KIRO native fails**: Falls back to Vertex AI → OpenAI → None
+- **Vertex AI fails**: Falls back to OpenAI → None
+- **OpenAI fails**: Returns None
+- **All fail**: Returns None, caller uses `[INFERRED]` markers
+
+All failures are logged at WARNING level with details about the error.
+
+  ]
+}
+```
 
 ## Rate Limiting
+- Header: `X-RateLimit-Remaining`
+- Default: 100 req/min per user
 
-### LLM API Rate Limits
-- Automatic exponential backoff: 2^retry_count seconds
-- Max retries: 3
-- Fallback to cached responses after max retries
+## Authentication
+- Use JWT tokens in `Authorization: Bearer ## Error Handling
 
-### File System Rate Limits
-- No rate limiting (local file system)
-- Concurrent access handled by OS
+The LLMProvider handles errors gracefully:
 
-## Security
+- **KIRO native fails**: Falls back to Vertex AI → OpenAI → None
+- **Vertex AI fails**: Falls back to OpenAI → None
+- **OpenAI fails**: Returns None
+- **All fail**: Returns None, caller uses `[INFERRED]` markers
 
-### Input Validation
-- All paths validated to prevent directory traversal
-- File types validated against whitelist
-- Parameter types validated by Pydantic
-
-### Output Sanitization
-- File paths normalized before writing
-- User input sanitized before LLM prompts
-- Error messages sanitized (no sensitive data)
-
-### Permission Model
-- Tools run with user's file system permissions
-- No privilege escalation
-- Read-only operations for validation/discovery
-- Write operations require explicit confirmation (dry_run mode)
-
-## Performance
-
-### Response Times
-- `init_steering`: 10-30 seconds (with LLM calls)
-- `update_steering`: 10-20 seconds (incremental)
-- `validate_steering`: <1 second (rule-based)
-- `discover_docs`: 5-15 seconds (depends on file count)
-
-### Caching Strategy
-- Response cache: `.kiro/.cache/response_cache.json`
-- Code analysis cache: `.kiro/.cache/code_analysis.json`
-- Validation cache: `.kiro/.cache/validation_cache.json`
-- Cache invalidation: Manual or on file changes
-
-### Token Efficiency
-- Max 4000 tokens context per LLM call
-- Max 2000 tokens per template
-- Max 3000 tokens per file update
-- Question batching: Max 8 questions per batch
-
-## Monitoring
-
-### Telemetry Collection
-- Workflow events logged to `.kiro/.telemetry/`
-- Performance metrics: duration, memory, CPU
-- Error tracking: types, frequency, recovery
-- No PII collected, local storage only
-
-### Health Checks
-- MCP server status: Check connection to KIRO IDE
-- LLM API status: Check API key validity
-- File system status: Check write permissions
-
-## Documentation
-
-### Tool Descriptions
-- Each tool has detailed description in schema
-- Parameter descriptions explain purpose and format
-- Examples provided in POWER.md
-- Error messages include suggestions
-
-### User-Facing Documentation
-- POWER.md: Power usage guide
-- INSTALLATION_GUIDE.md: Setup instructions
-- steering-assistant-guide.md: Detailed workflows
-- README.md: Quick start
+All failures are logged at WARNING level with details about the error.
+` header
+- Refresh tokens: POST `/api/v1/auth/refresh`

@@ -75,9 +75,17 @@ async def update_steering(
         )
         
         result = workflow.execute()
-        
+        response = result.to_dict()
+
+        # Append debt_summary to metadata when debt analysis was performed
+        # (Requirements 6.2, 6.3)
+        inner = getattr(workflow, "_inner_workflow", None)
+        debt_analysis = getattr(getattr(inner, "state", None), "debt_analysis", None)
+        if debt_analysis is not None:
+            response.setdefault("metadata", {})["debt_summary"] = debt_analysis.metrics.__dict__
+
         # Return structured JSON response
-        return result.to_dict()
+        return response
     
     except Exception as e:
         return {

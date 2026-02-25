@@ -108,6 +108,11 @@ def steering_init(
         "--conservative-inference",
         help="Reduce inference aggressiveness"
     ),
+    skip_debt_detection: bool = typer.Option(
+        False,
+        "--skip-debt-detection",
+        help="Skip static debt analysis when generating technical-debt.md"
+    ),
 ) -> None:
     """
     Initialize steering files from scratch.
@@ -159,6 +164,7 @@ def steering_init(
                 "max_discovery_files": max_discovery_files,
                 "max_file_size_mb": max_file_size,
                 "conservative_inference": conservative_inference,
+                "skip_debt_detection": skip_debt_detection,
             }
         )
         

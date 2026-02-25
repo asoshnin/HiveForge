@@ -1,9 +1,9 @@
 # HiveForge Steering API Reference
 
-**Version:** 2.2.0  
+**Version:** 3.0.0  
 **Last Updated:** February 2026
 
-This document provides comprehensive API documentation for all public methods introduced in the HiveForge Steering system improvements (v2.2.0).
+This document provides comprehensive API documentation for all public methods introduced in the HiveForge Steering system improvements (v3.0.0).
 
 ---
 
@@ -13,8 +13,10 @@ This document provides comprehensive API documentation for all public methods in
 2. [Steering Assistant API](#steering-assistant-api)
 3. [Code Analyzer API](#code-analyzer-api)
 4. [Drift Detector API](#drift-detector-api)
-5. [Workflow APIs](#workflow-apis)
-6. [Data Models](#data-models)
+5. [Debt Detector API](#debt-detector-api)
+6. [Debt Reconciler API](#debt-reconciler-api)
+7. [Workflow APIs](#workflow-apis)
+8. [Data Models](#data-models)
 
 ---
 
@@ -434,6 +436,222 @@ Detected 3 drift items:
 
 ---
 
+## Debt Detector API
+
+### `DebtDetector`
+
+**Module:** `hiveforge.steering.detectors.debt_detector`
+
+Analyzes codebase for technical debt using local static analysis. Detects DRY violations, test gaps, architecture smells, and performance risks.
+
+#### Constructor
+
+```python
+def __init__(
+    self,
+    project_root: Path,
+    conventions_content: Optional[str] = None,
+    logger_instance: Optional[logging.Logger] = None
+)
+```
+
+**Parameters:**
+- `project_root` (Path): Root directory of the project to analyze
+- `conventions_content` (Optional[str]): Content of conventions.md for priority escalation
+- `logger_instance` (Optional[logging.Logger]): Logger instance (defaults to module logger)
+
+**Example:**
+```python
+from pathlib import Path
+from hiveforge.steering.detectors.debt_detector import DebtDetector
+
+detector = DebtDetector(
+    project_root=Path("."),
+    conventions_content=conventions_md_content
+)
+```
+
+#### Methods
+
+##### `detect()`
+
+Run all detectors and return aggregated results. Uses cache when available and codebase is unchanged.
+
+```python
+def detect(self) -> DebtAnalysisResult
+```
+
+**Returns:**
+- `DebtAnalysisResult`: Analysis result containing:
+  - `items` (List[DebtItem]): All detected debt items
+  - `metrics` (DebtMetrics): Aggregated metrics
+  - `sampled` (bool): Whether sampling was applied (for large codebases)
+  - `analysis_time_s` (float): Analysis duration in seconds
+
+**Behavior:**
+1. Checks cache (`.kiro/.cache/debt_analysis.json`) for unchanged codebase
+2. Collects files respecting `.gitignore` patterns
+3. Applies sampling if file count exceeds 10,000 (samples 2,000 files)
+4. Runs all four sub-detectors:
+   - DRY violations (AST-based function body hashing)
+   - Test gaps (missing test files, untested public functions)
+   - Architecture smells (circular imports, god classes)
+   - Performance risks (N+1 queries, unbounded loops, string concat)
+5. Applies conventions preferences (escalates priorities based on conventions.md)
+6. Computes metrics and saves cache
+7. Returns `DebtAnalysisResult`
+
+**Debt Categories:**
+- `CODE_QUALITY`: DRY violations, code duplication
+- `TESTS`: Missing test files, untested public functions
+- `ARCHITECTURE`: Circular imports, god classes (>500 lines)
+- `PERFORMANCE`: N+1 queries, unbounded loops, inefficient patterns
+
+**Priority Escalation:**
+- If conventions.md contains "DRY" or "duplication": CODE_QUALITY items escalated
+- If conventions.md contains "tested > assumed": TESTS items escalated to HIGH
+
+**Example:**
+```python
+detector = DebtDetector(project_root=Path("."))
+result = detector.detect()
+
+print(f"Total active debt items: {result.metrics.total_active}")
+print(f"Analysis time: {result.analysis_time_s:.2f}s")
+print(f"Sampled: {result.sampled}")
+
+# Group by category
+for category, count in result.metrics.by_category.items():
+    print(f"  {category}: {count} items")
+
+# Show high-priority items
+for item in result.active_items():
+    if item.priority == DebtPriority.HIGH:
+        print(f"\n[{item.category.value}] {item.description}")
+        print(f"  Location: {item.location}")
+        print(f"  Confidence: {item.confidence:.0%}")
+        for rec in item.recommendations:
+            marker = "✓" if rec.is_recommended else " "
+            print(f"  {marker} {rec.title}: {rec.description}")
+```
+
+**Output Example:**
+```
+Total active debt items: 12
+Analysis time: 1.45s
+Sampled: False
+  code_quality: 3 items
+  tests: 5 items
+  architecture: 2 items
+  performance: 2 items
+
+[tests] Missing test file for module 'calculator' (expected test_calculator.py)
+  Location: src/calculator.py
+  Confidence: 90%
+  ✓ Create test_calculator.py: Add a test file covering the public API of calculator.py.
+    Add tests to an existing test file: Merge tests into a related existing test module.
+
+[performance] N+1 query pattern: database query inside a loop at line 45
+  Location: src/views.py:45
+  Confidence: 80%
+  ✓ Batch the query outside the loop: Fetch all required records in a single query before the loop.
+    Add caching: Cache query results to avoid repeated database hits.
+```
+
+---
+
+## Debt Reconciler API
+
+### `DebtReconciler`
+
+**Module:** `hiveforge.steering.detectors.debt_reconciler`
+
+Reconciles existing technical-debt.md with fresh analysis results during update workflow. Preserves manual edits, user-added items, and resolved items.
+
+#### Methods
+
+##### `reconcile()`
+
+Reconcile existing technical-debt.md content with new analysis results.
+
+```python
+def reconcile(
+    self,
+    existing_content: str,
+    new_result: DebtAnalysisResult,
+    logger: Optional[logging.Logger] = None
+) -> DebtAnalysisResult
+```
+
+**Parameters:**
+- `existing_content` (str): Content of existing technical-debt.md file
+- `new_result` (DebtAnalysisResult): Fresh analysis result from DebtDetector
+- `logger` (Optional[logging.Logger]): Logger instance
+
+**Returns:**
+- `DebtAnalysisResult`: Merged result containing:
+  - User-edited items (with preserved edits)
+  - Manually added items (preserved)
+  - Auto-resolved items (moved to RESOLVED status)
+  - New items (from fresh analysis)
+  - Historical resolved items (preserved)
+
+**Reconciliation Rules (applied in priority order):**
+
+1. **User-edited items**: If description or priority differs from detected value, keep existing version
+2. **Manually added items**: Items with IDs absent from fresh analysis are preserved with current status
+3. **Auto-resolved items**: Previously detected items absent from new analysis are moved to RESOLVED with `resolved_at` timestamp
+4. **New items**: Items from fresh analysis not in existing file are added with `status=ACTIVE` and `detected_at` timestamp
+5. **Historical resolved items**: Items already in Resolved section are preserved verbatim
+
+**Example:**
+```python
+from pathlib import Path
+from hiveforge.steering.detectors.debt_detector import DebtDetector
+from hiveforge.steering.detectors.debt_reconciler import DebtReconciler
+
+# Load existing file
+existing_path = Path(".kiro/steering/technical-debt.md")
+existing_content = existing_path.read_text(encoding="utf-8")
+
+# Run fresh analysis
+detector = DebtDetector(project_root=Path("."))
+new_result = detector.detect()
+
+# Reconcile
+reconciler = DebtReconciler()
+merged_result = reconciler.reconcile(existing_content, new_result)
+
+print(f"Active items: {len(merged_result.active_items())}")
+print(f"Resolved items: {len(merged_result.resolved_items())}")
+
+# Show what changed
+for item in merged_result.active_items():
+    if item.detected_at and "2026-02-25" in item.detected_at:
+        print(f"NEW: {item.description}")
+    elif not item.detected_at:
+        print(f"MANUAL: {item.description}")
+
+for item in merged_result.resolved_items():
+    if item.resolved_at and "2026-02-25" in item.resolved_at:
+        print(f"RESOLVED: {item.description}")
+```
+
+**Output Example:**
+```
+Active items: 8
+Resolved items: 4
+
+NEW: DRY violation: function 'process_data' body duplicated in 2 locations
+MANUAL: Legacy migration debt: refactor old authentication system
+RESOLVED: Missing test file for module 'utils' (expected test_utils.py)
+```
+
+**Parse Error Handling:**
+If existing file has parse errors, reconciler logs a warning and treats the file as empty, proceeding with fresh analysis only.
+
+---
+
 ## Workflow APIs
 
 ### `AutonomousWorkflow`
@@ -617,6 +835,75 @@ class DriftReport:
         """Return items sorted by confidence (highest first)"""
 ```
 
+### `DebtItem`
+
+Single technical debt item.
+
+```python
+@dataclass
+class DebtItem:
+    id: str  # 12-char hex ID (stable across re-runs)
+    category: DebtCategory  # CODE_QUALITY, TESTS, ARCHITECTURE, PERFORMANCE
+    description: str
+    location: str  # file:line format
+    priority: DebtPriority  # LOW, MEDIUM, HIGH, CRITICAL
+    effort: DebtEffort  # LOW, MEDIUM, HIGH
+    risk: DebtRisk  # LOW, MEDIUM, HIGH
+    status: DebtStatus  # ACTIVE, RESOLVED, ACCEPTED
+    confidence: float  # 0.0-1.0
+    recommendations: List[DebtRecommendation]  # At least 2
+    detected_at: Optional[str] = None  # ISO-8601 timestamp
+    resolved_at: Optional[str] = None  # ISO-8601 timestamp
+```
+
+### `DebtRecommendation`
+
+Recommendation for addressing a debt item.
+
+```python
+@dataclass
+class DebtRecommendation:
+    title: str
+    description: str
+    trade_offs: str
+    is_recommended: bool  # True for primary recommendation
+```
+
+### `DebtMetrics`
+
+Aggregated technical debt metrics.
+
+```python
+@dataclass
+class DebtMetrics:
+    total_active: int
+    by_category: Dict[str, int]  # category.value → count
+    by_priority: Dict[str, int]  # priority.value → count
+    last_updated: Optional[str] = None  # ISO-8601 timestamp
+```
+
+### `DebtAnalysisResult`
+
+Complete technical debt analysis result.
+
+```python
+@dataclass
+class DebtAnalysisResult:
+    items: List[DebtItem]
+    metrics: DebtMetrics
+    sampled: bool  # True if sampling was applied
+    analysis_time_s: float
+    
+    def to_json_dict(self) -> Dict[str, Any]:
+        """Serialize to JSON-compatible dict (for LLM context)"""
+    
+    def active_items(self) -> List[DebtItem]:
+        """Return only active items (status != RESOLVED)"""
+    
+    def resolved_items(self) -> List[DebtItem]:
+        """Return only resolved items (status == RESOLVED)"""
+```
+
 ### `LLMConfig`
 
 Configuration for LLM provider.
@@ -751,6 +1038,24 @@ if not report.has_drift():
 ---
 
 ## Version History
+
+### v3.0.0 (February 2026)
+
+**New APIs:**
+- `DebtDetector.detect()` - Technical debt detection via static analysis
+- `DebtReconciler.reconcile()` - Merge existing debt items with fresh analysis
+
+**New Data Models:**
+- `DebtItem`, `DebtRecommendation`, `DebtMetrics`, `DebtAnalysisResult`
+- `DebtCategory`, `DebtPriority`, `DebtStatus`, `DebtEffort`, `DebtRisk` (enums)
+
+**New Features:**
+- 9th steering file: `technical-debt.md`
+- Automatic technical debt detection (DRY, tests, architecture, performance)
+- Cache-based analysis for large codebases (sampling at 10k+ files)
+- Priority escalation based on conventions.md preferences
+- `--skip-debt-detection` CLI flag
+- MCP `debt_summary` metadata in workflow results
 
 ### v2.2.0 (February 2026)
 

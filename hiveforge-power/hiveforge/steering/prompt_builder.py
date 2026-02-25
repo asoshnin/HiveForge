@@ -389,6 +389,20 @@ Begin your response with the first Markdown heading."""
                     "",
                 ])
         
+        # Include detected debt facts for technical-debt.md (Requirements 9.2, 9.3, 9.4)
+        if context.debt_facts is not None:
+            import json as _json
+            prompt_parts.extend([
+                "## Detected Debt Facts",
+                "",
+                "The following debt items were detected by static analysis:",
+                "",
+                "```json",
+                _json.dumps(context.debt_facts.to_json_dict(), indent=2),
+                "```",
+                "",
+            ])
+
         # Final instruction
         prompt_parts.extend([
             "---",

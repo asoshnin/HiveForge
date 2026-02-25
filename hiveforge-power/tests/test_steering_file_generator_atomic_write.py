@@ -1,7 +1,7 @@
 """
 Property test for SteeringFileGenerator atomic write behavior.
 
-Tests that SteeringFileGenerator writes all 8 files or none (atomic transaction).
+Tests that SteeringFileGenerator writes all 9 files or none (atomic transaction).
 
 Requirements: 5.1, 5.2, 5.3
 """
@@ -22,10 +22,10 @@ from hiveforge.steering.models import (
 
 class TestAtomicWriteProperty:
     """
-    Property 6: Atomic write — all 8 files or none.
+    Property 6: Atomic write — all 9 files or none.
     
     If any draft fails validation, zero files are written to disk;
-    if all pass, exactly 8 files are written.
+    if all pass, exactly 9 files are written.
     
     Requirements: 5.1, 5.2, 5.3
     """
@@ -33,7 +33,7 @@ class TestAtomicWriteProperty:
     @pytest.mark.asyncio
     async def test_all_files_written_when_all_pass_validation(self, tmp_path):
         """
-        Test that all 8 files are written when all drafts pass validation.
+        Test that all 9 files are written when all drafts pass validation.
         
         Requirements: 5.1, 5.2
         """
@@ -90,10 +90,10 @@ class TestAtomicWriteProperty:
         
         # Assert result is successful
         assert result.success is True
-        assert len(result.files_written) == 8
+        assert len(result.files_written) == 9
         assert len(result.validation_errors) == 0
         
-        # Assert all 8 files exist on disk
+        # Assert all 9 files exist on disk
         expected_files = [
             "project-vision.md",
             "tech-stack.md",
@@ -103,6 +103,7 @@ class TestAtomicWriteProperty:
             "workflows.md",
             "security.md",
             "testing.md",
+            "technical-debt.md",
         ]
         
         for filename in expected_files:
