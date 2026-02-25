@@ -1,0 +1,9 @@
+{
+  "question_hash": "bf174fdcae6667f11a3f6d65a80db793563ea98f87f3696e408d6b944789b51f",
+  "response": "While AI coding tools excel at rapid prototyping through \"vibe coding,\" they fundamentally fail at scale due to \"context amnesia\" and a lack of strict architectural boundaries, causing agents to forget past decisions across sessions, hallucinate requirements, and generate unmaintainable \"spaghetti code\" full of abstraction leaks and circular dependencies that ultimately saddle human developers with compounding technical debt.",
+  "timestamp": 1771917803.4049177,
+  "metadata": {
+    "template": "project-vision",
+    "section": "Problem Statement"
+  }
+}

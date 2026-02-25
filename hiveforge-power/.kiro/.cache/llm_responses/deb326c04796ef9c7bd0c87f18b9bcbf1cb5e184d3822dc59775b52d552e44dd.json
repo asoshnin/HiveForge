@@ -1,0 +1,9 @@
+{
+  "question_hash": "deb326c04796ef9c7bd0c87f18b9bcbf1cb5e184d3822dc59775b52d552e44dd",
+  "response": "мы не используем базу данных в настоящий момент",
+  "timestamp": 1771927212.0470035,
+  "metadata": {
+    "template": "tech-stack",
+    "section": "Database"
+  }
+}

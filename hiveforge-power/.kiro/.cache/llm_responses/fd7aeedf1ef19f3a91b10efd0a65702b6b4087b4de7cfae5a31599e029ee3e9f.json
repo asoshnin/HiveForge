@@ -1,0 +1,9 @@
+{
+  "question_hash": "fd7aeedf1ef19f3a91b10efd0a65702b6b4087b4de7cfae5a31599e029ee3e9f",
+  "response": "**В разделе проектирования схемы базы данных (Schema Design) необходимо указать следующие правила:** для первичных ключей (Primary Keys) следует использовать UUID вместо автоинкрементных целых чисел, каждая таблица должна содержать временные метки (Timestamps) `created_at` и `updated_at`, для мягкого удаления (Soft Deletes) нужно использовать обнуляемую метку `deleted_at`, а также всегда необходимо определять ограничения для внешних ключей (Foreign Keys).",
+  "timestamp": 1771927538.5189028,
+  "metadata": {
+    "template": "db-standards",
+    "section": "Schema Design"
+  }
+}

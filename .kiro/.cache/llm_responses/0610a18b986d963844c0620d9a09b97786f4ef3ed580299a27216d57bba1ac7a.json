@@ -1,0 +1,9 @@
+{
+  "question_hash": "0610a18b986d963844c0620d9a09b97786f4ef3ed580299a27216d57bba1ac7a",
+  "response": "**HiveForge** is a dual CLI tool and KIRO IDE Power that replaces chaotic \"vibe coding\" with systematic agentic engineering by scaffolding a structured \"Virtual Company\" directly inside your repository. Its core differentiator is the **Truth Hierarchy**, which locks your project architecture, technical stacks, and coding conventions into immutable Steering Files, physically preventing AI agents from hallucinating requirements or causing architectural drift. Unlike standard AI assistants that suffer from cross-session context amnesia, HiveForge utilizes a persistent **`swarm_state.md`** file as the project's long-term memory to explicitly track decisions, active tasks, and technical debt across any duration of development. Furthermore, it enforces strict **Role-Based Agent Sandboxing**, deploying specialized agents—such as the Orchestrator, Builders, and an adversarial Red Team—with hard-coded read/write permissions that prevent cross-domain abstraction leaks, physically blocking a frontend agent from modifying database migrations for example. Finally, HiveForge features an AI-powered **Steering Assistant** that automatically analyzes existing codebases or parses artifacts to generate and maintain documentation, along with a unique enterprise-grade **Discrepancy Analysis** workflow to systematically identify and resolve gaps between your intended architectural documentation and the actual implemented codebase.",
+  "timestamp": 1771918294.2799947,
+  "metadata": {
+    "template": "project-vision",
+    "section": "Solution Overview"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "question_hash": "653e4de36e6482cda9f9b9a1c164222bcfbcee2244141925685edea5fbc452c9",
+  "response": "AI coding tools are great for rapid prototyping, but as projects grow, the AI quickly suffers from \"context amnesia\" and generates unmaintainable spaghetti code. HiveForge is the operating system for agentic coding. Instead of relying on chaotic \"vibe coding\" via a chat window, HiveForge is a CLI tool that scaffolds a structured \"Virtual Company\" directly inside your repository. It replaces chaos with systematic engineering by providing three core pillars: The Truth Hierarchy: It locks your project vision, architecture, and coding conventions into immutable Steering Files. The AI cannot write code until it validates against these rules, physically preventing hallucinations and architectural drift. Persistent Memory: A living swarm_state.md file tracks every decision, task, and technical debt item. If you pause development for a month, the AI remembers exactly where you left off. Sandboxed AI Agents: Instead of a single AI that touches everything, HiveForge deploys specialized agents with strict permissions. You get an Orchestrator who plans but cannot write code, Builders (like Backend or Frontend Engineers) who are sandboxed to their specific domains, and a Red Team that acts as an adversarial auditor to break your code before it ships. If you want to build a quick prototype in a weekend, use a standard AI chatbot. If you want to systematically engineer complex software that survives for years and can be maintained by a team, use HiveForge.",
+  "timestamp": 1771917719.0983608,
+  "metadata": {
+    "template": "project-vision",
+    "section": "Elevator Pitch"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "question_hash": "2a0455d785f0c91a01d796834a00b2088726f3ffda77c998cf030331f5519125",
+  "response": "According to the ui-standards.md steering file, UI components must follow strict structural and naming guidelines, such as writing one functional component per file and ordering the file with props first, followed by hooks, handlers, and the render function. Naming conventions require PascalCase for components and prop interfaces, the \"use\" prefix for hooks, and the \"handle\" prefix for event handlers. State management is handled via useState for local state, Context API or Redux/Zustand for global state, and React Query or SWR for server data. For styling, developers must use CSS Modules or Tailwind CSS along with design tokens, strictly avoiding inline styles unless they are dynamic. Accessibility guidelines mandate minimum WCAG AA color contrast, proper form labels, and aria-labels or visible text for all interactive elements. Additionally, performance optimizations like lazy loading, useMemo for expensive computations, and debouncing search inputs are required, while every component must be tested focusing on user behavior using Jest and React Testing Library",
+  "timestamp": 1771918978.8679912,
+  "metadata": {
+    "template": "ui-standards",
+    "section": "Component Patterns"
+  }
+}

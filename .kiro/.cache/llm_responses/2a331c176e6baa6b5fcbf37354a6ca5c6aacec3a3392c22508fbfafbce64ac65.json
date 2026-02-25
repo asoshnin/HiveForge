@@ -1,0 +1,9 @@
+{
+  "question_hash": "2a331c176e6baa6b5fcbf37354a6ca5c6aacec3a3392c22508fbfafbce64ac65",
+  "response": "According to the api-standards.md steering file template, the API Design Principles section should include guidelines on Endpoint Naming (using plural nouns, nested resources, and defining actions as POST requests), Versioning (using URL-based versions and never breaking existing ones), standard Response Formats (structuring JSON with data, meta, and errors objects), and proper usage of HTTP Methods (GET, POST, PUT, PATCH, DELETE). Additionally, it must detail appropriate HTTP Status Codes (such as 200 OK, 201 Created, 400 Bad Request, 422 Unprocessable Entity, etc.), standardized JSON Error Responses (containing error code, message, and specific field), Rate Limiting rules (such as 100 req/min per user using the X-RateLimit-Remaining header), and Authentication standards (utilizing JWT tokens in the Authorization header and specifying an endpoint for refresh tokens).",
+  "timestamp": 1771918480.5434926,
+  "metadata": {
+    "template": "api-standards",
+    "section": "API Design Principles"
+  }
+}

@@ -8,8 +8,8 @@ description: "API naming, versioning, error handling. Only loaded when working o
 
 ## Endpoint Naming
 - Use plural nouns: `/users`, `/orders`
-- Nested resources: `/users/{id}/orders`
-- Actions as POST: `/users/{id}/reset-password`
+- Nested resources: `/users/---/orders`
+- Actions as POST: `/users/---/reset-password`
 
 ## Versioning
 - URL-based: `/api/v1/users`
@@ -17,9 +17,8 @@ description: "API naming, versioning, error handling. Only loaded when working o
 
 ## Response Format
 ```json
-{
-  "data": {},
-  "meta": {"page": 1, "total": 100},
+---,
+  "meta": ---,
   "errors": []
 }
 ```
@@ -44,13 +43,7 @@ description: "API naming, versioning, error handling. Only loaded when working o
 
 ## Error Responses
 ```json
-{
-  "errors": [
-    {
-      "code": "VALIDATION_ERROR",
-      "message": "Email is required",
-      "field": "email"
-    }
+---
   ]
 }
 ```
@@ -60,5 +53,5 @@ description: "API naming, versioning, error handling. Only loaded when working o
 - Default: 100 req/min per user
 
 ## Authentication
-- Use JWT tokens in `Authorization: Bearer {token}` header
+- Use JWT tokens in `Authorization: Bearer ---` header
 - Refresh tokens: POST `/api/v1/auth/refresh`

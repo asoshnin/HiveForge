@@ -1,0 +1,9 @@
+{
+  "question_hash": "a64d17cd9bebd4ab3566cd89b806bee32e19823166a02e7ac9072a8c4771bf6c",
+  "response": "The database migration strategy strictly requires that developers never edit existing migrations and must always create new ones instead. Furthermore, all migrations must be tested on a staging environment before being deployed to production, and every single migration is required to include rollback logic.",
+  "timestamp": 1771927594.5640025,
+  "metadata": {
+    "template": "db-standards",
+    "section": "Migration Strategy"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "question_hash": "28ecfb0adc0aabb816c1575bb017da8f5d76e3a475b8a26697faa4a11adc808c",
+  "response": "**The Testing Strategy section should include** coverage requirements such as an 80% minimum overall coverage and 100% for critical paths, definitions and guidelines for unit, integration, and E2E tests, descriptive test naming patterns like `test_{what}_{condition}_{expected_outcome}`, adherence to the Arrange-Act-Assert (AAA) structure, a mandatory list of edge cases to cover including null inputs and network timeouts, and specific rules dictating that external APIs and databases must be mocked using realistic data while the code under test should never be mocked.",
+  "timestamp": 1771927655.1405172,
+  "metadata": {
+    "template": "qa-standards",
+    "section": "Testing Strategy"
+  }
+}

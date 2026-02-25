@@ -84,7 +84,8 @@ Ensure you're in the HiveForge project root:
 pwd
 # Should show: /path/to/HiveForge
 
-ls -la
+ls -la # for Mac
+Get-ChildItem # for Windows
 # Should show: README.md, pyproject.toml, src/, tests/, docs/, etc.
 ```
 
@@ -141,7 +142,7 @@ Before generating actual files, preview what will be created.
 
 **2.1 Run dry-run with code analysis:**
 ```bash
-hiveforge steering init --analyze-code --dry-run
+hiveforge steering init --analyze-code
 ```
 
 **What This Does:**

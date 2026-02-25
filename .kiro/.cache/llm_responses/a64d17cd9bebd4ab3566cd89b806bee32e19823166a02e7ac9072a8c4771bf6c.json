@@ -1,0 +1,9 @@
+{
+  "question_hash": "a64d17cd9bebd4ab3566cd89b806bee32e19823166a02e7ac9072a8c4771bf6c",
+  "response": "According to the db-standards.md steering file template, the database migration strategy requires that developers must never edit existing migrations and must always create new ones instead. Additionally, it mandates that migrations must be tested on a staging environment prior to production deployment and that explicit rollback logic must be included within every migration. Within the HiveForge ecosystem, the execution of this strategy is strictly assigned to the Data Architect agent, who is exclusively responsible for generating and applying SQL or ORM migrations (such as Prisma, Alembic, or TypeORM) while being physically sandboxed from the UI and API layers to ensure architectural integrity.",
+  "timestamp": 1771918910.961549,
+  "metadata": {
+    "template": "db-standards",
+    "section": "Migration Strategy"
+  }
+}

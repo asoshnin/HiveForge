@@ -1,0 +1,1009 @@
+# Steering Assistant User Guide
+
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Terminology](#terminology)
+3. [Getting Started](#getting-started)
+4. [Using from KIRO IDE](#using-from-kiro-ide)
+5. [Init Workflow](#init-workflow)
+6. [Update Workflow](#update-workflow)
+7. [Validate Workflow](#validate-workflow)
+8. [Best Practices](#best-practices)
+9. [Troubleshooting](#troubleshooting)
+10. [Advanced Usage](#advanced-usage)
+
+## Overview
+
+The Steering Assistant is an AI-powered tool that helps you create and maintain steering files throughout your project lifecycle. It automates the tedious process of documenting your project's vision, tech stack, architecture, and conventions.
+
+### What It Does
+
+- **Analyzes Your Codebase**: Automatically extracts tech stack, architecture, and coding conventions
+- **Parses Artifacts**: Reads project specs, diagrams, and documentation (markdown, PDF, images)
+- **Fills Knowledge Gaps**: Conducts interactive conversations to gather missing information
+- **Generates Steering Files**: Creates 8 comprehensive steering files
+- **Maintains Over Time**: Updates steering files as your project evolves
+- **Preserves Customizations**: Keeps your manual edits during updates
+
+### v2.2.0 New Features
+
+#### Custom Source Document Paths
+
+Specify where your design documents are located:
+```bash
+hiveforge steering init --source-docs-path="docs/design"
+```
+
+**Default**: `.kiro/onboarding/`
+**Custom**: Any directory relative to project root
+
+#### Confidence Scoring
+
+Know which content is from documents vs. inferred:
+```yaml
+---
+confidence_level: medium
+confidence_score: 0.65
+source_documents_found: 3
+inferred_sections: ["Rationale", "Trade-offs"]
+---
+```
+
+**Confidence Levels:**
+- **High (0.7-1.0)**: Most content from source documents
+- **Medium (0.4-0.7)**: Mix of documents and code analysis
+- **Low (0.0-0.4)**: Mostly inferred from code
+
+#### [INFERRED] Markers
+
+Sections generated without source documents are clearly marked:
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
+
+These sections should be reviewed and updated with accurate information.
+
+#### Dry-Run Mode
+
+Preview what will be generated before committing:
+```bash
+hiveforge steering init --dry-run
+```
+
+Returns preview of all files with metadata and confidence scores.
+
+#### Hallucination Guardrails
+
+Clear warnings when source material is missing:
+- Low confidence warnings at top of files
+- [INFERRED] tags on inferred sections
+- Confidence metadata in frontmatter
+
+### When to Use It
+
+- **New Projects**: Generate steering files from project specs and requirements
+- **Existing Projects**: Import existing codebase and documentation
+- **Project Updates**: Keep steering files in sync with code changes
+- **Team Onboarding**: Create comprehensive documentation for new team members
+- **Compliance**: Ensure documentation meets organizational standards
+
+## Terminology
+
+To avoid confusion, here are the different components with similar names:
+
+### HiveForge Power (MCP Tools)
+- **What**: A KIRO Power that provides MCP tools for the KIRO orchestrator
+- **Where**: Installed as `hiveforge-steering-mcp` package
+- **How to use**: Activated automatically in KIRO IDE when you mention keywords like "steering" or "documentation"
+- **Example**: "Initialize steering files for my project" (in KIRO chat)
+
+### Steering Assistant Agent (KIRO Agent)
+- **What**: A KIRO agent definition that can be invoked for interactive steering file creation
+- **Where**: Defined in `.kiro/agents/steering_assistant.md`
+- **How to use**: Fallback option when Power is not available or for complex interactive workflows
+- **Example**: Invoke via KIRO agent system (less common)
+
+### SteeringAssistant Class (Python Class)
+- **What**: Internal Python class that implements the AI conversation logic
+- **Where**: `src/hiveforge/steering/agents/steering_assistant.py`
+- **How to use**: Used internally by workflows, not directly by users
+- **Example**: Called by InitWorkflow during autonomous mode
+
+**Key Distinction**: 
+- Use **HiveForge Power** from KIRO IDE (recommended, automatic)
+- Use **CLI commands** for scripting and automation
+- The **Steering Assistant agent** is a fallback for complex scenarios
+- The **SteeringAssistant class** is internal implementation
+
+## Getting Started
+
+### Prerequisites
+
+- HiveForge installed (`pip install hiveforge` or install from source)
+- A HiveForge project initialized (`hiveforge -n my-project`)
+- Optional: Project artifacts (specs, diagrams, docs) to import
+
+### Quick Start
+
+```bash
+# 1. Create a new HiveForge project
+hiveforge -n my-awesome-app
+cd my-awesome-app
+
+# 2. Generate steering files
+hiveforge steering init
+
+# 3. Answer questions during conversation
+# The assistant will ask about your project
+
+# 4. Review generated files
+ls .kiro/steering/
+```
+
+## Using from KIRO IDE
+
+The HiveForge Power provides the easiest way to work with steering files from within KIRO IDE.
+
+### Automatic Activation
+
+The Power activates automatically when you mention these keywords in KIRO chat:
+- "steering"
+- "steering files"
+- "documentation"
+- "onboarding"
+- "project setup"
+- "project documentation"
+
+### Basic Usage Examples
+
+**Initialize steering files:**
+```
+"Please initialize steering files for my project"
+```
+
+**Initialize with custom source documents:**
+```
+"Initialize steering files using documents from my __DEVELOPMENT folder"
+```
+
+**Initialize with specific path:**
+```
+"Initialize steering files with source_docs_path='docs/project-info'"
+```
+
+**Preview without creating files (dry-run):**
+```
+"Show me what steering files would be generated without creating them"
+```
+
+**Update existing files:**
+```
+"Update my steering files with the latest changes"
+```
+
+**Validate files:**
+```
+"Validate my steering files for completeness"
+```
+
+### Source Document Location
+
+**Default behavior**: The Power looks for existing documentation in `.kiro/onboarding/` directory.
+
+**Custom paths**: You can specify a different location:
+- `"Use documents from _DEVELOPMENT/ to initialize steering files"`
+- `"Initialize steering with source_docs_path='documentation/specs'"`
+- `"Generate steering files from docs in my-docs/ folder"`
+
+**Understanding confidence scores**:
+- Files generated from source documents have **high confidence**
+- Files inferred from code analysis have **lower confidence** and include `[INFERRED]` tags
+- Low confidence warnings appear at the top of generated files
+
+### Parameters Available
+
+When using the Power, you can specify these parameters naturally:
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `source_docs_path` | Custom location for source documents | "use docs from my-docs/" |
+| `dry_run` | Preview without creating files | "show me what would be generated" |
+| `auto_discover` | Enable automatic discovery | "discover existing docs" |
+| `autonomous` | Enable AI generation | "generate autonomously" |
+| `confidence_threshold` | Minimum confidence (autonomous mode only) | "use confidence threshold 0.8" |
+
+**Note**: `confidence_threshold` only applies when `autonomous=True`. It determines the minimum confidence score required for the AI to proceed without asking questions.
+
+### Response Format
+
+The Power returns structured JSON responses:
+
+```json
+{
+  "status": "success",
+  "message": "Successfully initialized steering files (5 files created)",
+  "files_created": [
+    ".kiro/steering/tech-stack.md",
+    ".kiro/steering/architecture.md",
+    ".kiro/steering/conventions.md",
+    ".kiro/steering/project-vision.md"
+  ],
+  "warnings": ["No source documents found in .kiro/onboarding/"],
+  "confidence_level": "medium",
+  "source_documents_found": 0,
+  "files_count": 5
+}
+```
+
+### When to Use CLI vs Power
+
+**Use HiveForge Power (KIRO IDE)**:
+- Interactive exploration and generation
+- Quick updates and validation
+- Natural language interface
+- Automatic keyword activation
+
+**Use CLI**:
+- Scripting and automation
+- CI/CD pipelines
+- Batch processing
+- Non-interactive workflows
+
+## Init Workflow
+
+The init workflow creates steering files from scratch.
+
+### Source Document Location
+
+**Important**: By default, the init workflow looks for existing documentation in `.kiro/onboarding/` directory.
+
+**Default behavior**:
+```bash
+# Looks in .kiro/onboarding/ for source documents
+hiveforge steering init
+```
+
+**Custom source path**:
+```bash
+# Use documents from a different location
+hiveforge steering init --source-docs-path=docs/project-info
+
+# Use documents from development folder
+hiveforge steering init --source-docs-path=__DEVELOPMENT
+```
+
+**What happens**:
+1. The workflow scans the specified path for documentation
+2. Documents found are used to generate more accurate steering files
+3. If no documents found, content is inferred from code analysis (with `[INFERRED]` tags)
+4. Confidence scores are calculated based on source document availability
+
+**Confidence Scoring:**
+- Files generated from source documents have **high confidence** (0.7-1.0)
+- Files inferred from code analysis have **lower confidence** (0.4-0.7)
+- Files with minimal information have **low confidence** (0.0-0.4)
+
+**[INFERRED] Markers:**
+Sections without source material are marked:
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
+
+### Basic Init
+
+```bash
+# Interactive mode (default)
+hiveforge steering init
+```
+
+This will:
+1. Look for documents in `.kiro/onboarding/` (or custom path if specified)
+2. Check for existing steering files (prompts for backup if found)
+3. Parse any artifacts found
+4. Conduct interactive conversation to gather missing information
+5. Generate steering files in `.kiro/steering/`
+6. Add confidence metadata and `[INFERRED]` tags where needed
+7. Validate generated files
+
+### Init with Code Analysis
+
+```bash
+# Analyze existing codebase
+hiveforge steering init --analyze-code
+```
+
+This automatically extracts:
+- **Languages & Versions**: From file extensions and dependency files
+- **Tech Stack**: From package.json, requirements.txt, go.mod, etc.
+- **Architecture**: From directory structure patterns
+- **Conventions**: From actual code (naming, indentation, docstrings)
+- **Documentation**: From README files and docs folders
+
+**Benefits:**
+- Reduces questions during conversation
+- More accurate information extraction
+- Faster setup for existing projects
+
+### Init with Artifacts
+
+```bash
+# 1. Place artifacts in staging folder (default location)
+mkdir -p .kiro/onboarding
+cp project-spec.md .kiro/onboarding/
+cp architecture-diagram.pdf .kiro/onboarding/
+cp requirements.png .kiro/onboarding/
+
+# 2. Run init
+hiveforge steering init
+
+# OR use a custom source path
+mkdir -p docs/project-info
+cp project-spec.md docs/project-info/
+hiveforge steering init --source-docs-path=docs/project-info
+```
+
+**Supported Formats:**
+- **Markdown** (.md): Project specs, requirements, documentation
+- **PDF** (.pdf): Architecture diagrams, design docs, presentations
+- **Images** (.png, .jpg): Screenshots, diagrams, mockups (OCR)
+
+### Dry-Run Mode (Preview)
+
+```bash
+# Preview what would be generated without creating files
+hiveforge steering init --dry-run
+
+# Preview with custom source path
+hiveforge steering init --dry-run --source-docs-path=docs/specs
+```
+
+**Use Cases:**
+- Preview generated content before committing
+- Test different source document locations
+- Verify confidence scores before generation
+- Check for warnings without making changes
+
+**Output**: Returns preview of all files that would be created, including metadata and confidence scores.
+
+### Non-Interactive Mode
+
+```bash
+# Skip conversation, use only artifacts and code analysis
+hiveforge steering init --no-interactive --analyze-code
+```
+
+**Use Cases:**
+- CI/CD pipelines
+- Batch processing
+- When all information is available in artifacts
+
+### Init with Web Research
+
+```bash
+# Enable web research for missing information
+hiveforge steering init --research
+```
+
+**When to Use:**
+- Looking up library versions
+- Finding best practices
+- Researching technology choices
+
+**Note:** Requires internet connection and may increase processing time.
+
+### Skip Validation
+
+```bash
+# Skip automatic validation after generation
+hiveforge steering init --skip-validation
+```
+
+**Use Cases:**
+- Faster iteration during development
+- When you plan to manually review files
+- When validation is done separately
+
+### Complete Example
+
+```bash
+# Full-featured init with custom source path
+hiveforge steering init \
+  --source-docs-path=__DEVELOPMENT \
+  --analyze-code \
+  --research \
+  --interactive
+
+# Preview mode with custom source
+hiveforge steering init \
+  --dry-run \
+  --source-docs-path=docs/specs \
+  --analyze-code
+```
+
+### Understanding Confidence Metadata
+
+Generated files include confidence metadata in YAML frontmatter:
+
+```yaml
+---
+confidence_level: medium
+confidence_score: 0.65
+source_documents_found: 3
+inferred_sections: ["Rationale", "Trade-offs"]
+---
+```
+
+**Confidence Levels**:
+- **High (0.7-1.0)**: Most content from source documents, minimal inference
+- **Medium (0.4-0.7)**: Mix of source documents and code analysis
+- **Low (0.0-0.4)**: Mostly inferred from code, few source documents
+
+**Inferred Section Tags**:
+Sections generated without source documents are marked with `[INFERRED]`:
+
+```markdown
+## Rationale [INFERRED]
+{Why this stack? Trade-offs considered?}
+```
+
+These sections should be reviewed and updated with accurate information.
+
+## Update Workflow
+
+The update workflow updates existing steering files with new information.
+
+### Basic Update
+
+```bash
+# 1. Add new artifacts
+cp updated-requirements.md .kiro/onboarding/
+
+# 2. Run update
+hiveforge steering update
+```
+
+This will:
+1. Verify existing steering files exist
+2. Parse existing steering files
+3. Parse new artifacts from `.kiro/onboarding/`
+4. Detect user customizations (preserves them)
+5. Conduct conversation to gather missing information
+6. Detect conflicts between old and new information
+7. Generate diffs showing proposed changes
+8. Ask for user approval
+9. Apply approved changes
+10. Validate updated files
+
+### Update with Research
+
+```bash
+# Enable web research during update
+hiveforge steering update --research
+```
+
+### Non-Interactive Update
+
+```bash
+# Skip conversation, use only artifacts
+hiveforge steering update --no-interactive
+```
+
+**Note:** Non-interactive updates will only apply changes that don't conflict with existing content.
+
+### Reviewing Diffs
+
+During update, you'll see diffs like this:
+
+```diff
+--- tech-stack.md (original)
++++ tech-stack.md (updated)
+@@ -5,7 +5,7 @@
+ ### Backend
+-- **Language:** Python 3.10
++- **Language:** Python 3.11
+ - **Framework:** FastAPI
+```
+
+**Options:**
+- **Accept**: Apply all changes
+- **Reject**: Keep existing content
+- **Review**: See detailed diff for each file
+
+### Conflict Resolution
+
+If conflicts are detected, you'll be prompted to resolve them:
+
+```
+Conflict detected in tech-stack.md:
+
+Old value: PostgreSQL 14
+New value: PostgreSQL 15
+
+Which value should we use?
+1. Keep old value (PostgreSQL 14)
+2. Use new value (PostgreSQL 15)
+3. Enter custom value
+
+Choice:
+```
+
+### Customization Preservation
+
+The update workflow automatically preserves your customizations:
+
+- **Detected Customizations**: Content beyond placeholder replacements
+- **Preserved**: Custom sections, formatting, additional content
+- **Updated**: Only template placeholders and conflicting information
+
+**Example:**
+
+```markdown
+# Original template
+## Tech Stack
+{BACKEND_LANGUAGE}
+
+# Your customization
+## Tech Stack
+Python 3.11
+
+### Why Python?
+We chose Python for its excellent data science libraries...
+
+# After update (customization preserved)
+## Tech Stack
+Python 3.11
+
+### Why Python?
+We chose Python for its excellent data science libraries...
+```
+
+## Validate Workflow
+
+The validate workflow checks steering files for completeness and consistency.
+
+### Basic Validation
+
+```bash
+# Validate steering files
+hiveforge steering validate
+```
+
+**Checks:**
+- Unreplaced placeholders (e.g., `{PROJECT_NAME}`)
+- Missing required sections
+- Invalid frontmatter
+- Inconsistencies across files
+- Stub content (TODO, FIXME)
+
+### Strict Mode
+
+```bash
+# Treat warnings as errors
+hiveforge steering validate --strict
+```
+
+**Use Cases:**
+- CI/CD pipelines
+- Pre-commit hooks
+- Quality gates
+
+### Validation Report
+
+```
+Validation Report
+================
+
+✓ project-vision.md: PASS
+✓ tech-stack.md: PASS
+⚠ architecture.md: 2 warnings
+  Line 15: [WARNING] Inconsistent technology reference
+    Found: "PostgreSQL 14" but tech-stack.md specifies "PostgreSQL 15"
+    Suggestion: Update to match tech-stack.md
+
+✗ conventions.md: 1 critical issue
+  Line 8: [CRITICAL] Unreplaced placeholder
+    Found: "{INDENT_STYLE}"
+    Suggestion: Replace with actual indentation style
+
+Summary
+-------
+Files checked: 8
+Passed: 6
+Warnings: 1
+Critical issues: 1
+
+Validation FAILED (1 critical issue)
+```
+
+### Exit Codes
+
+- **0**: Validation passed (or only warnings in non-strict mode)
+- **1**: Validation failed (critical issues or warnings in strict mode)
+
+### Automatic Validation
+
+Validation runs automatically after:
+- `hiveforge steering init` (unless --skip-validation)
+- `hiveforge steering update` (unless --skip-validation)
+
+## Best Practices
+
+### For New Projects
+
+1. **Start with Artifacts**: Place project specs in `.kiro/onboarding/` before running init
+2. **Use Code Analysis**: If you have existing code, use `--analyze-code`
+3. **Be Specific**: Provide detailed answers during conversation
+4. **Review Output**: Always review generated files before committing
+5. **Validate**: Run `hiveforge steering validate --strict` before committing
+
+### For Existing Projects
+
+1. **Import Codebase**: Always use `--analyze-code` for existing projects
+2. **Import Documentation**: Copy existing docs to `.kiro/onboarding/`
+3. **Incremental Approach**: Start with basic info, refine over time
+4. **Preserve History**: Keep backups of manual edits
+5. **Regular Updates**: Update steering files when architecture changes
+
+### For Team Collaboration
+
+1. **Version Control**: Commit steering files to git
+2. **Review Changes**: Use pull requests for steering file updates
+3. **Consistent Updates**: Designate team members to maintain steering files
+4. **Validation in CI**: Add `hiveforge steering validate --strict` to CI pipeline
+5. **Documentation Culture**: Encourage team to reference steering files
+
+### For Maintenance
+
+1. **Regular Updates**: Update steering files quarterly or after major changes
+2. **Artifact Management**: Keep `.kiro/onboarding/` clean (remove outdated artifacts)
+3. **Customization Tracking**: Document why you made customizations
+4. **Validation Checks**: Run validation before releases
+5. **Backup Strategy**: Keep backups in `.kiro/backups/`
+
+## Troubleshooting
+
+### Issue: Assistant asks too many questions
+
+**Symptoms:**
+- Long conversation with many questions
+- Questions about information that should be obvious
+
+**Solutions:**
+1. Use `--analyze-code` to auto-extract information
+2. Place more artifacts in `.kiro/onboarding/`
+3. Use `--no-interactive` if you have all information in artifacts
+
+### Issue: Generated content is too generic
+
+**Symptoms:**
+- Steering files contain placeholder-like content
+- Information lacks specificity
+
+**Solutions:**
+1. Provide more detailed answers during conversation
+2. Add more specific artifacts (detailed specs, architecture diagrams)
+3. Use `--research` to find more accurate information
+4. Manually edit generated files and run update to refine
+
+### Issue: Customizations not preserved during update
+
+**Symptoms:**
+- Manual edits are overwritten during update
+- Custom sections disappear
+
+**Solutions:**
+1. Ensure customizations are substantial (not just placeholder replacements)
+2. Check that customizations are in proper markdown format
+3. Review diff carefully before accepting changes
+4. Report issue if customizations should have been preserved
+
+### Issue: LLM API rate limiting
+
+**Symptoms:**
+- "Rate limit exceeded" errors
+- Slow processing with retries
+
+**Solutions:**
+1. Wait a few minutes (automatic retry with exponential backoff)
+2. Use `--no-interactive` to reduce API calls
+3. Check response cache (`.kiro/.cache/response_cache.json`)
+4. Reduce batch size in configuration (advanced)
+
+### Issue: Validation fails with false positives
+
+**Symptoms:**
+- Validation reports issues that aren't actually problems
+- Warnings for acceptable content
+
+**Solutions:**
+1. Review validation rules (may be too strict for your project)
+2. Use normal mode instead of strict mode
+3. Manually verify reported issues
+4. Report false positives as bugs
+
+### Issue: Code analysis fails or times out
+
+**Symptoms:**
+- "Code analysis timeout" errors
+- Analysis takes too long
+
+**Solutions:**
+1. Check for very large codebases (>10k files)
+2. Ensure `.gitignore` is properly configured
+3. Remove unnecessary files from analysis
+4. Use sampling strategy (automatic for large codebases)
+
+### Issue: Artifacts not parsed correctly
+
+**Symptoms:**
+- PDF content is garbled
+- Images not recognized
+- Markdown formatting lost
+
+**Solutions:**
+1. **PDF Issues**: Ensure PDF is not encrypted or corrupted
+2. **Image Issues**: Install tesseract for OCR (`brew install tesseract` on macOS)
+3. **Markdown Issues**: Check UTF-8 encoding
+4. **General**: Try converting to different format
+
+### Issue: Conversation takes too long
+
+**Symptoms:**
+- Many back-and-forth questions
+- Slow progress
+
+**Solutions:**
+1. Use `--no-interactive` to skip conversation
+2. Provide more complete artifacts upfront
+3. Use `--analyze-code` to reduce questions
+4. Answer questions in batches (max 8 per batch)
+
+## Advanced Usage
+
+### Custom Workflows
+
+#### Workflow 1: Import Existing Project
+
+```bash
+# 1. Initialize HiveForge project
+hiveforge -n existing-app
+cd existing-app
+
+# 2. Copy existing documentation
+cp ../old-project/README.md .kiro/onboarding/
+cp ../old-project/docs/architecture.md .kiro/onboarding/
+
+# 3. Generate steering files with code analysis
+hiveforge steering init --analyze-code --research
+
+# 4. Review and refine
+hiveforge steering validate --strict
+```
+
+#### Workflow 2: Continuous Documentation
+
+```bash
+# 1. Make code changes
+git checkout -b feature/new-api
+
+# 2. Update documentation
+cp api-spec.md .kiro/onboarding/
+
+# 3. Update steering files
+hiveforge steering update --no-interactive
+
+# 4. Validate
+hiveforge steering validate --strict
+
+# 5. Commit
+git add .kiro/steering/
+git commit -m "docs: update steering files for new API"
+```
+
+#### Workflow 3: CI/CD Integration
+
+```yaml
+# .github/workflows/validate-steering.yml
+name: Validate Steering Files
+
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+      
+      - name: Install HiveForge
+        run: pip install hiveforge
+      
+      - name: Validate steering files
+        run: hiveforge steering validate --strict
+```
+
+### Configuration
+
+The Steering Assistant can be configured via `SteeringConfig`:
+
+```python
+from hiveforge.steering.models import SteeringConfig
+from pathlib import Path
+
+config = SteeringConfig(
+    research_enabled=True,       # Enable web research
+    skip_validation=False,       # Run validation
+    interactive=True,            # Enable conversation
+    analyze_code=True,           # Analyze codebase
+    backup_enabled=True,         # Create backups
+    backup_dir=Path(".kiro/backups"),
+    strict_mode=False,           # Validation strictness
+)
+```
+
+### Response Caching
+
+The Steering Assistant caches LLM responses to avoid redundant API calls:
+
+**Cache Location:** `.kiro/.cache/response_cache.json`
+
+**Clear Cache:**
+```bash
+rm .kiro/.cache/response_cache.json
+```
+
+**Benefits:**
+- Faster responses for repeated questions
+- Reduced API costs
+- Consistent answers
+
+### Token Efficiency
+
+The Steering Assistant minimizes token usage:
+
+- **Question Batching**: Max 8 questions per batch
+- **Knowledge Base Limiting**: Max 4000 tokens of context
+- **Template Summaries**: Max 2000 tokens per steering file
+- **Incremental Updates**: Max 3000 tokens per file update
+- **Local Analysis**: All code analysis runs locally (no LLM calls)
+
+### Error Recovery
+
+The Steering Assistant handles errors gracefully:
+
+- **Corrupted Files**: Skips and continues with other files
+- **Missing Dependencies**: Infers from import statements
+- **LLM Rate Limiting**: Automatic retry with exponential backoff (2^retry_count seconds)
+- **Network Issues**: Retries with backoff, falls back to cached responses
+- **Parsing Errors**: Logs error, continues with remaining files
+
+#### Automatic Rollback (v2.1.0)
+
+When workflows fail, the system automatically creates backups:
+
+```bash
+# If init fails, backup is created automatically
+hiveforge steering init
+
+# Output on failure:
+# ⚠️  Workflow failed. Backup created at:
+#    /path/to/project/.kiro/backups/backup_20260217_103000
+#
+# To restore from backup:
+#    cp -r /path/to/project/.kiro/backups/backup_20260217_103000/steering .kiro/
+```
+
+**Backup Features:**
+- Automatic backup creation on failure
+- Timestamp-named backup directories
+- Preserves all steering files
+- Easy restore process
+
+#### Rollback Configuration
+
+```python
+from hiveforge.steering.models import SteeringConfig
+
+config = SteeringConfig(
+    rollback_enabled=True,           # Enable automatic rollback
+    max_backups=10,                  # Maximum backups to keep
+    backup_dir=Path(".kiro/backups"),  # Custom backup location
+)
+```
+
+### Telemetry Collection (v2.1.0)
+
+The Steering Assistant collects telemetry data for monitoring and optimization.
+
+#### What is Collected
+
+**Workflow Events:**
+- Workflow start/complete/failure timestamps
+- Interface type (CLI, MCP, API)
+- Parameters used
+
+**Performance Metrics:**
+- Duration (milliseconds)
+- Files created/modified
+- Memory usage
+- CPU time
+
+**Error Tracking:**
+- Error types and messages
+- Error frequency
+- Recovery success rate
+
+#### Telemetry Storage
+
+Telemetry data is stored locally in `.kiro/.telemetry/`:
+
+```
+.kiro/.telemetry/
+├── workflow_start_2026-02-17T10-30-00.json
+├── workflow_complete_2026-02-17T10-30-05.json
+├── workflow_error_2026-02-17T10-31-00.json
+└── ...
+```
+
+#### Example Telemetry File
+
+```json
+{
+  "event_type": "workflow_complete",
+  "timestamp": "2026-02-17T10:30:05",
+  "workflow_name": "init",
+  "interface_type": "CLI",
+  "success": true,
+  "duration_ms": 15234,
+  "files_created": 8,
+  "files_modified": 0,
+  "parameters": {
+    "analyze_code": true,
+    "research": false
+  }
+}
+```
+
+#### Telemetry Configuration
+
+```python
+from hiveforge.steering.models import SteeringConfig
+
+config = SteeringConfig(
+    telemetry_enabled=True,          # Enable/disable telemetry
+    telemetry_dir=Path(".kiro/.telemetry"),  # Custom telemetry directory
+)
+```
+
+#### Privacy Notes
+
+- **Local Storage Only**: Telemetry data is never sent externally
+- **No PII Collected**: No personal information is tracked
+- **User Control**: Can be disabled via configuration
+- **Easy to Delete**: Simply remove `.kiro/.telemetry/` directory
+
+## Related Documentation
+
+- [Steering Assistant Agent Definition](../.kiro/agents/steering_assistant.md)
+- [Steering Validator Agent Definition](../.kiro/agents/steering_validator.md)
+- [HiveForge README](../README.md)
+- [Architecture Documentation](./architecture.md)
+- [Troubleshooting Guide](./troubleshooting.md)
+
+## Support
+
+- **Bug Reports**: [GitHub Issues](https://github.com/asoshnin/HiveForge/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/asoshnin/HiveForge/discussions)
+- **Questions**: Check [Troubleshooting](#troubleshooting) section first
+
+---
+
+**Last Updated**: February 2026
+**Version**: 2.2.0
